@@ -11,6 +11,23 @@ Next.js App Router, TypeScript, Tailwind v4.
 comments, documentation, commit messages, PR descriptions. A Bulgarian string in
 the codebase should be user-facing copy and nothing else.
 
+## Git process
+
+Branches are `<type>/<lowercase-kebab-summary>`, where the type says what the
+branch changes: `feature/` (new user-facing capability), `fix/` (a bug in
+existing behaviour), `chore/` (tooling, config, dependencies, CI, docs — nothing
+the app does changes), `refactor/` (structure changes, behaviour identical).
+
+`develop` is the default branch and the base for every PR. `main` is promoted
+from `develop` once a meaningful chunk of work is finished, and is never the
+target of a feature PR.
+
+**Installing a package is not a unit of work.** A dependency carries no
+revertable meaning on its own, so it belongs in the branch and commit of whatever
+needed it — the same goes for a config change that exists only to make a feature
+run. A commit is something that can be reverted on its own without breaking
+anything else.
+
 ## Agent files
 
 `AGENTS.md` is owned by Next.js tooling, not by this project. `next dev` rewrites

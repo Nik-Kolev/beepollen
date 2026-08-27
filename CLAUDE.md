@@ -45,6 +45,15 @@ needed it — the same goes for a config change that exists only to make a featu
 run. A commit is something that can be reverted on its own without breaking
 anything else.
 
+## Preview deployment
+
+Vercel serves `develop` at a permanent demo URL and each PR at a temporary one —
+a demo for owner feedback, not the production host.
+
+`next.config.ts` sets `X-Robots-Tag: noindex, nofollow` on every route, because
+Vercel noindexes preview deployments but not production ones. **Remove it when
+the real production host and domain go live.**
+
 ## Agent files
 
 `AGENTS.md` is owned by Next.js tooling, not by this project. `next dev` rewrites

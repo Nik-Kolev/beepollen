@@ -22,6 +22,12 @@ the app does changes), `refactor/` (structure changes, behaviour identical).
 from `develop` once a meaningful chunk of work is finished, and is never the
 target of a feature PR.
 
+Every PR runs `.github/workflows/ci.yml` — install, lint, `tsc --noEmit`, build.
+The check is required on `develop` and `main`, so a failing run blocks the merge.
+The workflow file says what is checked; the branch ruleset is what makes passing
+mandatory, and it lives in GitHub's settings so a PR cannot remove the rule
+judging it.
+
 **Installing a package is not a unit of work.** A dependency carries no
 revertable meaning on its own, so it belongs in the branch and commit of whatever
 needed it — the same goes for a config change that exists only to make a feature
@@ -46,3 +52,7 @@ script stays blocked until approved by name (`npm approve-scripts <pkg>`), which
 writes a **version-pinned** entry into `package.json` — a version bump
 deliberately re-triggers the review. Never approve with a blanket flag, and
 re-run `npm install` afterwards so the approved script actually executes.
+
+CI installs with `npm ci --strict-allow-scripts`, which fails the run when a
+package's install script is not covered by `allowScripts`. Without it npm skips
+the script and the run stays green.

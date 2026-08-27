@@ -22,7 +22,12 @@ the app does changes), `refactor/` (structure changes, behaviour identical).
 from `develop` once a meaningful chunk of work is finished, and is never the
 target of a feature PR.
 
-Every PR runs `.github/workflows/ci.yml` — install, lint, `tsc --noEmit`, build.
+Every PR runs `.github/workflows/ci.yml` — install, then the `lint`, `typecheck` and
+`build` npm scripts. `npm run ci` runs the same three locally, so a local pass and a
+CI pass mean the same thing. `typecheck` regenerates route types before `tsc`
+because `LayoutProps` and friends live in `.next/types`, which a clean checkout
+does not have.
+
 The check is required on `develop` and `main`, so a failing run blocks the merge.
 The workflow file says what is checked; the branch ruleset is what makes passing
 mandatory, and it lives in GitHub's settings so a PR cannot remove the rule

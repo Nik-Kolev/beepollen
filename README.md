@@ -21,3 +21,5 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run build` | Production build |
 | `npm start` | Serve the production build |
 | `npm run lint` | ESLint |
+| `npm run typecheck` | Route types, then `tsc --noEmit` |
+| `npm run ci` | Everything CI runs, in order |

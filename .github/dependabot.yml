@@ -5,5 +5,3 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-
-# npm updates stay off until the lint and test tooling is settled.

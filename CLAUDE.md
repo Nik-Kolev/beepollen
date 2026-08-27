@@ -33,6 +33,12 @@ The workflow file says what is checked; the branch ruleset is what makes passing
 mandatory, and it lives in GitHub's settings so a PR cannot remove the rule
 judging it.
 
+PRs land by **rebase merge**, the only method the ruleset allows. Commits are
+replayed onto `develop` with new hashes, so each one stays independently
+revertable and no merge commits appear. A branch is dead once its PR merges — its
+commits no longer exist under those hashes, so pull `develop` and branch again
+rather than reusing it.
+
 **Installing a package is not a unit of work.** A dependency carries no
 revertable meaning on its own, so it belongs in the branch and commit of whatever
 needed it — the same goes for a config change that exists only to make a feature
@@ -61,3 +67,7 @@ re-run `npm install` afterwards so the approved script actually executes.
 CI installs with `npm ci --strict-allow-scripts`, which fails the run when a
 package's install script is not covered by `allowScripts`. Without it npm skips
 the script and the run stays green.
+
+Dependabot watches the `github-actions` ecosystem only. npm version updates stay
+off until the lint and test tooling is settled, so the bot cannot reopen a
+version decision that was postponed on purpose.

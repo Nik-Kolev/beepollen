@@ -13,6 +13,22 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
+### With Docker
+
+```bash
+docker compose watch
+```
+
+Same URL. Edits to `src/`, `public/` and `next.config.ts` sync into the running
+container; changing `package.json` or the lockfile rebuilds the image.
+
+The production image is a separate target:
+
+```bash
+docker build --target runner -t beepollen:prod .
+docker run --rm -p 3000:3000 beepollen:prod
+```
+
 ## Scripts
 
 | Command | Does |
@@ -28,4 +44,4 @@ Open [http://localhost:3000](http://localhost:3000).
 
 A demo tracks `develop` at
 [beepollen-wheat.vercel.app](https://beepollen-wheat.vercel.app); each pull
-request gets its own temporary URL. Not production — every route is `noindex`.
+request gets its own temporary URL. Not the production host.

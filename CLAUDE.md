@@ -54,6 +54,17 @@ a demo for owner feedback, not the production host.
 Vercel noindexes preview deployments but not production ones. **Remove it when
 the real production host and domain go live.**
 
+## Docker
+
+`compose.yaml` syncs source into the container rather than bind-mounting it. A
+bind mount never delivers an edit on Windows — file events do not cross the
+Windows→WSL2→container boundary, and `WATCHPACK_POLLING` cannot rescue it,
+because `next dev` runs Turbopack, whose watcher never reads that variable.
+
+`output: "standalone"` emits a `server.js` that does **not** serve `public/` or
+`.next/static`. The Dockerfile copies both in explicitly — drop either and the
+site still returns 200, with no styling.
+
 ## Agent files
 
 `AGENTS.md` is owned by Next.js tooling, not by this project. `next dev` rewrites

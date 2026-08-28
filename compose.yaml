@@ -1,0 +1,30 @@
+name: beepollen
+
+services:
+  web:
+    build:
+      context: .
+      target: dev
+    ports:
+      - "3000:3000"
+    develop:
+      watch:
+        - path: ./src
+          target: /app/src
+          action: sync
+        - path: ./public
+          target: /app/public
+          action: sync
+        - path: ./next.config.ts
+          target: /app/next.config.ts
+          action: sync
+        - path: ./tsconfig.json
+          target: /app/tsconfig.json
+          action: sync+restart
+        - path: ./postcss.config.mjs
+          target: /app/postcss.config.mjs
+          action: sync+restart
+        - path: ./package.json
+          action: rebuild
+        - path: ./package-lock.json
+          action: rebuild

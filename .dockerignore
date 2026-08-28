@@ -1,0 +1,17 @@
+.git
+.gitattributes
+.gitignore
+.github
+.claude
+node_modules
+.next
+out
+*.log
+.env*
+tsconfig.tsbuildinfo
+Dockerfile
+.dockerignore
+compose.yaml
+README.md
+CLAUDE.md
+AGENTS.md

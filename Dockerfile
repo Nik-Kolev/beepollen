@@ -12,6 +12,7 @@ CMD ["npm", "run", "dev"]
 
 FROM node:24-alpine AS builder
 WORKDIR /app
+ENV BUILD_STANDALONE=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN --mount=type=cache,target=/app/.next/cache npm run build

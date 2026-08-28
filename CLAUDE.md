@@ -61,9 +61,15 @@ bind mount never delivers an edit on Windows — file events do not cross the
 Windows→WSL2→container boundary, and `WATCHPACK_POLLING` cannot rescue it,
 because `next dev` runs Turbopack, whose watcher never reads that variable.
 
-`output: "standalone"` emits a `server.js` that does **not** serve `public/` or
-`.next/static`. The Dockerfile copies both in explicitly — drop either and the
-site still returns 200, with no styling.
+`output: "standalone"` is set only when `BUILD_STANDALONE` is, which the builder
+stage exports. Setting it unconditionally breaks the Vercel build: standalone
+mode folds the top-level `next-server.js.nft.json` trace into `.next/standalone`,
+and Vercel's `onBuildComplete` adapter opens that trace and fails with `ENOENT`.
+The compile succeeds first, so the failure looks unrelated to the config.
+
+The standalone `server.js` does **not** serve `public/` or `.next/static`. The
+Dockerfile copies both in explicitly — drop either and the site still returns
+200, with no styling.
 
 ## Agent files
 

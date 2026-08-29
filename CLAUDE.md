@@ -11,6 +11,12 @@ Next.js App Router, TypeScript, Tailwind v4.
 comments, documentation, commit messages, PR descriptions. A Bulgarian string in
 the codebase should be user-facing copy and nothing else.
 
+## UI conventions
+
+One light theme: no dark mode, and no extra light shades invented alongside it.
+
+Lorem ipsum stands in for undecided copy.
+
 ## Git process
 
 Branches are `<type>/<lowercase-kebab-summary>`, where the type says what the

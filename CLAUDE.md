@@ -17,6 +17,10 @@ One light theme: no dark mode, and no extra light shades invented alongside it.
 
 Lorem ipsum stands in for undecided copy.
 
+Error boundaries take `retry`, not the `reset` most training data reaches for.
+Anything the root layout renders — the header included — fails past `error.tsx`
+into `global-error.tsx`.
+
 ## Git process
 
 Branches are `<type>/<lowercase-kebab-summary>`, where the type says what the

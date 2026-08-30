@@ -31,14 +31,14 @@ docker run --rm -p 3000:3000 beepollen:prod
 
 ## Scripts
 
-| Command | Does |
-| --- | --- |
-| `npm run dev` | Development server |
-| `npm run build` | Production build |
-| `npm start` | Serve the production build |
-| `npm run lint` | ESLint |
+| Command             | Does                             |
+| ------------------- | -------------------------------- |
+| `npm run dev`       | Development server               |
+| `npm run build`     | Production build                 |
+| `npm start`         | Serve the production build       |
+| `npm run lint`      | ESLint                           |
 | `npm run typecheck` | Route types, then `tsc --noEmit` |
-| `npm run ci` | Everything CI runs, in order |
+| `npm run ci`        | Everything CI runs, in order     |
 
 ## Preview
 

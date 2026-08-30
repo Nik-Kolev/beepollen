@@ -42,11 +42,16 @@ the app does changes), `refactor/` (structure changes, behaviour identical).
 from `develop` once a meaningful chunk of work is finished, and is never the
 target of a feature PR.
 
-Every PR runs `.github/workflows/ci.yml` — install, then the `lint`, `typecheck` and
-`build` npm scripts. `npm run ci` runs the same three locally, so a local pass and a
-CI pass mean the same thing. `typecheck` regenerates route types before `tsc`
-because `LayoutProps` and friends live in `.next/types`, which a clean checkout
-does not have.
+Every PR runs `.github/workflows/ci.yml` — install, then the `format:check`,
+`lint`, `typecheck` and `build` npm scripts. `npm run ci` runs the same four
+locally, so a local pass and a CI pass mean the same thing. `typecheck`
+regenerates route types before `tsc` because `LayoutProps` and friends live in
+`.next/types`, which a clean checkout does not have.
+
+Prettier is a pinned devDependency rather than an `npx` fetch, and `format:check`
+runs in CI — a local pre-commit hook is personal config that no clone inherits,
+so it cannot be the only thing enforcing format. Prettier 3 reads `.gitignore`
+by default, so generated output needs no `.prettierignore`.
 
 The check is required on `develop` and `main`, so a failing run blocks the merge.
 The workflow file says what is checked; the branch ruleset is what makes passing

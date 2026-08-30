@@ -3,3 +3,30 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
 }
+
+@theme {
+  --color-ground: oklch(0.945 0.011 80);
+  --color-surface: oklch(1 0 0);
+  --color-placeholder: oklch(0.895 0.016 72);
+  --color-ink: oklch(0.25 0.02 220);
+  --color-ink-soft: oklch(0.5 0.02 220);
+  --color-line: oklch(0.89 0.009 80);
+
+  --color-chrome-light: oklch(0.88 0.03 200);
+  --color-chrome-deep: oklch(0.27 0.055 205);
+  --color-chrome-ink: oklch(0.95 0.015 200);
+  --color-chrome-ink-soft: oklch(0.8 0.02 200);
+
+  --color-wood: oklch(0.3 0.035 55);
+  --color-brand: oklch(0.63 0.135 62);
+  --color-brand-deep: oklch(0.53 0.13 45);
+
+  --color-honey: oklch(0.75 0.155 72);
+  --color-bee: oklch(0.83 0.155 88);
+  --color-bee-dark: oklch(0.27 0.02 60);
+  --color-wing: oklch(0.88 0.022 240);
+  --color-leaf: oklch(0.58 0.08 130);
+
+  --color-action: oklch(0.47 0.095 150);
+  --color-action-hover: oklch(0.41 0.09 150);
+}

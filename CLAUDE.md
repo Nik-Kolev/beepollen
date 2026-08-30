@@ -21,6 +21,16 @@ Error boundaries take `retry`, not the `reset` most training data reaches for.
 Anything the root layout renders — the header included — fails past `error.tsx`
 into `global-error.tsx`.
 
+`--color-wood` is the hive's timber; `--color-chrome-*` are the header and
+footer surfaces. They were one token until the palette went teal and the hive's
+roof went with it.
+
+The `Bee` draws its linework in `currentColor`, so every instance sets a text
+colour — `text-bee-dark` on light grounds. On a dark ground pass `outline`,
+which traces the silhouette in the page colour first. Recolouring the linework
+light instead produces a bee with white stripes, which reads as a different
+insect.
+
 ## Git process
 
 Branches are `<type>/<lowercase-kebab-summary>`, where the type says what the

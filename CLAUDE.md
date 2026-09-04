@@ -29,7 +29,26 @@ The `Bee` draws its linework in `currentColor`, so every instance sets a text
 colour — `text-bee-dark` on light grounds. On a dark ground pass `outline`,
 which traces the silhouette in the page colour first. Recolouring the linework
 light instead produces a bee with white stripes, which reads as a different
-insect.
+insect. `outline` strokes that halo in `--color-ground`, so no palette may take
+the ground below roughly `oklch(0.94)` or every footer bee loses its edge.
+
+**The preview switcher is scaffolding and comes out once a palette and a pairing
+are chosen** — `src/components/preview/`, its mount and restore script in
+`layout.tsx`, every font family there but Geist, and the `[data-palette]` /
+`[data-font]` blocks, leaving the winners' values in `@theme`. Runtime switching
+only works because plain `@theme` emits `var(--token)` into each utility, while
+`@theme inline` bakes the value in — so the colour tokens are plain and the two
+font tokens are `inline`, pointing at `--font-body` / `--font-heading` that the
+blocks move. Those blocks win because `@theme` compiles inside `@layer theme` and
+they do not, and unlayered rules beat layered ones whatever the specificity. The
+hive paints its timber from the brand tokens, so those are pinned on `footer` — a
+palette moves the brand gold everywhere except the artwork.
+
+Every font family must ship a `cyrillic` subset, checked in
+`node_modules/next/dist/compiled/@next/font/dist/google/font-data.json` before
+use — a family without one renders the whole site in a substituted system font
+with no warning. Lato, Poppins, DM Sans, Plus Jakarta Sans, Figtree and Outfit
+all fail this, which rules out much of any "best web fonts" list.
 
 ## Git process
 
@@ -106,6 +125,11 @@ Commit it as-is and put project conventions here instead. `CLAUDE.md` imports
 
 Next 16 differs from most training data. Read `node_modules/next/dist/docs/`
 before writing App Router code rather than relying on remembered APIs.
+
+A plain value exported from a `"use client"` module is `undefined` when a server
+component reads it at module scope — it type-checks, lints and builds, then ships
+a wrong value. Constants shared across that boundary belong in a plain module
+neither side marks.
 
 ## Dependencies
 

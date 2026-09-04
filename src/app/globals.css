@@ -1,21 +1,26 @@
 @import "tailwindcss";
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body);
+  --font-head: var(--font-heading);
 }
 
 @theme {
-  --color-ground: oklch(0.945 0.011 80);
+  --color-ground: oklch(0.958 0.012 78);
   --color-surface: oklch(1 0 0);
-  --color-placeholder: oklch(0.895 0.016 72);
-  --color-ink: oklch(0.25 0.02 220);
-  --color-ink-soft: oklch(0.5 0.02 220);
-  --color-line: oklch(0.89 0.009 80);
+  --color-placeholder: oklch(0.912 0.018 72);
+  --color-ink: oklch(0.26 0.022 58);
+  --color-ink-soft: oklch(0.5 0.02 58);
+  --color-line: oklch(0.89 0.012 75);
 
-  --color-chrome-light: oklch(0.88 0.03 200);
-  --color-chrome-deep: oklch(0.27 0.055 205);
-  --color-chrome-ink: oklch(0.95 0.015 200);
-  --color-chrome-ink-soft: oklch(0.8 0.02 200);
+  --color-chrome-light: oklch(0.885 0.03 68);
+  --color-chrome-deep: oklch(0.255 0.032 52);
+  --color-chrome-ink: oklch(0.955 0.014 78);
+  --color-chrome-ink-soft: oklch(0.8 0.018 72);
+
+  --color-action: oklch(0.47 0.1 152);
+  --color-action-hover: oklch(0.41 0.095 152);
+  --color-action-ink: oklch(1 0 0);
 
   --color-wood: oklch(0.3 0.035 55);
   --color-brand: oklch(0.63 0.135 62);
@@ -26,7 +31,719 @@
   --color-bee-dark: oklch(0.27 0.02 60);
   --color-wing: oklch(0.88 0.022 240);
   --color-leaf: oklch(0.58 0.08 130);
+}
 
-  --color-action: oklch(0.47 0.095 150);
-  --color-action-hover: oklch(0.41 0.09 150);
+/* Twenty candidate palettes for the owner, driven by the switcher strip. The
+   `@theme` block above repeats `oak` so the page paints before the switcher
+   mounts. Each palette moves chrome, ground, the action colour and — in some —
+   the brand gold. The card surface stays white in all of them: product photos
+   have not been shot yet, and a tinted card is a bet on photography nobody has
+   seen. All of this comes out once a palette is chosen. */
+
+/* The hive paints its timber from the brand tokens, so pin them here: a palette
+   can move the brand gold on prices and honeycomb marks without recolouring the
+   artwork, which would make the comparison about the drawing rather than the
+   palette. */
+footer {
+  --color-brand: oklch(0.63 0.135 62);
+  --color-brand-deep: oklch(0.53 0.13 45);
+}
+
+/* Warm neutrals */
+
+[data-palette="oak"] {
+  --color-ground: oklch(0.958 0.012 78);
+  --color-placeholder: oklch(0.912 0.018 72);
+  --color-ink: oklch(0.26 0.022 58);
+  --color-ink-soft: oklch(0.5 0.02 58);
+  --color-line: oklch(0.89 0.012 75);
+  --color-chrome-light: oklch(0.885 0.03 68);
+  --color-chrome-deep: oklch(0.255 0.032 52);
+  --color-chrome-ink: oklch(0.955 0.014 78);
+  --color-chrome-ink-soft: oklch(0.8 0.018 72);
+  --color-action: oklch(0.47 0.1 152);
+  --color-action-hover: oklch(0.41 0.095 152);
+}
+
+[data-palette="cream"] {
+  --color-ground: oklch(0.972 0.006 85);
+  --color-placeholder: oklch(0.925 0.008 80);
+  --color-ink: oklch(0.24 0.008 70);
+  --color-ink-soft: oklch(0.5 0.008 70);
+  --color-line: oklch(0.9 0.005 80);
+  --color-chrome-light: oklch(0.9 0.014 82);
+  --color-chrome-deep: oklch(0.235 0.006 70);
+  --color-chrome-ink: oklch(0.955 0.006 85);
+  --color-chrome-ink-soft: oklch(0.79 0.006 80);
+  --color-action: oklch(0.46 0.095 148);
+  --color-action-hover: oklch(0.4 0.09 148);
+}
+
+[data-palette="sand"] {
+  --color-ground: oklch(0.965 0.009 75);
+  --color-placeholder: oklch(0.92 0.013 70);
+  --color-ink: oklch(0.25 0.012 60);
+  --color-ink-soft: oklch(0.49 0.012 60);
+  --color-line: oklch(0.893 0.009 72);
+  --color-chrome-light: oklch(0.893 0.022 78);
+  --color-chrome-deep: oklch(0.262 0.01 60);
+  --color-chrome-ink: oklch(0.955 0.009 75);
+  --color-chrome-ink-soft: oklch(0.795 0.011 72);
+  --color-action: oklch(0.47 0.085 205);
+  --color-action-hover: oklch(0.41 0.08 205);
+}
+
+[data-palette="mocha"] {
+  --color-ground: oklch(0.958 0.01 60);
+  --color-placeholder: oklch(0.91 0.016 55);
+  --color-ink: oklch(0.25 0.02 45);
+  --color-ink-soft: oklch(0.49 0.018 45);
+  --color-line: oklch(0.888 0.012 58);
+  --color-chrome-light: oklch(0.875 0.032 55);
+  --color-chrome-deep: oklch(0.248 0.03 42);
+  --color-chrome-ink: oklch(0.953 0.012 62);
+  --color-chrome-ink-soft: oklch(0.79 0.016 58);
+  --color-brand: oklch(0.66 0.12 80);
+  --color-brand-deep: oklch(0.55 0.115 62);
+  --color-action: oklch(0.45 0.105 155);
+  --color-action-hover: oklch(0.39 0.1 155);
+}
+
+/* Reds and clays */
+
+[data-palette="clay"] {
+  --color-ground: oklch(0.962 0.01 48);
+  --color-placeholder: oklch(0.918 0.016 44);
+  --color-ink: oklch(0.25 0.015 40);
+  --color-ink-soft: oklch(0.49 0.016 40);
+  --color-line: oklch(0.893 0.012 45);
+  --color-chrome-light: oklch(0.872 0.04 42);
+  --color-chrome-deep: oklch(0.258 0.014 38);
+  --color-chrome-ink: oklch(0.955 0.008 45);
+  --color-chrome-ink-soft: oklch(0.795 0.01 44);
+  --color-action: oklch(0.48 0.085 208);
+  --color-action-hover: oklch(0.42 0.08 208);
+}
+
+[data-palette="rust"] {
+  --color-ground: oklch(0.96 0.012 40);
+  --color-placeholder: oklch(0.915 0.018 36);
+  --color-ink: oklch(0.25 0.022 32);
+  --color-ink-soft: oklch(0.49 0.02 32);
+  --color-line: oklch(0.89 0.014 38);
+  --color-chrome-light: oklch(0.862 0.048 36);
+  --color-chrome-deep: oklch(0.252 0.048 30);
+  --color-chrome-ink: oklch(0.953 0.014 42);
+  --color-chrome-ink-soft: oklch(0.79 0.018 38);
+  --color-brand: oklch(0.66 0.115 78);
+  --color-brand-deep: oklch(0.55 0.115 62);
+  --color-action: oklch(0.46 0.098 158);
+  --color-action-hover: oklch(0.4 0.092 158);
+}
+
+[data-palette="wine"] {
+  --color-ground: oklch(0.965 0.008 24);
+  --color-placeholder: oklch(0.92 0.014 20);
+  --color-ink: oklch(0.25 0.025 18);
+  --color-ink-soft: oklch(0.49 0.022 18);
+  --color-line: oklch(0.895 0.01 22);
+  --color-chrome-light: oklch(0.878 0.03 16);
+  --color-chrome-deep: oklch(0.255 0.058 14);
+  --color-chrome-ink: oklch(0.955 0.014 24);
+  --color-chrome-ink-soft: oklch(0.8 0.018 20);
+  --color-action: oklch(0.47 0.1 152);
+  --color-action-hover: oklch(0.41 0.095 152);
+}
+
+[data-palette="blush"] {
+  --color-ground: oklch(0.968 0.008 10);
+  --color-placeholder: oklch(0.925 0.012 8);
+  --color-ink: oklch(0.25 0.018 12);
+  --color-ink-soft: oklch(0.49 0.016 12);
+  --color-line: oklch(0.898 0.009 10);
+  --color-chrome-light: oklch(0.895 0.026 8);
+  --color-chrome-deep: oklch(0.268 0.03 12);
+  --color-chrome-ink: oklch(0.958 0.01 10);
+  --color-chrome-ink-soft: oklch(0.805 0.014 10);
+  --color-action: oklch(0.45 0.095 125);
+  --color-action-hover: oklch(0.39 0.09 125);
+}
+
+/* Greens */
+
+[data-palette="olive"] {
+  --color-ground: oklch(0.962 0.012 105);
+  --color-placeholder: oklch(0.918 0.016 108);
+  --color-ink: oklch(0.255 0.025 118);
+  --color-ink-soft: oklch(0.49 0.022 118);
+  --color-line: oklch(0.892 0.014 108);
+  --color-chrome-light: oklch(0.878 0.034 112);
+  --color-chrome-deep: oklch(0.268 0.045 118);
+  --color-chrome-ink: oklch(0.955 0.016 105);
+  --color-chrome-ink-soft: oklch(0.795 0.02 108);
+  --color-action: oklch(0.44 0.13 24);
+  --color-action-hover: oklch(0.38 0.125 24);
+}
+
+[data-palette="forest"] {
+  --color-ground: oklch(0.963 0.009 150);
+  --color-placeholder: oklch(0.918 0.013 148);
+  --color-ink: oklch(0.25 0.028 158);
+  --color-ink-soft: oklch(0.49 0.024 158);
+  --color-line: oklch(0.893 0.011 150);
+  --color-chrome-light: oklch(0.878 0.03 155);
+  --color-chrome-deep: oklch(0.258 0.052 158);
+  --color-chrome-ink: oklch(0.955 0.014 150);
+  --color-chrome-ink-soft: oklch(0.795 0.018 152);
+  --color-action: oklch(0.52 0.14 38);
+  --color-action-hover: oklch(0.46 0.135 38);
+}
+
+[data-palette="sage"] {
+  --color-ground: oklch(0.968 0.008 132);
+  --color-placeholder: oklch(0.922 0.012 132);
+  --color-ink: oklch(0.26 0.02 138);
+  --color-ink-soft: oklch(0.5 0.018 138);
+  --color-line: oklch(0.896 0.01 134);
+  --color-chrome-light: oklch(0.888 0.024 136);
+  --color-chrome-deep: oklch(0.272 0.034 138);
+  --color-chrome-ink: oklch(0.956 0.012 132);
+  --color-chrome-ink-soft: oklch(0.8 0.015 134);
+  --color-brand: oklch(0.68 0.115 82);
+  --color-brand-deep: oklch(0.56 0.115 66);
+  --color-action: oklch(0.43 0.125 20);
+  --color-action-hover: oklch(0.37 0.12 20);
+}
+
+[data-palette="mint"] {
+  --color-ground: oklch(0.97 0.008 168);
+  --color-placeholder: oklch(0.924 0.012 168);
+  --color-ink: oklch(0.25 0.022 175);
+  --color-ink-soft: oklch(0.49 0.02 175);
+  --color-line: oklch(0.898 0.01 170);
+  --color-chrome-light: oklch(0.892 0.028 170);
+  --color-chrome-deep: oklch(0.262 0.038 175);
+  --color-chrome-ink: oklch(0.957 0.012 168);
+  --color-chrome-ink-soft: oklch(0.8 0.015 170);
+  --color-action: oklch(0.45 0.13 328);
+  --color-action-hover: oklch(0.39 0.125 328);
+}
+
+/* Blues */
+
+[data-palette="teal"] {
+  --color-ground: oklch(0.962 0.007 200);
+  --color-placeholder: oklch(0.918 0.011 200);
+  --color-ink: oklch(0.25 0.025 210);
+  --color-ink-soft: oklch(0.49 0.022 210);
+  --color-line: oklch(0.892 0.009 202);
+  --color-chrome-light: oklch(0.875 0.032 198);
+  --color-chrome-deep: oklch(0.252 0.052 205);
+  --color-chrome-ink: oklch(0.954 0.012 200);
+  --color-chrome-ink-soft: oklch(0.793 0.016 200);
+  --color-action: oklch(0.52 0.14 40);
+  --color-action-hover: oklch(0.46 0.135 40);
+}
+
+[data-palette="slate"] {
+  --color-ground: oklch(0.965 0.006 240);
+  --color-placeholder: oklch(0.92 0.01 238);
+  --color-ink: oklch(0.25 0.022 248);
+  --color-ink-soft: oklch(0.49 0.02 248);
+  --color-line: oklch(0.895 0.008 240);
+  --color-chrome-light: oklch(0.878 0.024 236);
+  --color-chrome-deep: oklch(0.258 0.036 242);
+  --color-chrome-ink: oklch(0.955 0.01 240);
+  --color-chrome-ink-soft: oklch(0.8 0.014 238);
+  --color-action: oklch(0.47 0.1 152);
+  --color-action-hover: oklch(0.41 0.095 152);
+}
+
+[data-palette="denim"] {
+  --color-ground: oklch(0.962 0.008 250);
+  --color-placeholder: oklch(0.918 0.012 248);
+  --color-ink: oklch(0.25 0.03 255);
+  --color-ink-soft: oklch(0.49 0.026 255);
+  --color-line: oklch(0.892 0.01 250);
+  --color-chrome-light: oklch(0.868 0.038 250);
+  --color-chrome-deep: oklch(0.262 0.05 252);
+  --color-chrome-ink: oklch(0.954 0.012 250);
+  --color-chrome-ink-soft: oklch(0.793 0.017 250);
+  --color-brand: oklch(0.68 0.12 78);
+  --color-brand-deep: oklch(0.56 0.12 62);
+  --color-action: oklch(0.53 0.145 40);
+  --color-action-hover: oklch(0.47 0.14 40);
+}
+
+[data-palette="navy"] {
+  --color-ground: oklch(0.968 0.005 258);
+  --color-placeholder: oklch(0.922 0.009 256);
+  --color-ink: oklch(0.24 0.032 262);
+  --color-ink-soft: oklch(0.48 0.028 262);
+  --color-line: oklch(0.896 0.007 258);
+  --color-chrome-light: oklch(0.885 0.028 256);
+  --color-chrome-deep: oklch(0.238 0.06 262);
+  --color-chrome-ink: oklch(0.956 0.01 258);
+  --color-chrome-ink-soft: oklch(0.8 0.014 256);
+  --color-action: oklch(0.54 0.145 42);
+  --color-action-hover: oklch(0.48 0.14 42);
+}
+
+/* Purples */
+
+[data-palette="plum"] {
+  --color-ground: oklch(0.966 0.007 318);
+  --color-placeholder: oklch(0.921 0.011 318);
+  --color-ink: oklch(0.26 0.028 320);
+  --color-ink-soft: oklch(0.5 0.024 320);
+  --color-line: oklch(0.896 0.009 318);
+  --color-chrome-light: oklch(0.88 0.03 320);
+  --color-chrome-deep: oklch(0.262 0.052 322);
+  --color-chrome-ink: oklch(0.956 0.012 318);
+  --color-chrome-ink-soft: oklch(0.8 0.016 320);
+  --color-action: oklch(0.47 0.1 150);
+  --color-action-hover: oklch(0.41 0.095 150);
+}
+
+[data-palette="lavender"] {
+  --color-ground: oklch(0.972 0.006 292);
+  --color-placeholder: oklch(0.926 0.01 292);
+  --color-ink: oklch(0.26 0.022 294);
+  --color-ink-soft: oklch(0.5 0.02 294);
+  --color-line: oklch(0.9 0.008 292);
+  --color-chrome-light: oklch(0.892 0.026 292);
+  --color-chrome-deep: oklch(0.272 0.038 296);
+  --color-chrome-ink: oklch(0.958 0.01 292);
+  --color-chrome-ink-soft: oklch(0.805 0.014 292);
+  --color-action: oklch(0.45 0.1 128);
+  --color-action-hover: oklch(0.39 0.095 128);
+}
+
+/* Neutrals */
+
+[data-palette="charcoal"] {
+  --color-ground: oklch(0.975 0.002 85);
+  --color-placeholder: oklch(0.928 0.003 80);
+  --color-ink: oklch(0.24 0.004 70);
+  --color-ink-soft: oklch(0.49 0.004 70);
+  --color-line: oklch(0.9 0.002 80);
+  --color-chrome-light: oklch(0.878 0.004 80);
+  --color-chrome-deep: oklch(0.238 0.003 70);
+  --color-chrome-ink: oklch(0.955 0.003 85);
+  --color-chrome-ink-soft: oklch(0.795 0.003 80);
+  --color-action: oklch(0.47 0.1 150);
+  --color-action-hover: oklch(0.41 0.095 150);
+}
+
+[data-palette="ink"] {
+  --color-ground: oklch(0.968 0.004 250);
+  --color-placeholder: oklch(0.922 0.007 248);
+  --color-ink: oklch(0.22 0.02 262);
+  --color-ink-soft: oklch(0.47 0.018 262);
+  --color-line: oklch(0.897 0.006 250);
+  --color-chrome-light: oklch(0.893 0.014 248);
+  --color-chrome-deep: oklch(0.205 0.038 264);
+  --color-chrome-ink: oklch(0.955 0.008 250);
+  --color-chrome-ink-soft: oklch(0.795 0.011 248);
+  --color-brand: oklch(0.68 0.125 80);
+  --color-brand-deep: oklch(0.57 0.125 64);
+  --color-action: oklch(0.52 0.15 35);
+  --color-action-hover: oklch(0.46 0.145 35);
+}
+
+/* Second batch */
+
+[data-palette="ochre"] {
+  --color-ground: oklch(0.968 0.011 92);
+  --color-placeholder: oklch(0.922 0.016 90);
+  --color-ink: oklch(0.26 0.022 85);
+  --color-ink-soft: oklch(0.5 0.02 85);
+  --color-line: oklch(0.896 0.013 90);
+  --color-chrome-light: oklch(0.888 0.038 92);
+  --color-chrome-deep: oklch(0.268 0.04 88);
+  --color-chrome-ink: oklch(0.956 0.014 92);
+  --color-chrome-ink-soft: oklch(0.8 0.018 90);
+  --color-action: oklch(0.47 0.105 250);
+  --color-action-hover: oklch(0.41 0.1 250);
+}
+
+[data-palette="peach"] {
+  --color-ground: oklch(0.972 0.01 52);
+  --color-placeholder: oklch(0.928 0.015 50);
+  --color-ink: oklch(0.26 0.018 45);
+  --color-ink-soft: oklch(0.5 0.016 45);
+  --color-line: oklch(0.9 0.012 50);
+  --color-chrome-light: oklch(0.9 0.036 50);
+  --color-chrome-deep: oklch(0.272 0.028 45);
+  --color-chrome-ink: oklch(0.958 0.012 52);
+  --color-chrome-ink-soft: oklch(0.805 0.015 50);
+  --color-action: oklch(0.47 0.085 200);
+  --color-action-hover: oklch(0.41 0.08 200);
+}
+
+[data-palette="moss"] {
+  --color-ground: oklch(0.96 0.011 138);
+  --color-placeholder: oklch(0.915 0.015 138);
+  --color-ink: oklch(0.25 0.028 145);
+  --color-ink-soft: oklch(0.49 0.024 145);
+  --color-line: oklch(0.89 0.013 140);
+  --color-chrome-light: oklch(0.868 0.036 142);
+  --color-chrome-deep: oklch(0.25 0.048 145);
+  --color-chrome-ink: oklch(0.953 0.015 138);
+  --color-chrome-ink-soft: oklch(0.79 0.019 140);
+  --color-action: oklch(0.5 0.145 32);
+  --color-action-hover: oklch(0.44 0.14 32);
+}
+
+[data-palette="seafoam"] {
+  --color-ground: oklch(0.972 0.009 185);
+  --color-placeholder: oklch(0.926 0.013 185);
+  --color-ink: oklch(0.25 0.022 190);
+  --color-ink-soft: oklch(0.49 0.02 190);
+  --color-line: oklch(0.899 0.011 186);
+  --color-chrome-light: oklch(0.898 0.03 186);
+  --color-chrome-deep: oklch(0.265 0.036 190);
+  --color-chrome-ink: oklch(0.958 0.012 185);
+  --color-chrome-ink-soft: oklch(0.805 0.015 186);
+  --color-action: oklch(0.46 0.135 12);
+  --color-action-hover: oklch(0.4 0.13 12);
+}
+
+[data-palette="indigo"] {
+  --color-ground: oklch(0.966 0.006 278);
+  --color-placeholder: oklch(0.921 0.011 276);
+  --color-ink: oklch(0.25 0.032 280);
+  --color-ink-soft: oklch(0.49 0.028 280);
+  --color-line: oklch(0.896 0.008 278);
+  --color-chrome-light: oklch(0.878 0.034 276);
+  --color-chrome-deep: oklch(0.245 0.062 280);
+  --color-chrome-ink: oklch(0.955 0.012 278);
+  --color-chrome-ink-soft: oklch(0.797 0.016 276);
+  --color-action: oklch(0.53 0.145 38);
+  --color-action-hover: oklch(0.47 0.14 38);
+}
+
+[data-palette="brick"] {
+  --color-ground: oklch(0.962 0.012 30);
+  --color-placeholder: oklch(0.917 0.017 28);
+  --color-ink: oklch(0.25 0.026 25);
+  --color-ink-soft: oklch(0.49 0.022 25);
+  --color-line: oklch(0.891 0.014 28);
+  --color-chrome-light: oklch(0.865 0.052 28);
+  --color-chrome-deep: oklch(0.248 0.054 24);
+  --color-chrome-ink: oklch(0.954 0.015 30);
+  --color-chrome-ink-soft: oklch(0.792 0.019 28);
+  --color-action: oklch(0.47 0.105 155);
+  --color-action-hover: oklch(0.41 0.1 155);
+}
+
+/* The one palette that changes the footer's weight rather than its hue: a
+   mid-tone bar instead of a dark slab, with the text tier lifted to suit. */
+[data-palette="airy"] {
+  --color-ground: oklch(0.978 0.006 75);
+  --color-placeholder: oklch(0.93 0.01 72);
+  --color-ink: oklch(0.25 0.012 65);
+  --color-ink-soft: oklch(0.49 0.012 65);
+  --color-line: oklch(0.903 0.007 74);
+  --color-chrome-light: oklch(0.925 0.012 70);
+  --color-chrome-deep: oklch(0.4 0.03 60);
+  --color-chrome-ink: oklch(0.99 0.006 75);
+  --color-chrome-ink-soft: oklch(0.945 0.01 72);
+  --color-action: oklch(0.47 0.1 152);
+  --color-action-hover: oklch(0.41 0.095 152);
+}
+
+[data-palette="steel"] {
+  --color-ground: oklch(0.966 0.004 228);
+  --color-placeholder: oklch(0.921 0.008 228);
+  --color-ink: oklch(0.25 0.014 232);
+  --color-ink-soft: oklch(0.49 0.013 232);
+  --color-line: oklch(0.896 0.006 228);
+  --color-chrome-light: oklch(0.884 0.018 228);
+  --color-chrome-deep: oklch(0.262 0.024 232);
+  --color-chrome-ink: oklch(0.956 0.008 228);
+  --color-chrome-ink-soft: oklch(0.8 0.011 228);
+  --color-action: oklch(0.46 0.11 120);
+  --color-action-hover: oklch(0.4 0.105 120);
+}
+
+[data-palette="linen"] {
+  --color-ground: oklch(0.978 0.005 80);
+  --color-placeholder: oklch(0.93 0.008 78);
+  --color-ink: oklch(0.23 0.01 70);
+  --color-ink-soft: oklch(0.48 0.01 70);
+  --color-line: oklch(0.903 0.006 80);
+  --color-chrome-light: oklch(0.932 0.01 80);
+  --color-chrome-deep: oklch(0.2 0.008 70);
+  --color-chrome-ink: oklch(0.958 0.006 80);
+  --color-chrome-ink-soft: oklch(0.8 0.008 78);
+  --color-action: oklch(0.44 0.13 18);
+  --color-action-hover: oklch(0.38 0.125 18);
+}
+
+[data-palette="amber"] {
+  --color-ground: oklch(0.958 0.016 74);
+  --color-placeholder: oklch(0.91 0.022 70);
+  --color-ink: oklch(0.26 0.024 55);
+  --color-ink-soft: oklch(0.5 0.022 55);
+  --color-line: oklch(0.888 0.018 72);
+  --color-chrome-light: oklch(0.878 0.048 74);
+  --color-chrome-deep: oklch(0.238 0.034 45);
+  --color-chrome-ink: oklch(0.953 0.018 74);
+  --color-chrome-ink-soft: oklch(0.79 0.022 72);
+  --color-brand: oklch(0.7 0.13 78);
+  --color-brand-deep: oklch(0.54 0.13 60);
+  --color-action: oklch(0.47 0.085 200);
+  --color-action-hover: oklch(0.41 0.08 200);
+}
+
+/* Third batch — shaped after the conventions high-traffic shops actually use:
+   blue-and-orange for trust plus action, green for organic, red for urgency,
+   monochrome for fashion. Several put a bright colour on the button, which is
+   why `--color-action-ink` exists — white text cannot sit on a light orange. */
+
+[data-palette="trust"] {
+  --color-ground: oklch(0.968 0.005 250);
+  --color-placeholder: oklch(0.922 0.009 248);
+  --color-ink: oklch(0.24 0.03 258);
+  --color-ink-soft: oklch(0.48 0.026 258);
+  --color-line: oklch(0.896 0.007 250);
+  --color-chrome-light: oklch(0.885 0.026 245);
+  --color-chrome-deep: oklch(0.235 0.055 258);
+  --color-chrome-ink: oklch(0.956 0.01 250);
+  --color-chrome-ink-soft: oklch(0.8 0.014 248);
+  --color-action: oklch(0.75 0.16 62);
+  --color-action-hover: oklch(0.69 0.155 60);
+  --color-action-ink: oklch(0.22 0.02 60);
+}
+
+[data-palette="organic"] {
+  --color-ground: oklch(0.972 0.008 120);
+  --color-placeholder: oklch(0.926 0.012 122);
+  --color-ink: oklch(0.25 0.026 148);
+  --color-ink-soft: oklch(0.49 0.022 148);
+  --color-line: oklch(0.899 0.01 122);
+  --color-chrome-light: oklch(0.9 0.028 145);
+  --color-chrome-deep: oklch(0.26 0.05 150);
+  --color-chrome-ink: oklch(0.957 0.012 120);
+  --color-chrome-ink-soft: oklch(0.802 0.016 130);
+  --color-action: oklch(0.72 0.16 55);
+  --color-action-hover: oklch(0.66 0.155 53);
+  --color-action-ink: oklch(0.22 0.02 50);
+}
+
+[data-palette="market"] {
+  --color-ground: oklch(0.98 0.004 70);
+  --color-placeholder: oklch(0.931 0.007 68);
+  --color-ink: oklch(0.24 0.008 62);
+  --color-ink-soft: oklch(0.48 0.008 62);
+  --color-line: oklch(0.904 0.005 70);
+  --color-chrome-light: oklch(0.94 0.006 60);
+  --color-chrome-deep: oklch(0.24 0.006 60);
+  --color-chrome-ink: oklch(0.958 0.005 70);
+  --color-chrome-ink-soft: oklch(0.8 0.006 66);
+  --color-action: oklch(0.55 0.19 33);
+  --color-action-hover: oklch(0.49 0.185 32);
+  --color-action-ink: oklch(1 0 0);
+}
+
+[data-palette="sale"] {
+  --color-ground: oklch(0.975 0.005 30);
+  --color-placeholder: oklch(0.928 0.009 28);
+  --color-ink: oklch(0.24 0.014 25);
+  --color-ink-soft: oklch(0.48 0.013 25);
+  --color-line: oklch(0.901 0.006 30);
+  --color-chrome-light: oklch(0.9 0.01 25);
+  --color-chrome-deep: oklch(0.21 0.01 20);
+  --color-chrome-ink: oklch(0.957 0.007 30);
+  --color-chrome-ink-soft: oklch(0.8 0.009 28);
+  --color-action: oklch(0.52 0.19 25);
+  --color-action-hover: oklch(0.46 0.185 24);
+  --color-action-ink: oklch(1 0 0);
+}
+
+[data-palette="mono"] {
+  --color-ground: oklch(0.99 0 0);
+  --color-placeholder: oklch(0.928 0 0);
+  --color-ink: oklch(0.2 0 0);
+  --color-ink-soft: oklch(0.46 0 0);
+  --color-line: oklch(0.885 0 0);
+  --color-chrome-light: oklch(0.965 0 0);
+  --color-chrome-deep: oklch(0.15 0 0);
+  --color-chrome-ink: oklch(0.97 0 0);
+  --color-chrome-ink-soft: oklch(0.79 0 0);
+  --color-action: oklch(0.18 0 0);
+  --color-action-hover: oklch(0.3 0 0);
+  --color-action-ink: oklch(1 0 0);
+}
+
+[data-palette="nordic"] {
+  --color-ground: oklch(0.98 0.004 240);
+  --color-placeholder: oklch(0.931 0.007 240);
+  --color-ink: oklch(0.25 0.016 245);
+  --color-ink-soft: oklch(0.49 0.014 245);
+  --color-line: oklch(0.904 0.005 240);
+  --color-chrome-light: oklch(0.925 0.008 240);
+  --color-chrome-deep: oklch(0.3 0.02 245);
+  --color-chrome-ink: oklch(0.972 0.005 240);
+  --color-chrome-ink-soft: oklch(0.88 0.008 240);
+  --color-action: oklch(0.52 0.12 250);
+  --color-action-hover: oklch(0.46 0.115 250);
+  --color-action-ink: oklch(1 0 0);
+}
+
+[data-palette="sunset"] {
+  --color-ground: oklch(0.968 0.01 30);
+  --color-placeholder: oklch(0.922 0.015 28);
+  --color-ink: oklch(0.26 0.022 25);
+  --color-ink-soft: oklch(0.5 0.02 25);
+  --color-line: oklch(0.896 0.012 30);
+  --color-chrome-light: oklch(0.885 0.04 30);
+  --color-chrome-deep: oklch(0.26 0.05 330);
+  --color-chrome-ink: oklch(0.956 0.014 330);
+  --color-chrome-ink-soft: oklch(0.8 0.018 330);
+  --color-action: oklch(0.5 0.1 195);
+  --color-action-hover: oklch(0.44 0.095 195);
+  --color-action-ink: oklch(1 0 0);
+}
+
+[data-palette="earth"] {
+  --color-ground: oklch(0.962 0.01 65);
+  --color-placeholder: oklch(0.916 0.015 62);
+  --color-ink: oklch(0.25 0.018 55);
+  --color-ink-soft: oklch(0.49 0.016 55);
+  --color-line: oklch(0.891 0.012 64);
+  --color-chrome-light: oklch(0.885 0.028 62);
+  --color-chrome-deep: oklch(0.235 0.03 48);
+  --color-chrome-ink: oklch(0.954 0.012 65);
+  --color-chrome-ink-soft: oklch(0.793 0.015 62);
+  --color-action: oklch(0.48 0.11 120);
+  --color-action-hover: oklch(0.42 0.105 120);
+  --color-action-ink: oklch(1 0 0);
+}
+
+[data-palette="berry"] {
+  --color-ground: oklch(0.968 0.008 350);
+  --color-placeholder: oklch(0.922 0.012 350);
+  --color-ink: oklch(0.25 0.026 348);
+  --color-ink-soft: oklch(0.49 0.022 348);
+  --color-line: oklch(0.896 0.01 350);
+  --color-chrome-light: oklch(0.885 0.032 350);
+  --color-chrome-deep: oklch(0.255 0.06 350);
+  --color-chrome-ink: oklch(0.956 0.014 350);
+  --color-chrome-ink-soft: oklch(0.8 0.018 350);
+  --color-action: oklch(0.47 0.1 152);
+  --color-action-hover: oklch(0.41 0.095 152);
+  --color-action-ink: oklch(1 0 0);
+}
+
+[data-palette="gold"] {
+  --color-ground: oklch(0.975 0.012 88);
+  --color-placeholder: oklch(0.928 0.017 86);
+  --color-ink: oklch(0.24 0.018 80);
+  --color-ink-soft: oklch(0.48 0.016 80);
+  --color-line: oklch(0.901 0.013 88);
+  --color-chrome-light: oklch(0.9 0.035 88);
+  --color-chrome-deep: oklch(0.17 0.01 80);
+  --color-chrome-ink: oklch(0.957 0.014 88);
+  --color-chrome-ink-soft: oklch(0.8 0.018 86);
+  --color-action: oklch(0.5 0.12 205);
+  --color-action-hover: oklch(0.44 0.115 205);
+  --color-action-ink: oklch(1 0 0);
+}
+
+/* Type pairings. `@theme inline` above emits `var(--font-body)` / `var(--font-heading)`
+   into the utilities, so swapping the attribute reaches every element. Each
+   family is loaded by the root layout; the browser only fetches the faces the
+   active pairing actually renders. */
+
+[data-font="geist"] {
+  --font-body: var(--font-geist-sans), sans-serif;
+  --font-heading: var(--font-geist-sans), sans-serif;
+}
+
+[data-font="editorial"] {
+  --font-body: var(--font-source-sans), sans-serif;
+  --font-heading: var(--font-playfair), serif;
+}
+
+[data-font="warm"] {
+  --font-body: var(--font-inter), sans-serif;
+  --font-heading: var(--font-lora), serif;
+}
+
+[data-font="boutique"] {
+  --font-body: var(--font-jost), sans-serif;
+  --font-heading: var(--font-prata), serif;
+}
+
+[data-font="modern"] {
+  --font-body: var(--font-onest), sans-serif;
+  --font-heading: var(--font-unbounded), sans-serif;
+}
+
+[data-font="classic"] {
+  --font-body: var(--font-inter), sans-serif;
+  --font-heading: var(--font-merriweather), serif;
+}
+
+[data-font="artisan"] {
+  --font-body: var(--font-montserrat), sans-serif;
+  --font-heading: var(--font-cormorant), serif;
+}
+
+[data-font="minimal"] {
+  --font-body: var(--font-golos), sans-serif;
+  --font-heading: var(--font-golos), sans-serif;
+}
+
+/* The workhorses — what most shops actually run. Lato, Poppins, DM Sans and
+   Plus Jakarta Sans top the same lists and are all absent here: none of them
+   ships a cyrillic subset. */
+
+[data-font="roboto"] {
+  --font-body: var(--font-roboto), sans-serif;
+  --font-heading: var(--font-roboto), sans-serif;
+}
+
+[data-font="storefront"] {
+  --font-body: var(--font-open-sans), sans-serif;
+  --font-heading: var(--font-montserrat), sans-serif;
+}
+
+[data-font="friendly"] {
+  --font-body: var(--font-nunito), sans-serif;
+  --font-heading: var(--font-nunito), sans-serif;
+}
+
+[data-font="retail"] {
+  --font-body: var(--font-roboto), sans-serif;
+  --font-heading: var(--font-oswald), sans-serif;
+}
+
+[data-font="geometric"] {
+  --font-body: var(--font-rubik), sans-serif;
+  --font-heading: var(--font-rubik), sans-serif;
+}
+
+[data-font="airy-type"] {
+  --font-body: var(--font-open-sans), sans-serif;
+  --font-heading: var(--font-raleway), sans-serif;
+}
+
+[data-font="slab"] {
+  --font-body: var(--font-roboto), sans-serif;
+  --font-heading: var(--font-roboto-slab), serif;
+}
+
+[data-font="cyrillic-native"] {
+  --font-body: var(--font-pt-sans), sans-serif;
+  --font-heading: var(--font-pt-sans), sans-serif;
+}
+
+/* Applied by selector rather than a utility class so the pairing reaches the
+   headings without touching the components. */
+main :is(h1, h2, h3),
+header a[href="/"] {
+  font-family: var(--font-heading);
 }

@@ -25,7 +25,7 @@ export function Bee({
       {outline && (
         <g
           fill="none"
-          stroke="var(--color-ground)"
+          stroke="var(--color-halo)"
           strokeWidth="4.5"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -62,7 +62,7 @@ export function Bee({
       </g>
 
       <circle cx="48" cy="28" r="8" fill="currentColor" />
-      <circle cx="51" cy="26" r="2" fill="var(--color-ground)" />
+      <circle cx="51" cy="26" r="2" fill="var(--color-halo)" />
 
       <path
         d={ANTENNAE}

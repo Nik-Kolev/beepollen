@@ -32,17 +32,11 @@ light instead produces a bee with white stripes, which reads as a different
 insect. `outline` strokes that halo in `--color-ground`, so no palette may take
 the ground below roughly `oklch(0.94)` or every footer bee loses its edge.
 
-**The preview switcher is scaffolding and comes out once a palette and a pairing
-are chosen** — `src/components/preview/`, its mount and restore script in
-`layout.tsx`, every font family there but Geist, and the `[data-palette]` /
-`[data-font]` blocks, leaving the winners' values in `@theme`. Runtime switching
-only works because plain `@theme` emits `var(--token)` into each utility, while
-`@theme inline` bakes the value in — so the colour tokens are plain and the two
-font tokens are `inline`, pointing at `--font-body` / `--font-heading` that the
-blocks move. Those blocks win because `@theme` compiles inside `@layer theme` and
-they do not, and unlayered rules beat layered ones whatever the specificity. The
-hive paints its timber from the brand tokens, so those are pinned on `footer` — a
-palette moves the brand gold everywhere except the artwork.
+The footer's hive offset and the grid's `pr-*` reserve are one setting in two
+places. The hive is absolute against the footer while the text is inset inside a
+container that stops growing at `max-w-6xl`, so past that width the page margin
+is the only thing absorbing the difference — size both for the narrowest width in
+each tier, where that margin is zero, or the artwork lands on the last column.
 
 Every font family must ship a `cyrillic` subset, checked in
 `node_modules/next/dist/compiled/@next/font/dist/google/font-data.json` before

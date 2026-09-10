@@ -17,6 +17,10 @@ One light theme: no dark mode, and no extra light shades invented alongside it.
 
 Lorem ipsum stands in for undecided copy.
 
+Product photographs are free-licensed stand-ins. **Every one must be replaced
+with the owner's own before launch** — a noindexed demo tolerates borrowed
+images, a live shop does not.
+
 Error boundaries take `retry`, not the `reset` most training data reaches for.
 Anything the root layout renders — the header included — fails past `error.tsx`
 into `global-error.tsx`.

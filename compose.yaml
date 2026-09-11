@@ -7,6 +7,9 @@ services:
       target: dev
     ports:
       - "3000:3000"
+    env_file: .env
+    volumes:
+      - db-data:/app/data
     develop:
       watch:
         - path: ./src
@@ -14,6 +17,12 @@ services:
           action: sync
         - path: ./public
           target: /app/public
+          action: sync
+        - path: ./prisma
+          target: /app/prisma
+          action: sync
+        - path: ./prisma.config.ts
+          target: /app/prisma.config.ts
           action: sync
         - path: ./next.config.ts
           target: /app/next.config.ts
@@ -28,3 +37,6 @@ services:
           action: rebuild
         - path: ./package-lock.json
           action: rebuild
+
+volumes:
+  db-data:

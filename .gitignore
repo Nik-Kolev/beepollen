@@ -13,6 +13,9 @@
 /out/
 /build
 
+/data/
+/src/generated/
+
 .DS_Store
 *.pem
 

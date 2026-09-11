@@ -113,6 +113,35 @@ The standalone `server.js` does **not** serve `public/` or `.next/static`. The
 Dockerfile copies both in explicitly — drop either and the site still returns
 200, with no styling.
 
+## Database
+
+SQLite through Prisma 7 and `@prisma/adapter-libsql`. `DATABASE_URL` is the only
+environment variable.
+
+**Migrations are authored on the host and applied in the container.** Compose
+syncs one way, host→container, so a migration created inside the container writes
+its SQL to a filesystem that dies with the container and never reaches git. Run
+`prisma migrate dev` on the host, then
+`docker compose exec web npx prisma migrate deploy`. The two dev databases are
+separate — host `data/dev.db`, container `/app/data/dev.db` on a named volume that
+`docker compose down` keeps and `down -v` destroys.
+
+`prisma.config.ts` reads `.env` only when `DATABASE_URL` is unset, because compose
+injects it into a container that has no `.env` file and `loadEnvFile` throws rather
+than no-opping when one is absent.
+
+The generator is `prisma-client`, not the `prisma-client-js` most training data
+reaches for. It emits `.ts` with no `index.ts`, so the import is
+`@/generated/prisma/client`. That output is gitignored, which is why `prisma
+generate` runs explicitly in `dev`, `build` and `typecheck` rather than from a
+postinstall hook — a hook would fire in the Dockerfile's `deps` stage, which copies
+only the manifests and has no schema to generate from. The Dockerfile passes
+`DATABASE_URL` as `ARG`, so the build-time placeholder cannot survive as a runtime
+default.
+
+`Sprocket` and `Cog` are throwaway models that exist to exercise the tooling.
+**They and their migrations are deleted when the real schema arrives.**
+
 ## Agent files
 
 `AGENTS.md` is owned by Next.js tooling, not by this project. `next dev` rewrites

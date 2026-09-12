@@ -139,6 +139,12 @@ only the manifests and has no schema to generate from. The Dockerfile passes
 `DATABASE_URL` as `ARG`, so the build-time placeholder cannot survive as a runtime
 default.
 
+`db:studio` passes `--url` with a doubled slash — `file://./data/dev.db` —
+because Studio reads the protocol as `url.split("://")[0]`, and a normal SQLite
+URL has no `://`, so the entire string is taken as the protocol name and
+rejected. That spelling fails the migration engine with `P1003`, so it cannot
+become `DATABASE_URL` — the path is duplicated on purpose.
+
 `Sprocket` and `Cog` are throwaway models that exist to exercise the tooling.
 **They and their migrations are deleted when the real schema arrives.**
 

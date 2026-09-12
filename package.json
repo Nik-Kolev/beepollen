@@ -10,6 +10,10 @@
     "format:check": "prettier --check .",
     "lint": "eslint",
     "generate": "prisma generate",
+    "db:migrate": "prisma migrate dev && prisma generate",
+    "db:deploy": "docker compose exec web npx prisma migrate deploy",
+    "db:studio": "prisma studio --url file://./data/dev.db",
+    "db:reset": "prisma migrate reset",
     "typecheck": "prisma generate && next typegen && tsc --noEmit",
     "ci": "npm run format:check && npm run lint && npm run typecheck && npm run build"
   },

@@ -50,6 +50,7 @@ docker run --rm -p 3000:3000 beepollen:prod
 | `npm run db:studio`    | Browse the database           |
 | `npm run db:reset`     | Wipe and replay migrations    |
 | `npm run db:fresh`     | Reset, then seed              |
+| `npm run test:e2e`     | Playwright smoke tests        |
 
 ## Preview
 

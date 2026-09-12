@@ -145,6 +145,12 @@ URL has no `://`, so the entire string is taken as the protocol name and
 rejected. That spelling fails the migration engine with `P1003`, so it cannot
 become `DATABASE_URL` — the path is duplicated on purpose.
 
+Studio cannot run in the container at all: it binds loopback inside it and has
+no flag to change that, so no published port reaches it. `compose.yaml`
+deliberately publishes only 3000. Studio runs on the host, against the host’s
+own `data/dev.db` — the container keeps a separate file on a named volume, and
+the two drift apart.
+
 The seed runs through `tsx`, not `node`. Node strips the types fine, but the
 generated client imports `./enums` and `./internal/class` without extensions and
 Node’s ESM resolver cannot follow those. `db:fresh` chains `prisma db seed`

@@ -4,11 +4,11 @@ const sprockets = [
   {
     label: "alpha",
     cogs: [
-      { id: 1, nickname: "first" },
-      { id: 2, nickname: "second" },
+      { id: 1, nickname: "first", teeth: 8 },
+      { id: 2, nickname: "second", teeth: 12 },
     ],
   },
-  { label: "beta", cogs: [{ id: 3, nickname: "third" }] },
+  { label: "beta", cogs: [{ id: 3, nickname: "third", teeth: 16 }] },
 ];
 
 async function main() {
@@ -22,7 +22,7 @@ async function main() {
     for (const cog of cogs) {
       await prisma.cog.upsert({
         where: { id: cog.id },
-        update: { nickname: cog.nickname, sprocketId: sprocket.id },
+        update: { ...cog, sprocketId: sprocket.id },
         create: { ...cog, sprocketId: sprocket.id },
       });
     }

@@ -8,6 +8,7 @@ model Sprocket {
 model Cog {
   id         Int      @id @default(autoincrement())
   nickname   String
+  teeth      Int
   sprocketId Int
   sprocket   Sprocket @relation(fields: [sprocketId], references: [id], onDelete: Cascade)
 

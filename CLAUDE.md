@@ -64,17 +64,16 @@ Every PR runs `.github/workflows/ci.yml`. The `ci` job installs, then runs the
 same four locally. A second `e2e` job needs `ci` and runs Playwright, so browser
 tests never delay that fast feedback — `npm run test:e2e` is its local equivalent,
 kept out of `npm run ci` so a local check stays quick. Both together are what a
-green PR means. `typecheck`
-regenerates route types before `tsc` because `LayoutProps` and friends live in
-`.next/types`, which a clean checkout does not have.
+green PR means. `typecheck` regenerates route types before `tsc` because
+`LayoutProps` and friends live in `.next/types`, which a clean checkout does not
+have.
 
 Prettier is a pinned devDependency rather than an `npx` fetch, and `format:check`
-runs in CI — a local pre-commit hook is personal config that no clone inherits,
-so it cannot be the only thing enforcing format. Prettier 3 reads `.gitignore`
-by default, so generated output needs no `.prettierignore`.
+runs in CI. Prettier 3 reads `.gitignore` by default, so generated output needs
+no `.prettierignore`.
 
-The check is required on `develop` and `main`, so a failing run blocks the merge.
-The workflow file says what is checked; the branch ruleset is what makes passing
+Both checks are required on `develop` and `main`, so a failing run blocks the
+merge. The workflow file says what is checked; the branch ruleset is what makes passing
 mandatory, and it lives in GitHub's settings so a PR cannot remove the rule
 judging it.
 
@@ -123,6 +122,11 @@ runs Turbopack and is not what ships, so a smoke test against it proves less tha
 the seconds it saves. The suite runs twice, mobile project first, because mobile
 is the priority everything else here is built around.
 
+`@axe-core/playwright` scans each page against WCAG A and AA and fails on any
+violation. It runs inside the existing suite rather than as its own job, because
+the suite already builds the app and drives a browser. Add a scan for every new
+page — the gate only covers routes a spec actually visits.
+
 ## Database
 
 SQLite through Prisma 7 and `@prisma/adapter-libsql`. `DATABASE_URL` is the only
@@ -149,17 +153,12 @@ only the manifests and has no schema to generate from. The Dockerfile passes
 `DATABASE_URL` as `ARG`, so the build-time placeholder cannot survive as a runtime
 default.
 
-`db:studio` passes `--url` with a doubled slash — `file://./data/dev.db` —
-because Studio reads the protocol as `url.split("://")[0]`, and a normal SQLite
-URL has no `://`, so the entire string is taken as the protocol name and
-rejected. That spelling fails the migration engine with `P1003`, so it cannot
-become `DATABASE_URL` — the path is duplicated on purpose.
-
-Studio cannot run in the container at all: it binds loopback inside it and has
-no flag to change that, so no published port reaches it. `compose.yaml`
-deliberately publishes only 3000. Studio runs on the host, against the host’s
-own `data/dev.db` — the container keeps a separate file on a named volume, and
-the two drift apart.
+`db:studio` passes `--url file://./data/dev.db`: Studio reads the protocol as
+`url.split("://")[0]`, so a normal SQLite URL is taken whole as the protocol name
+and rejected, while that doubled slash fails the migration engine with `P1003`.
+The path is duplicated on purpose. Studio also cannot run in the container — it
+binds loopback there with no flag to change it, so `compose.yaml` publishes only
+3000 and Studio stays on the host.
 
 The seed runs through `tsx`, not `node`. Node strips the types fine, but the
 generated client imports `./enums` and `./internal/class` without extensions and

@@ -1,7 +1,6 @@
 import { existsSync } from "node:fs";
 import { defineConfig, env } from "prisma/config";
 
-// Compose injects DATABASE_URL into the container, which has no .env file.
 if (!process.env.DATABASE_URL) {
   if (!existsSync(".env")) {
     throw new Error(

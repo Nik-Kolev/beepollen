@@ -145,6 +145,12 @@ URL has no `://`, so the entire string is taken as the protocol name and
 rejected. That spelling fails the migration engine with `P1003`, so it cannot
 become `DATABASE_URL` — the path is duplicated on purpose.
 
+The seed runs through `tsx`, not `node`. Node strips the types fine, but the
+generated client imports `./enums` and `./internal/class` without extensions and
+Node’s ESM resolver cannot follow those. `db:fresh` chains `prisma db seed`
+explicitly because `migrate reset` does not run the seed on Prisma 7 — Prisma 6
+did, and most documentation still reads that way.
+
 `Sprocket` and `Cog` are throwaway models that exist to exercise the tooling.
 **They and their migrations are deleted when the real schema arrives.**
 

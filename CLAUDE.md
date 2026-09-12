@@ -59,9 +59,12 @@ the app does changes), `refactor/` (structure changes, behaviour identical).
 from `develop` once a meaningful chunk of work is finished, and is never the
 target of a feature PR.
 
-Every PR runs `.github/workflows/ci.yml` — install, then the `format:check`,
-`lint`, `typecheck` and `build` npm scripts. `npm run ci` runs the same four
-locally, so a local pass and a CI pass mean the same thing. `typecheck`
+Every PR runs `.github/workflows/ci.yml`. The `ci` job installs, then runs the
+`format:check`, `lint`, `typecheck` and `build` npm scripts; `npm run ci` runs the
+same four locally. A second `e2e` job needs `ci` and runs Playwright, so browser
+tests never delay that fast feedback — `npm run test:e2e` is its local equivalent,
+kept out of `npm run ci` so a local check stays quick. Both together are what a
+green PR means. `typecheck`
 regenerates route types before `tsc` because `LayoutProps` and friends live in
 `.next/types`, which a clean checkout does not have.
 

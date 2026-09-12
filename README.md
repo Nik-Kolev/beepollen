@@ -44,6 +44,12 @@ docker run --rm -p 3000:3000 beepollen:prod
 | `npm run generate`     | Prisma client from the schema |
 | `npm run typecheck`    | Generate, route types, `tsc`  |
 | `npm run ci`           | Everything CI runs, in order  |
+| `npm run db:migrate`   | New migration, then generate  |
+| `npm run db:deploy`    | Apply migrations in Docker    |
+| `npm run db:seed`      | Seed the database             |
+| `npm run db:studio`    | Browse the database           |
+| `npm run db:reset`     | Wipe and replay migrations    |
+| `npm run db:fresh`     | Reset, then seed              |
 
 ## Preview
 

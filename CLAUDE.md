@@ -113,6 +113,13 @@ The standalone `server.js` does **not** serve `public/` or `.next/static`. The
 Dockerfile copies both in explicitly — drop either and the site still returns
 200, with no styling.
 
+## Testing
+
+Playwright starts the app with `npm run build && npm start`, not `next dev`. Dev
+runs Turbopack and is not what ships, so a smoke test against it proves less than
+the seconds it saves. The suite runs twice, mobile project first, because mobile
+is the priority everything else here is built around.
+
 ## Database
 
 SQLite through Prisma 7 and `@prisma/adapter-libsql`. `DATABASE_URL` is the only

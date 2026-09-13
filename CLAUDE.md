@@ -166,8 +166,14 @@ Node’s ESM resolver cannot follow those. `db:fresh` chains `prisma db seed`
 explicitly because `migrate reset` does not run the seed on Prisma 7 — Prisma 6
 did, and most documentation still reads that way.
 
-`Sprocket` and `Cog` are throwaway models that exist to exercise the tooling.
-**They and their migrations are deleted when the real schema arrives.**
+Each pack size is its own `Product` row rather than a variant of one — at this
+catalogue size a variant table buys nothing, and net quantity is a per-size legal
+label field anyway. `variety` is free text because a batch is a blend, "40%
+акация, 60% липа", not a category.
+
+The food-information fields are nullable so a product can be drafted. All six are
+required before `isPublished`, and nothing in the database enforces that — the
+publish gate is application-level.
 
 ## Agent files
 

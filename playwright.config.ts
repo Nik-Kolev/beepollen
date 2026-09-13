@@ -17,7 +17,7 @@ export default defineConfig({
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
   ],
   webServer: {
-    command: "npm run build && npm start",
+    command: "npm run build:demo && npm start",
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

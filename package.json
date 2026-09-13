@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "prisma generate && next dev",
     "build": "prisma generate && next build",
+    "build:demo": "npm run db:setup && npm run build",
     "start": "next start",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -12,13 +13,14 @@
     "generate": "prisma generate",
     "db:migrate": "prisma migrate dev && prisma generate",
     "db:deploy": "docker compose exec web npx prisma migrate deploy",
+    "db:setup": "prisma generate && prisma migrate deploy && prisma db seed",
     "db:studio": "prisma studio --url file://./data/dev.db",
     "db:reset": "prisma migrate reset",
     "db:seed": "prisma db seed",
     "db:fresh": "prisma migrate reset --force && prisma db seed",
     "typecheck": "prisma generate && next typegen && tsc --noEmit",
     "test:e2e": "playwright test",
-    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run build"
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run db:setup && npm run build"
   },
   "dependencies": {
     "@prisma/adapter-libsql": "^7.10.0",

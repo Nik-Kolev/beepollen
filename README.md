@@ -8,10 +8,14 @@ Next.js 16 (App Router), TypeScript, Tailwind v4.
 
 ```bash
 npm install
+npm run db:setup
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+The home page reads the catalogue from the database, so `db:setup` has to run
+before the app does.
 
 ### With Docker
 
@@ -37,6 +41,7 @@ docker run --rm -p 3000:3000 beepollen:prod
 | ---------------------- | ----------------------------- |
 | `npm run dev`          | Development server            |
 | `npm run build`        | Production build              |
+| `npm run build:demo`   | Migrate, seed, then build     |
 | `npm start`            | Serve the production build    |
 | `npm run format`       | Prettier, writing in place    |
 | `npm run format:check` | Prettier, failing on a diff   |
@@ -46,6 +51,7 @@ docker run --rm -p 3000:3000 beepollen:prod
 | `npm run ci`           | Everything CI runs, in order  |
 | `npm run db:migrate`   | New migration, then generate  |
 | `npm run db:deploy`    | Apply migrations in Docker    |
+| `npm run db:setup`     | Apply migrations, then seed   |
 | `npm run db:seed`      | Seed the database             |
 | `npm run db:studio`    | Browse the database           |
 | `npm run db:reset`     | Wipe and replay migrations    |

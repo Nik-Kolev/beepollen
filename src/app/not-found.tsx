@@ -12,12 +12,12 @@ export default function NotFound() {
     <Container>
       <div className="flex flex-col items-start gap-4 py-24">
         <h1 className="text-2xl font-semibold">Страницата не е намерена</h1>
-        <p className="text-stone-600">
+        <p className="text-ink-soft">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit.
         </p>
         <Link
           href="/"
-          className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white transition-colors hover:bg-stone-700"
+          className="bg-action text-action-ink hover:bg-action-hover rounded-md px-4 py-2 text-sm transition-colors"
         >
           Към началната страница
         </Link>

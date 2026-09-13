@@ -3,6 +3,7 @@ import { Roboto, Roboto_Slab } from "next/font/google";
 
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
+import { SITE_URL } from "@/lib/site";
 
 import "./globals.css";
 
@@ -16,6 +17,7 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Пчелни продукти Д & Н Димитрови",
     template: "%s | Пчелни продукти Д & Н Димитрови",

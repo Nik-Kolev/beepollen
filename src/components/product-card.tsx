@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 import { Bee } from "@/components/art/bee";
 import {
@@ -27,7 +28,7 @@ export function ProductCard({
   const image = product.images[0];
 
   return (
-    <article className="bg-surface ring-line flex h-full flex-col overflow-hidden rounded-xl shadow-sm ring-1">
+    <article className="bg-surface ring-line relative flex h-full flex-col overflow-hidden rounded-xl shadow-sm ring-1 transition-shadow hover:shadow-md">
       <div className="relative">
         <div className="bg-placeholder relative aspect-square">
           {image && (
@@ -49,7 +50,16 @@ export function ProductCard({
           className="text-brand-deep h-16 w-auto shrink-0 self-start"
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <h3 className="font-medium">{product.name}</h3>
+          <h3 className="font-medium">
+            {/* The overlay makes the whole card clickable while the link's
+                accessible name stays just the product. */}
+            <Link
+              href={`/produkti/${product.slug}`}
+              className="after:absolute after:inset-0"
+            >
+              {product.name}
+            </Link>
+          </h3>
           <p className="text-ink-soft mt-1 line-clamp-3 text-sm">
             {product.summary}
           </p>

@@ -9,20 +9,20 @@ export default function Error({ retry }: { retry: () => void }) {
     <Container>
       <div className="flex flex-col items-start gap-4 py-24">
         <h1 className="text-2xl font-semibold">Възникна грешка</h1>
-        <p className="text-stone-600">
+        <p className="text-ink-soft">
           Lorem ipsum dolor sit amet, consectetur adipiscing elit.
         </p>
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={retry}
-            className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white transition-colors hover:bg-stone-700"
+            className="bg-action text-action-ink hover:bg-action-hover rounded-md px-4 py-2 text-sm transition-colors"
           >
             Опитайте отново
           </button>
           <Link
             href="/"
-            className="rounded-md border border-stone-300 px-4 py-2 text-sm transition-colors hover:bg-stone-100"
+            className="border-line hover:bg-halo rounded-md border px-4 py-2 text-sm transition-colors"
           >
             Към началната страница
           </Link>

@@ -18,7 +18,7 @@ ENV BUILD_STANDALONE=1
 ARG DATABASE_URL=file:./data/build.db
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN --mount=type=cache,target=/app/.next/cache npm run build
+RUN --mount=type=cache,target=/app/.next/cache npm run build:demo
 
 FROM node:24-alpine AS runner
 WORKDIR /app

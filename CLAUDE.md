@@ -60,9 +60,10 @@ from `develop` once a meaningful chunk of work is finished, and is never the
 target of a feature PR.
 
 Every PR runs `.github/workflows/ci.yml`. The `ci` job installs, then runs the
-`format:check`, `lint`, `typecheck` and `build` npm scripts; `npm run ci` runs the
-same four locally. A second `e2e` job needs `ci` and runs Playwright, so browser
-tests never delay that fast feedback — `npm run test:e2e` is its local equivalent,
+`format:check`, `lint`, `typecheck`, `db:setup` and `build` npm scripts;
+`npm run ci` runs the same five locally. A second `e2e` job needs `ci` and runs
+Playwright, so browser tests never delay that fast feedback — `npm run test:e2e`
+is its local equivalent,
 kept out of `npm run ci` so a local check stays quick. Both together are what a
 green PR means. `typecheck` regenerates route types before `tsc` because
 `LayoutProps` and friends live in `.next/types`, which a clean checkout does not
@@ -92,7 +93,10 @@ anything else.
 ## Preview deployment
 
 Vercel serves `develop` at a permanent demo URL and each PR at a temporary one —
-a demo for owner feedback, not the production host.
+a demo for owner feedback, not the production host. `vercel.json` sets the Build
+Command to `npm run build:demo` so each deploy prerenders from a database it
+seeds itself; keeping it in the repo rather than the dashboard is what lets a
+reader see it. Nothing at runtime opens that file.
 
 `next.config.ts` sets `X-Robots-Tag: noindex, nofollow` on every route, because
 Vercel noindexes preview deployments but not production ones. **Remove it when
@@ -117,10 +121,10 @@ Dockerfile copies both in explicitly — drop either and the site still returns
 
 ## Testing
 
-Playwright starts the app with `npm run build && npm start`, not `next dev`. Dev
-runs Turbopack and is not what ships, so a smoke test against it proves less than
-the seconds it saves. The suite runs twice, mobile project first, because mobile
-is the priority everything else here is built around.
+Playwright starts the app with `npm run build:demo && npm start`, not `next dev`.
+Dev runs Turbopack and is not what ships, so a smoke test against it proves less
+than the seconds it saves. The suite runs twice, mobile project first, because
+mobile is the priority everything else here is built around.
 
 `@axe-core/playwright` scans each page against WCAG A and AA and fails on any
 violation. It runs inside the existing suite rather than as its own job, because
@@ -139,6 +143,15 @@ its SQL to a filesystem that dies with the container and never reaches git. Run
 `docker compose exec web npx prisma migrate deploy`. The two dev databases are
 separate — host `data/dev.db`, container `/app/data/dev.db` on a named volume that
 `docker compose down` keeps and `down -v` destroys.
+
+The home page queries the catalogue during `next build`, so every path that
+builds the app seeds first — CI as its own step, Playwright's `webServer`, the
+Dockerfile's builder stage and Vercel's Build Command all reach `db:setup`. It
+generates the client itself rather than trusting an earlier step to have done
+it, because the generated client is gitignored and only CI's `ci` job happens to
+run `typecheck` beforehand. A migrated but unseeded database is the dangerous
+case: the query returns no rows, the empty state renders and the build goes
+green with an empty shop.
 
 `prisma.config.ts` reads `.env` only when `DATABASE_URL` is unset, because compose
 injects it into a container that has no `.env` file and `loadEnvFile` throws rather

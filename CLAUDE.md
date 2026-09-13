@@ -102,6 +102,20 @@ reader see it. Nothing at runtime opens that file.
 Vercel noindexes preview deployments but not production ones. **Remove it when
 the real production host and domain go live.**
 
+`SITE_URL` in `src/lib/site.ts` is that same demo origin and `metadataBase`
+resolves every canonical and Open Graph URL against it, so **it changes with the
+domain, in the same pass as the header above.**
+
+## Metadata
+
+Metadata inheritance is shallow and per top-level key: a page that omits
+`alternates` inherits its parent's canonical and so declares itself a duplicate
+of it. Every page-level `generateMetadata` sets its own.
+
+The product page's JSON-LD carries no `offers` on purpose. Every price is zero
+until the owner supplies real ones, and a structured €0.00 is a price search
+engines will publish.
+
 ## Docker
 
 `compose.yaml` syncs source into the container rather than bind-mounting it. A

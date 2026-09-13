@@ -1,0 +1,46 @@
+enum StockLevel {
+  PLENTY
+  LOW
+  NONE
+}
+
+model Product {
+  id          Int        @id @default(autoincrement())
+  slug        String     @unique
+  name        String
+  summary     String
+  description String
+  variety     String?
+  priceCents  Int
+  stock       StockLevel @default(PLENTY)
+  sortOrder   Int        @default(0)
+  isPublished Boolean    @default(false)
+
+  // Nullable so a product can be drafted, but all six are required before
+  // isPublished — EU 1169/2011 wants them shown before a distance sale closes.
+  netWeightGrams Int?
+  composition    String?
+  origin         String?
+  storage        String?
+  bestBefore     String?
+  allergenInfo   String?
+
+  images ProductImage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isPublished, sortOrder])
+}
+
+model ProductImage {
+  id          Int     @id @default(autoincrement())
+  productId   Int
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  path        String
+  alt         String
+  blurDataURL String?
+  sortOrder   Int     @default(0)
+
+  @@index([productId])
+}

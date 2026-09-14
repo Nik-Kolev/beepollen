@@ -8,6 +8,7 @@ Next.js 16 (App Router), TypeScript, Tailwind v4.
 
 ```bash
 npm install
+cp .env.example .env
 npm run db:setup
 npm run dev
 ```
@@ -23,10 +24,12 @@ before the app does.
 docker compose watch
 ```
 
-Requires a `.env`; `.env.example` has the variables it expects.
+Uses the same `.env`.
 
-Same URL. Edits to `src/`, `public/` and `next.config.ts` sync into the running
-container; changing `package.json` or the lockfile rebuilds the image.
+Same URL. Edits to `src/`, `public/`, `prisma/`, `prisma.config.ts` and
+`next.config.ts` sync into the running container, `tsconfig.json` and
+`postcss.config.mjs` sync and restart it, and changing `package.json` or the
+lockfile rebuilds the image.
 
 The production image is a separate target:
 
@@ -48,15 +51,15 @@ docker run --rm -p 3000:3000 beepollen:prod
 | `npm run lint`         | ESLint                        |
 | `npm run generate`     | Prisma client from the schema |
 | `npm run typecheck`    | Generate, route types, `tsc`  |
-| `npm run ci`           | Everything CI runs, in order  |
+| `npm run ci`           | CI's `ci` job, run locally    |
 | `npm run db:migrate`   | New migration, then generate  |
 | `npm run db:deploy`    | Apply migrations in Docker    |
-| `npm run db:setup`     | Apply migrations, then seed   |
+| `npm run db:setup`     | Generate, migrate, then seed  |
 | `npm run db:seed`      | Seed the database             |
 | `npm run db:studio`    | Browse the database           |
 | `npm run db:reset`     | Wipe and replay migrations    |
 | `npm run db:fresh`     | Reset, then seed              |
-| `npm run test:e2e`     | Playwright smoke tests        |
+| `npm run test:e2e`     | E2E and accessibility tests   |
 
 ## Preview
 

@@ -15,7 +15,12 @@ the codebase should be user-facing copy and nothing else.
 
 One light theme: no dark mode, and no extra light shades invented alongside it.
 
-Lorem ipsum stands in for undecided copy.
+Lorem ipsum stands in for undecided copy, and an explicit `TODO:` string stands
+in for a fact the owner still owes — a price, a variety, a food-information field.
+The seed and the product pages render them on purpose: they are page content, not
+unfinished code. Never replace one with plausible Bulgarian filler, and never
+invent an origin, certificate, review or price — plausible text survives to launch
+unnoticed, and Lorem ipsum and `TODO:` cannot.
 
 Product photographs are free-licensed stand-ins. **Every one must be replaced
 with the owner's own before launch** — a noindexed demo tolerates borrowed

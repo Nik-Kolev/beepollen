@@ -22,24 +22,24 @@ unfinished code. Never replace one with plausible Bulgarian filler, and never
 invent an origin, certificate, review or price — plausible text survives to launch
 unnoticed, and Lorem ipsum and `TODO:` cannot.
 
-Product photographs are free-licensed stand-ins. **Every one must be replaced
-with the owner's own before launch** — a noindexed demo tolerates borrowed
-images, a live shop does not.
+The honey and comb photographs are free-licensed stand-ins. **Every one must be
+replaced with the owner's own before launch** — a noindexed demo tolerates
+borrowed images, a live shop does not. The pollen photographs are already the
+owner's own.
 
 Error boundaries take `retry`, not the `reset` most training data reaches for.
 Anything the root layout renders — the header included — fails past `error.tsx`
 into `global-error.tsx`.
 
-`--color-wood` is the hive's timber; `--color-chrome-*` are the header and
-footer surfaces. They were one token until the palette went teal and the hive's
-roof went with it.
+`--color-wood` is the hive's timber and stays its own token, apart from the
+`--color-nav*` header and `--color-footer*` footer surfaces — while one token
+served both, recolouring the surfaces repainted the hive's roof.
 
 The `Bee` draws its linework in `currentColor`, so every instance sets a text
-colour — `text-bee-dark` on light grounds. On a dark ground pass `outline`,
-which traces the silhouette in the page colour first. Recolouring the linework
-light instead produces a bee with white stripes, which reads as a different
-insect. `outline` strokes that halo in `--color-ground`, so no palette may take
-the ground below roughly `oklch(0.94)` or every footer bee loses its edge.
+colour — `text-bee-dark` on light grounds. `outline` strokes the silhouette in
+`--color-halo` before the linework is drawn; the header bees pass it. On a dark
+ground it is the only correct option: recolouring the linework light instead
+produces a bee with white stripes, which reads as a different insect.
 
 The footer's hive offset and the grid's `pr-*` reserve are one setting in two
 places. The hive is absolute against the footer while the text is inset inside a
@@ -204,8 +204,9 @@ label field anyway. `variety` is free text because a batch is a blend, "40%
 акация, 60% липа", not a category.
 
 The food-information fields are nullable so a product can be drafted. All six are
-required before `isPublished`, and nothing in the database enforces that — the
-publish gate is application-level.
+required before `isPublished`, and nothing enforces that yet — not the database
+and not the application, so the seed publishes rows whose fields hold `TODO:`
+text.
 
 ## Agent files
 
@@ -225,15 +226,18 @@ neither side marks.
 
 ## Dependencies
 
-npm's `allowScripts` gate is enabled. A package's `preinstall`/`postinstall`
-script stays blocked until approved by name (`npm approve-scripts <pkg>`), which
-writes a **version-pinned** entry into `package.json` — a version bump
-deliberately re-triggers the review. Never approve with a blanket flag, and
-re-run `npm install` afterwards so the approved script actually executes.
+`allowScripts` in `package.json` lists the dependencies whose
+`preinstall`/`postinstall` scripts have been reviewed. Approve one by name
+(`npm approve-scripts <pkg>`), which writes a **version-pinned** entry — a
+version bump deliberately re-triggers the review. Never approve with a blanket
+flag. Approving runs nothing, and a second `npm install` finds the tree up to
+date and runs nothing either: `npm rebuild <pkg>` is what executes the approved
+script.
 
-CI installs with `npm ci --strict-allow-scripts`, which fails the run when a
-package's install script is not covered by `allowScripts`. Without it npm skips
-the script and the run stays green.
+CI and the Dockerfile's `deps` stage install with
+`npm ci --strict-allow-scripts`, which fails the install when a package's
+install script is not covered by `allowScripts`. Without the flag npm runs the
+unreviewed script anyway and only prints a notice, so the run stays green.
 
 Dependabot watches the `github-actions` ecosystem only. npm version updates stay
 off until the lint and test tooling is settled, so the bot cannot reopen a

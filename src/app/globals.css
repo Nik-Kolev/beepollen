@@ -41,3 +41,25 @@ main :is(h1, h2, h3),
 header a[href="/"] {
   font-family: var(--font-head);
 }
+
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(.morph) {
+  animation-duration: 400ms;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+}

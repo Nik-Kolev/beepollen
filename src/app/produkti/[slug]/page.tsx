@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BackToProductsLink } from "@/components/back-to-products-link";
 import { Container } from "@/components/container";
 import { ProductGallery } from "@/components/product-gallery";
 import { formatPrice } from "@/lib/money";
@@ -88,16 +88,10 @@ export default async function ProductPage({
       />
 
       <div className="py-8 sm:py-12">
-        <Link
-          href="/"
-          className="text-ink-soft hover:text-brand-deep inline-flex items-center gap-2 text-sm transition-colors"
-        >
-          <span aria-hidden="true">&larr;</span>
-          Към продуктите
-        </Link>
+        <BackToProductsLink />
 
         <div className="mt-6 grid gap-8 md:grid-cols-2 md:gap-10 lg:gap-14">
-          <ProductGallery images={product.images} />
+          <ProductGallery slug={product.slug} images={product.images} />
 
           <div className="flex flex-col">
             <h1 className="text-2xl font-semibold text-balance sm:text-3xl">

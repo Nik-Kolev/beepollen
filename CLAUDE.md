@@ -53,6 +53,13 @@ use — a family without one renders the whole site in a substituted system font
 with no warning. Lato, Poppins, DM Sans, Plus Jakarta Sans, Figtree and Outfit
 all fail this, which rules out much of any "best web fonts" list.
 
+A product's photo morphs from its card into the product page through React's
+`ViewTransition`, imported from `react` with no `types` entry in `tsconfig.json`:
+`next-env.d.ts` references Next's types, which pull in React's canary
+declarations. A back navigation never starts a view transition, so the return to
+the grid is deliberately unanimated — animating it means pushing `/`, which
+breaks the back button that follows.
+
 ## Git process
 
 Branches are `<type>/<lowercase-kebab-summary>`, where the type says what the

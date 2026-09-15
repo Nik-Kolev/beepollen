@@ -1,6 +1,34 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+import { productPhotoTransitionName } from "@/lib/view-transition";
 
 const PUBLISHED_SLUG = "pchelen-prashets-500g";
+const PUBLISHED_NAME = "Пчелен прашец 500 г";
+
+async function recordViewTransitions(page: Page) {
+  await page.evaluate(() => {
+    const start = document.startViewTransition.bind(document);
+
+    document.startViewTransition = (update) => {
+      const transition = start(update);
+
+      void transition.ready.then(() => {
+        document.body.dataset.transitioned = document
+          .getAnimations()
+          .map(({ effect }) =>
+            effect instanceof KeyframeEffect
+              ? `${effect.pseudoElement}=${effect.getTiming().duration}`
+              : null,
+          )
+          .join(" ");
+      });
+
+      return transition;
+    };
+  });
+
+  return () => page.locator("body").getAttribute("data-transitioned");
+}
 
 test("a catalogue card opens its product page", async ({ page }) => {
   await page.goto("/");
@@ -92,11 +120,85 @@ test("the product page carries valid Product structured data", async ({
   expect(jsonLd.offers).toBeUndefined();
 });
 
-test("the back link returns to the catalogue", async ({ page }) => {
+test("a card's photo morphs into the product page's photo", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const transitioned = await recordViewTransitions(page);
+
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: PUBLISHED_NAME })
+    .click();
+
+  const name = productPhotoTransitionName(PUBLISHED_SLUG);
+  await expect.poll(transitioned).toContain(`::view-transition-old(${name})`);
+  await expect.poll(transitioned).toContain(`::view-transition-new(${name})`);
+});
+
+test("the morph does not animate for visitors who reduce motion", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const transitioned = await recordViewTransitions(page);
+
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: PUBLISHED_NAME })
+    .click();
+
+  const name = productPhotoTransitionName(PUBLISHED_SLUG);
+  await expect
+    .poll(transitioned)
+    .toContain(`::view-transition-group(${name})=0`);
+});
+
+test("a product opened directly links back to the catalogue", async ({
+  page,
+}) => {
   await page.goto(`/produkti/${PUBLISHED_SLUG}`);
   await page.getByRole("link", { name: "Към продуктите" }).click();
 
   await expect(page).toHaveURL("/");
+});
+
+test("the back link returns to where the catalogue was left", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const card = page.getByRole("main").getByRole("listitem").last();
+  await card.scrollIntoViewIfNeeded();
+  const scrollY = await page.evaluate(() => window.scrollY);
+  expect(scrollY).toBeGreaterThan(0);
+
+  await card.getByRole("link").click();
+  await expect(page).toHaveURL(/\/produkti\//);
+  await page.getByRole("link", { name: "Към продуктите" }).click();
+
+  await expect(page).toHaveURL("/");
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollY);
+});
+
+test("a modified click on the back link opens the catalogue in a new tab", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: PUBLISHED_NAME })
+    .click();
+  await expect(page).toHaveURL(/\/produkti\//);
+
+  const newTab = context.waitForEvent("page");
+  await page
+    .getByRole("link", { name: "Към продуктите" })
+    .click({ modifiers: ["ControlOrMeta"] });
+
+  await expect(await newTab).toHaveURL("/");
+  await expect(page).toHaveURL(/\/produkti\//);
 });
 
 test("an unpublished product is not reachable", async ({ page }) => {

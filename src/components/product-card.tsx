@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ViewTransition } from "react";
 
 import { Bee } from "@/components/art/bee";
 import {
@@ -8,6 +9,7 @@ import {
 } from "@/components/art/honeycomb-mark";
 import { formatPrice } from "@/lib/money";
 import type { ProductListItem } from "@/lib/products";
+import { productPhotoTransitionName } from "@/lib/view-transition";
 
 // The grid repeats this three-card rhythm instead of storing decoration per
 // product: it is styling, and a column would have to be filled for every row.
@@ -30,17 +32,23 @@ export function ProductCard({
   return (
     <article className="bg-surface ring-line relative flex h-full flex-col overflow-hidden rounded-xl shadow-sm ring-1 transition-shadow hover:shadow-md">
       <div className="relative">
-        <div className="bg-placeholder relative aspect-square">
-          {image && (
-            <Image
-              src={image.path}
-              alt={image.alt}
-              fill
-              sizes="(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw"
-              className="object-cover"
-            />
-          )}
-        </div>
+        <ViewTransition
+          name={productPhotoTransitionName(product.slug)}
+          share="morph"
+          default="none"
+        >
+          <div className="bg-placeholder relative aspect-square">
+            {image && (
+              <Image
+                src={image.path}
+                alt={image.alt}
+                fill
+                sizes="(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw"
+                className="object-cover"
+              />
+            )}
+          </div>
+        </ViewTransition>
         {decor.bee && <Bee className={`text-bee-dark absolute ${decor.bee}`} />}
       </div>
 

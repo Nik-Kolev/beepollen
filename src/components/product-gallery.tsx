@@ -29,7 +29,8 @@ export function ProductGallery({
               src={active.path}
               alt={active.alt}
               fill
-              preload
+              loading="eager"
+              fetchPriority="high"
               sizes="(min-width: 1152px) 524px, (min-width: 768px) 50vw, 100vw"
               className="object-cover"
             />

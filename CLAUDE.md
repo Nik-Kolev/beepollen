@@ -157,6 +157,13 @@ violation. It runs inside the existing suite rather than as its own job, because
 the suite already builds the app and drives a browser. Add a scan for every new
 page — the gate only covers routes a spec actually visits.
 
+Lighthouse CI runs as its own `lighthouse` job and cannot run on Windows.
+Lighthouse's CLI never passes Chrome a profile directory, so `chrome-launcher`
+creates a temporary one and fails with `EPERM` deleting it after every run — no
+config setting reaches it. The `filesystem` upload target is what writes the
+reports the job attaches; `temporary-public-storage` publishes them at a public
+URL.
+
 ## Database
 
 SQLite through Prisma 7 and `@prisma/adapter-libsql`. `DATABASE_URL` is the only

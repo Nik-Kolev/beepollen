@@ -1,0 +1,16 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npm start",
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/produkti/pchelen-prashets-500g"
+      ],
+      "numberOfRuns": 3
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "lighthouse-report"
+    }
+  }
+}

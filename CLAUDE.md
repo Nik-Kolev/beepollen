@@ -73,11 +73,10 @@ target of a feature PR.
 
 Every PR runs `.github/workflows/ci.yml`. The `ci` job installs, then runs the
 `format:check`, `lint`, `typecheck`, `db:setup` and `build` npm scripts;
-`npm run ci` runs the same five locally. A second `e2e` job needs `ci` and runs
-Playwright, so browser tests never delay that fast feedback — `npm run test:e2e`
-is its local equivalent,
-kept out of `npm run ci` so a local check stays quick. Both together are what a
-green PR means. `typecheck` regenerates route types before `tsc` because
+`npm run ci` runs the same five locally. An `e2e` job and a `lighthouse` job both
+need `ci`, so browser tests never delay that fast feedback — `npm run test:e2e`
+and `npm run test:perf` are their local equivalents, kept out of `npm run ci` so
+a local check stays quick. All three together are what a green PR means. `typecheck` regenerates route types before `tsc` because
 `LayoutProps` and friends live in `.next/types`, which a clean checkout does not
 have.
 
@@ -85,7 +84,7 @@ Prettier is a pinned devDependency rather than an `npx` fetch, and `format:check
 runs in CI. Prettier 3 reads `.gitignore` by default, so generated output needs
 no `.prettierignore`.
 
-Both checks are required on `develop` and `main`, so a failing run blocks the
+All three checks are required on `develop` and `main`, so a failing run blocks the
 merge. The workflow file says what is checked; the branch ruleset is what makes passing
 mandatory, and it lives in GitHub's settings so a PR cannot remove the rule
 judging it.
@@ -163,6 +162,11 @@ creates a temporary one and fails with `EPERM` deleting it after every run — n
 config setting reaches it. The `filesystem` upload target is what writes the
 reports the job attaches; `temporary-public-storage` publishes them at a public
 URL.
+
+It throttles with `devtools`, not Lighthouse's default simulation. The simulation
+estimated the home page's LCP unchanged when its first photo started loading
+eagerly, while a real throttled load fell from 3.8 s to 2.7 s — a limit on
+simulated LCP cannot see that kind of regression.
 
 ## Database
 

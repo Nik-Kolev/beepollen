@@ -6,7 +6,10 @@
         "http://localhost:3000/",
         "http://localhost:3000/produkti/pchelen-prashets-500g"
       ],
-      "numberOfRuns": 3
+      "numberOfRuns": 3,
+      "settings": {
+        "throttlingMethod": "devtools"
+      }
     },
     "upload": {
       "target": "filesystem",

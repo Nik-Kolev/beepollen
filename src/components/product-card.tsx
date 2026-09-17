@@ -22,11 +22,9 @@ const DECOR: readonly { comb: HoneycombVariant; bee: string | null }[] = [
 export function ProductCard({
   product,
   index,
-  aboveFold = false,
 }: {
   product: ProductListItem;
   index: number;
-  aboveFold?: boolean;
 }) {
   const decor = DECOR[index % DECOR.length];
   const image = product.images[0];
@@ -45,8 +43,6 @@ export function ProductCard({
                 src={image.path}
                 alt={image.alt}
                 fill
-                loading={aboveFold ? "eager" : "lazy"}
-                fetchPriority={aboveFold ? "high" : "auto"}
                 sizes="(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw"
                 className="object-cover"
               />

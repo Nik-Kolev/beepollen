@@ -38,11 +38,7 @@ export default async function Home() {
               <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {products.map((product, index) => (
                   <li key={product.id}>
-                    <ProductCard
-                      product={product}
-                      index={index}
-                      aboveFold={index === 0}
-                    />
+                    <ProductCard product={product} index={index} />
                   </li>
                 ))}
               </ul>

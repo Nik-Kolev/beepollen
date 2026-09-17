@@ -60,6 +60,7 @@ docker run --rm -p 3000:3000 beepollen:prod
 | `npm run db:reset`     | Wipe and replay migrations    |
 | `npm run db:fresh`     | Reset, then seed              |
 | `npm run test:e2e`     | E2E and accessibility tests   |
+| `npm run test:perf`    | Lighthouse, not on Windows    |
 
 ## Preview
 

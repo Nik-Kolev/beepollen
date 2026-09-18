@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 
 const PAGES = [
   ["the homepage", "/"],
-  ["a product page", "/produkti/pchelen-prashets-500g"],
+  ["a product page", "/products/pchelen-prashets-500g"],
 ] as const;
 
 for (const [name, path] of PAGES) {

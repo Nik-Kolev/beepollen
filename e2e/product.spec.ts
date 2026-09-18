@@ -38,7 +38,7 @@ test("a catalogue card opens its product page", async ({ page }) => {
 
   await card.getByRole("link").click();
 
-  await expect(page).toHaveURL(/\/produkti\//);
+  await expect(page).toHaveURL(/\/products\//);
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
 });
 
@@ -56,7 +56,7 @@ test("the whole card is clickable, not just the name", async ({ page }) => {
 });
 
 test("the product page serves its data", async ({ page }) => {
-  const response = await page.goto(`/produkti/${PUBLISHED_SLUG}`);
+  const response = await page.goto(`/products/${PUBLISHED_SLUG}`);
 
   expect(response?.status()).toBe(200);
   await expect(page).toHaveTitle(
@@ -76,7 +76,7 @@ test("the product page serves its data", async ({ page }) => {
 });
 
 test("the gallery swaps the main image", async ({ page }) => {
-  await page.goto(`/produkti/${PUBLISHED_SLUG}`);
+  await page.goto(`/products/${PUBLISHED_SLUG}`);
 
   const mainImage = page.getByRole("main").getByRole("img").first();
   const bagThumbnail = page.getByRole("button", {
@@ -97,7 +97,7 @@ test("the gallery swaps the main image", async ({ page }) => {
 });
 
 test("a single-image product renders no thumbnail strip", async ({ page }) => {
-  await page.goto("/produkti/pchelna-pita-400g");
+  await page.goto("/products/pchelna-pita-400g");
 
   await expect(page.getByRole("main").getByRole("img")).toHaveCount(1);
 });
@@ -105,7 +105,7 @@ test("a single-image product renders no thumbnail strip", async ({ page }) => {
 test("the product page carries valid Product structured data", async ({
   page,
 }) => {
-  await page.goto(`/produkti/${PUBLISHED_SLUG}`);
+  await page.goto(`/products/${PUBLISHED_SLUG}`);
 
   const raw = await page
     .locator('script[type="application/ld+json"]')
@@ -157,7 +157,7 @@ test("the morph does not animate for visitors who reduce motion", async ({
 test("a product opened directly links back to the catalogue", async ({
   page,
 }) => {
-  await page.goto(`/produkti/${PUBLISHED_SLUG}`);
+  await page.goto(`/products/${PUBLISHED_SLUG}`);
   await page.getByRole("link", { name: "Към продуктите" }).click();
 
   await expect(page).toHaveURL("/");
@@ -174,7 +174,7 @@ test("the back link returns to where the catalogue was left", async ({
   expect(scrollY).toBeGreaterThan(0);
 
   await card.getByRole("link").click();
-  await expect(page).toHaveURL(/\/produkti\//);
+  await expect(page).toHaveURL(/\/products\//);
   await page.getByRole("link", { name: "Към продуктите" }).click();
 
   await expect(page).toHaveURL("/");
@@ -190,7 +190,7 @@ test("a modified click on the back link opens the catalogue in a new tab", async
     .getByRole("main")
     .getByRole("link", { name: PUBLISHED_NAME })
     .click();
-  await expect(page).toHaveURL(/\/produkti\//);
+  await expect(page).toHaveURL(/\/products\//);
 
   const newTab = context.waitForEvent("page");
   await page
@@ -198,17 +198,17 @@ test("a modified click on the back link opens the catalogue in a new tab", async
     .click({ modifiers: ["ControlOrMeta"] });
 
   await expect(await newTab).toHaveURL("/");
-  await expect(page).toHaveURL(/\/produkti\//);
+  await expect(page).toHaveURL(/\/products\//);
 });
 
 test("an unpublished product is not reachable", async ({ page }) => {
-  const response = await page.goto("/produkti/lorem-ipsum");
+  const response = await page.goto("/products/lorem-ipsum");
 
   expect(response?.status()).toBe(404);
 });
 
 test("an unknown slug renders the not-found page", async ({ page }) => {
-  const response = await page.goto("/produkti/no-such-product");
+  const response = await page.goto("/products/no-such-product");
 
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("banner")).toBeVisible();

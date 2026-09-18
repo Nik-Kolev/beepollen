@@ -11,6 +11,11 @@ Next.js App Router, TypeScript, Tailwind v4.
 comments, documentation, commit messages, PR descriptions. A Bulgarian string in
 the codebase should be user-facing copy and nothing else.
 
+Route segments follow that rule — `/products`, not `/produkti`. A product slug is
+the exception: it is the Bulgarian name transliterated into latin letters
+(`pchelen-prashets-500g`), because the slug is the keyword a Bulgarian buyer
+searches for, and Cyrillic in a URL percent-encodes into garbage when shared.
+
 ## UI conventions
 
 One light theme: no dark mode, and no extra light shades invented alongside it.

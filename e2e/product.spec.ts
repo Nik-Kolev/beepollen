@@ -68,7 +68,7 @@ test("the product page serves its data", async ({ page }) => {
   );
   await expect(
     page.getByRole("button", { name: "Добави в количката" }),
-  ).toBeDisabled();
+  ).toBeEnabled();
   await expect(
     page.getByRole("term").filter({ hasText: "Нетно количество" }),
   ).toBeVisible();

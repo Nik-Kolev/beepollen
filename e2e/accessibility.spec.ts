@@ -1,13 +1,23 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { seedCart } from "./seed-cart";
+
 const PAGES = [
   ["the homepage", "/"],
   ["a product page", "/products/pchelen-prashets-500g"],
+  ["the cart page", "/cart"],
 ] as const;
 
 for (const [name, path] of PAGES) {
   test(`${name} has no accessibility violations`, async ({ page }) => {
+    if (path === "/cart") {
+      await seedCart(page, {
+        version: 1,
+        items: [{ slug: "pchelen-prashets-500g", quantity: 2 }],
+      });
+    }
+
     await page.goto(path);
 
     const { violations } = await new AxeBuilder({ page })

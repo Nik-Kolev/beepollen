@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Bee } from "@/components/art/bee";
 import { Container } from "@/components/container";
+import { CartLink } from "@/components/layout/cart-link";
 
 const navPlaceholders = ["Lorem ipsum", "Lorem dolor", "Lorem amet"];
 
@@ -36,21 +37,7 @@ export function Header() {
             ))}
           </ul>
 
-          <span aria-hidden="true" className="ml-auto sm:ml-8">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="size-6"
-            >
-              <path d="M3 4h2l2.4 10.4a1 1 0 0 0 1 .8h7.7a1 1 0 0 0 1-.8L19 7H6" />
-              <circle cx="9" cy="19" r="1.5" />
-              <circle cx="17" cy="19" r="1.5" />
-            </svg>
-          </span>
+          <CartLink />
         </div>
       </Container>
     </header>

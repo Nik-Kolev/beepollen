@@ -58,6 +58,17 @@ use — a family without one renders the whole site in a substituted system font
 with no warning. Lato, Poppins, DM Sans, Plus Jakarta Sans, Figtree and Outfit
 all fail this, which rules out much of any "best web fonts" list.
 
+The cart lives in `localStorage` alone, under one versioned key parsed with Zod;
+anything unreadable or of another version is discarded rather than migrated.
+`/cart` is a server component that hands its client half the whole published
+catalogue — at this catalogue size that is cheaper than an API route and it keeps
+the page prerendered, so a fetch added there would cost the prerender for nothing.
+Quantities come from the visitor's own browser and nothing prices an order yet:
+the server-side recalculation is owed by the checkout phase, not skipped.
+
+The cart glyph is a modified Material Symbols path. Its attribution comment is a
+condition of the Apache 2.0 licence, not a note.
+
 A product's photo morphs from its card into the product page through React's
 `ViewTransition`, imported from `react` with no `types` entry in `tsconfig.json`:
 `next-env.d.ts` references Next's types, which pull in React's canary

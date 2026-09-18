@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { AddToCart } from "@/components/add-to-cart";
 import { BackToProductsLink } from "@/components/back-to-products-link";
 import { Container } from "@/components/container";
 import { ProductGallery } from "@/components/product-gallery";
@@ -108,13 +109,7 @@ export default async function ProductPage({
                 : "TODO: цена"}
             </p>
 
-            <button
-              type="button"
-              disabled
-              className="bg-action text-action-ink disabled:bg-placeholder disabled:text-ink-soft mt-6 w-full rounded-md px-6 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed sm:w-auto sm:self-start"
-            >
-              Добави в количката
-            </button>
+            <AddToCart slug={product.slug} soldOut={product.stock === "NONE"} />
 
             <p className="text-ink-soft mt-8 text-base whitespace-pre-line">
               {product.description}

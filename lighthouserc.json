@@ -4,7 +4,7 @@
       "startServerCommand": "npm start",
       "url": [
         "http://localhost:3000/",
-        "http://localhost:3000/produkti/pchelen-prashets-500g"
+        "http://localhost:3000/products/pchelen-prashets-500g"
       ],
       "numberOfRuns": 3,
       "settings": {

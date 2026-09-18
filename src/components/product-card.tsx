@@ -66,7 +66,7 @@ export function ProductCard({
             {/* The overlay makes the whole card clickable while the link's
                 accessible name stays just the product. */}
             <Link
-              href={`/produkti/${product.slug}`}
+              href={`/products/${product.slug}`}
               className="after:absolute after:inset-0"
             >
               {product.name}

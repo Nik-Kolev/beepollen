@@ -19,14 +19,14 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({
   params,
-}: PageProps<"/produkti/[slug]">): Promise<Metadata> {
+}: PageProps<"/products/[slug]">): Promise<Metadata> {
   const { slug } = await params;
   const product = await getPublishedProductBySlug(slug);
 
   if (!product) return {};
 
   const [image] = product.images;
-  const path = `/produkti/${product.slug}`;
+  const path = `/products/${product.slug}`;
 
   return {
     title: product.name,
@@ -43,7 +43,7 @@ export async function generateMetadata({
 
 export default async function ProductPage({
   params,
-}: PageProps<"/produkti/[slug]">) {
+}: PageProps<"/products/[slug]">) {
   const { slug } = await params;
   const product = await getPublishedProductBySlug(slug);
 

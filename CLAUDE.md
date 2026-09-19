@@ -143,6 +143,31 @@ The product page's JSON-LD carries no `offers` on purpose. Every price is zero
 until the owner supplies real ones, and a structured €0.00 is a price search
 engines will publish.
 
+## Delivery
+
+`/delivery-test` and `/delivery-test/map` are throwaway pages comparing two ways
+to pick a pickup office, and the header's `Доставка` link points at the second.
+**All three go before launch**, along with whichever variant loses.
+
+Econt's office nomenclature is the one service of theirs that takes no
+credentials — `Nomenclatures/NomenclaturesService.getOffices.json` answers an
+unauthenticated POST on `ee.econt.com`, and sending the published demo account's
+credentials is what makes that call fail. Everything else, prices included,
+needs a shop registered at `delivery.econt.com`. Speedy has no equivalent open
+endpoint: `api.speedy.bg/v1/location/office` refuses without a login.
+
+Automated stations — Еконтомат, Speedymat, BoxNow — are filtered out of the
+office list, because an order is paid at a counter and a locker takes card only.
+The filter is on `isAPS` and applies to every carrier.
+
+`listEcontOffices` fetches at build time, so a build needs Econt reachable, and
+the 2.45 MB response is over Next's 2 MB data-cache limit — the page's daily
+revalidation refetches rather than reading a cache. A real delivery phase should
+store the list rather than fetch it during a build.
+
+The map draws on free OpenStreetMap tiles, whose usage policy bars commercial
+use. **A shop needs its own tile provider before launch.**
+
 ## Docker
 
 `compose.yaml` syncs source into the container rather than bind-mounting it. A

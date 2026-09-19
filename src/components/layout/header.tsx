@@ -35,6 +35,11 @@ export function Header() {
             {navPlaceholders.map((label) => (
               <li key={label}>{label}</li>
             ))}
+            <li>
+              <Link href="/delivery-test/map" className="underline">
+                Доставка
+              </Link>
+            </li>
           </ul>
 
           <CartLink />

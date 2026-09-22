@@ -36,7 +36,7 @@ export function Header() {
               <li key={label}>{label}</li>
             ))}
             <li>
-              <Link href="/delivery-test/map" className="underline">
+              <Link href="/delivery-test" className="underline">
                 Доставка
               </Link>
             </li>

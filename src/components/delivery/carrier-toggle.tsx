@@ -10,8 +10,8 @@ export function CarrierToggle({
   onChange: (carrier: CarrierId) => void;
 }) {
   return (
-    <fieldset className="flex flex-col gap-3">
-      <legend className="mb-3 text-sm font-medium text-ink-soft">Куриер</legend>
+    <fieldset>
+      <legend className="sr-only">Куриер</legend>
       <div className="flex flex-wrap gap-3">
         {CARRIERS.map((option) => (
           <button

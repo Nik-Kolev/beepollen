@@ -1,7 +1,7 @@
 "use client";
 
 import L from "leaflet";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import "leaflet/dist/leaflet.css";
 
@@ -25,16 +25,37 @@ function pointsOf(offices: EcontOffice[]): L.LatLngTuple[] {
   );
 }
 
+// The floor is a hit target, not a look: a smaller dot is one people miss.
+function pinRadius(shown: number): number {
+  if (shown <= 8) return 10;
+  if (shown <= 30) return 8;
+
+  return 7;
+}
+
+// A handful of far-flung offices drag a city's bounds out until Sofia is drawn
+// next to Pernik, so the fit covers the bulk and lets the outliers fall off.
+function coreBounds(points: L.LatLngTuple[]): L.LatLngBounds {
+  if (points.length < 10) return L.latLngBounds(points);
+
+  const lats = points.map((point) => point[0]).sort((a, b) => a - b);
+  const lngs = points.map((point) => point[1]).sort((a, b) => a - b);
+  const low = Math.floor(points.length * 0.05);
+  const high = Math.ceil(points.length * 0.95) - 1;
+
+  return L.latLngBounds([lats[low], lngs[low]], [lats[high], lngs[high]]);
+}
+
 type OfficeMapProps = {
   offices: EcontOffice[];
-  activeCity: string | null;
+  visible: EcontOffice[];
   selectedCode: string | null;
   onSelect: (code: string) => void;
 };
 
 export default function OfficeMap({
   offices,
-  activeCity,
+  visible,
   selectedCode,
   onSelect,
 }: OfficeMapProps) {
@@ -42,14 +63,19 @@ export default function OfficeMap({
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef(new Map<string, L.CircleMarker>());
 
+  const visibleCodes = useMemo(
+    () => new Set(visible.map((office) => office.code)),
+    [visible],
+  );
+
   // Read through refs so the map is built once: listing these as dependencies
   // would tear down the view the visitor just panned.
   const onSelectRef = useRef(onSelect);
-  const activeCityRef = useRef(activeCity);
+  const visibleCodesRef = useRef(visibleCodes);
 
   useEffect(() => {
     onSelectRef.current = onSelect;
-    activeCityRef.current = activeCity;
+    visibleCodesRef.current = visibleCodes;
   });
 
   useEffect(() => {
@@ -62,13 +88,7 @@ export default function OfficeMap({
       scrollWheelZoom: false,
     });
 
-    const all = pointsOf(offices);
-
-    if (all.length > 0) {
-      map.fitBounds(L.latLngBounds(all), { padding: [16, 16] });
-    } else {
-      map.setView(BULGARIA_CENTER, BULGARIA_ZOOM);
-    }
+    map.setView(BULGARIA_CENTER, BULGARIA_ZOOM);
 
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution:
@@ -87,7 +107,7 @@ export default function OfficeMap({
       );
 
       marker.on("click", () => {
-        if (office.city === activeCityRef.current)
+        if (visibleCodesRef.current.has(office.code))
           onSelectRef.current(office.code);
       });
 
@@ -105,26 +125,28 @@ export default function OfficeMap({
     };
   }, [offices]);
 
-  // A pin outside the chosen city is dimmed and does nothing, so the map only
+  // A pin outside the shown set is dimmed and does nothing, so the map only
   // answers clicks the list beside it can also answer.
   useEffect(() => {
     const action = themeColor("--color-action");
+    const leaf = themeColor("--color-leaf");
     const surface = themeColor("--color-surface");
     const ink = themeColor("--color-ink");
+    const radius = pinRadius(visibleCodes.size);
 
     for (const office of offices) {
       const marker = markersRef.current.get(office.code);
 
       if (!marker) continue;
 
-      const live = activeCity !== null && office.city === activeCity;
+      const live = visibleCodes.has(office.code);
       const chosen = office.code === selectedCode;
 
       marker.setStyle({
-        radius: chosen ? 10 : live ? 7 : 5,
+        radius: chosen ? radius + 3 : live ? radius : 5,
         color: chosen ? ink : surface,
         opacity: live ? 1 : 0,
-        fillColor: action,
+        fillColor: chosen ? leaf : action,
         fillOpacity: live ? 1 : 0.3,
       });
 
@@ -136,22 +158,20 @@ export default function OfficeMap({
 
       if (chosen) marker.bringToFront();
     }
-  }, [offices, activeCity, selectedCode]);
+  }, [offices, visibleCodes, selectedCode]);
 
   useEffect(() => {
     const map = mapRef.current;
 
     if (!map) return;
 
-    const inCity =
-      activeCity === null
-        ? []
-        : pointsOf(offices.filter((office) => office.city === activeCity));
+    const shown = pointsOf(visible);
 
-    if (inCity.length > 0) {
-      map.fitBounds(L.latLngBounds(inCity), {
+    if (shown.length > 0) {
+      map.fitBounds(coreBounds(shown), {
         padding: [40, 40],
         maxZoom: CITY_MAX_ZOOM,
+        animate: false,
       });
 
       return;
@@ -160,15 +180,15 @@ export default function OfficeMap({
     const all = pointsOf(offices);
 
     if (all.length > 0)
-      map.fitBounds(L.latLngBounds(all), { padding: [16, 16] });
-  }, [offices, activeCity]);
+      map.fitBounds(L.latLngBounds(all), { padding: [16, 16], animate: false });
+  }, [offices, visible]);
 
   return (
     <div
       ref={containerRef}
       role="application"
       aria-label="Карта с офисите на Еконт"
-      className="h-[55vh] min-h-72 w-full overflow-hidden rounded-lg border border-line lg:h-[70vh]"
+      className="h-64 w-full overflow-hidden rounded-lg border border-line sm:h-72 lg:h-96"
     />
   );
 }

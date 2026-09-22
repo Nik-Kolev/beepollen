@@ -145,9 +145,27 @@ engines will publish.
 
 ## Delivery
 
-`/delivery-test` and `/delivery-test/map` are throwaway pages comparing two ways
-to pick a pickup office, and the header's `Доставка` link points at the second.
-**All three go before launch**, along with whichever variant loses.
+`/delivery-test` is a throwaway page for picking a pickup office, and the
+header's `Доставка` link points at it. **Both go before launch.**
+
+City then office: a city with three or fewer offices lists them outright, and
+from four up a search narrows the list instead. The map draws pins for whatever
+the list currently shows rather than for the whole city, because София's 110
+overlap into one blob; pins outside that set are dimmed and ignore clicks. It
+fits to the middle 80% of the points, since a handful of far-flung offices
+otherwise drag Бургас's view out to Поморие.
+
+An office's `name` is not its heading. 159 of the 590 are named after their own
+city, so the heading strips a repeated city prefix, and Econt reports no
+settlement type — there is no way to write `гр.` or `с.` correctly, and the list
+holds villages. The directions link omits `origin` so Google Maps starts from the
+visitor's own location.
+
+`preferCanvas` is deliberate: 590 SVG nodes stall a phone at country zoom. Its
+cost is that Leaflet throws `clearRect` on teardown under React Strict Mode —
+once per load in `next dev`, never against `npm start`. Check the production
+build before treating it as a regression, and note that Playwright cannot select
+canvas pins, so `e2e/delivery.spec.ts` covers the list and leaves the map alone.
 
 Econt's office nomenclature is the one service of theirs that takes no
 credentials — `Nomenclatures/NomenclaturesService.getOffices.json` answers an

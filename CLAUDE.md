@@ -24,13 +24,21 @@ Lorem ipsum stands in for undecided copy, and an explicit `TODO:` string stands
 in for a fact the owner still owes — a price, a variety, a food-information field.
 The seed and the product pages render them on purpose: they are page content, not
 unfinished code. Never replace one with plausible Bulgarian filler, and never
-invent an origin, certificate, review or price — plausible text survives to launch
+invent an origin, certificate or review — plausible text survives to launch
 unnoticed, and Lorem ipsum and `TODO:` cannot.
 
-The honey and comb photographs are free-licensed stand-ins. **Every one must be
-replaced with the owner's own before launch** — a noindexed demo tolerates
-borrowed images, a live shop does not. The pollen photographs are already the
-owner's own.
+Prices are the single exception, added because checkout cannot be tested against
+a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,
+never inline, so every one is deletable in a single edit, and they are deleted at
+launch rather than corrected into real ones. The unpublished draft row keeps a
+zero price so the `TODO: цена` branch still has a row that reaches it. Ask before
+inventing a number anywhere else.
+
+The catalogue is pollen only. Honey and comb were seeded early against borrowed
+free-licensed photographs and removed once the catalogue settled on pollen alone
+— which also retired the Wikimedia attribution and share-alike obligation those
+two carried. Every photograph now in `public/` is the owner's own, so a new
+product needs a real photograph before it can be seeded, not a stand-in.
 
 Error boundaries take `retry`, not the `reset` most training data reaches for.
 Anything the root layout renders — the header included — fails past `error.tsx`
@@ -139,9 +147,10 @@ Metadata inheritance is shallow and per top-level key: a page that omits
 `alternates` inherits its parent's canonical and so declares itself a duplicate
 of it. Every page-level `generateMetadata` sets its own.
 
-The product page's JSON-LD carries no `offers` on purpose. Every price is zero
-until the owner supplies real ones, and a structured €0.00 is a price search
-engines will publish.
+The product page's JSON-LD carries no `offers` on purpose. Every price is a
+placeholder until the owner supplies real ones, and a structured price is one
+search engines will publish — which was true of the €0.00 that came before these
+and is worse now that the numbers look real.
 
 ## Delivery
 

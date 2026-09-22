@@ -4,8 +4,8 @@ import { seedCart } from "./seed-cart";
 
 const POLLEN_SLUG = "pchelen-prashets-500g";
 const POLLEN_NAME = "Пчелен прашец 500 г";
-const HONEY_SLUG = "pchelen-med-450g";
-const HONEY_NAME = "Пчелен мед 450 г";
+const SECOND_SLUG = "pchelen-prashets-1kg";
+const SECOND_NAME = "Пчелен прашец 1 кг";
 
 function cartLink(page: Page) {
   return page.getByRole("banner").getByRole("link", { name: /Количка/ });
@@ -45,7 +45,7 @@ test("the cart page lists a line per product", async ({ page }) => {
     version: 1,
     items: [
       { slug: POLLEN_SLUG, quantity: 2 },
-      { slug: HONEY_SLUG, quantity: 1 },
+      { slug: SECOND_SLUG, quantity: 1 },
     ],
   });
   await page.goto("/cart");
@@ -87,13 +87,13 @@ test("removing a line leaves the others", async ({ page }) => {
     version: 1,
     items: [
       { slug: POLLEN_SLUG, quantity: 2 },
-      { slug: HONEY_SLUG, quantity: 1 },
+      { slug: SECOND_SLUG, quantity: 1 },
     ],
   });
   await page.goto("/cart");
 
   await cartRows(page)
-    .filter({ hasText: HONEY_NAME })
+    .filter({ hasText: SECOND_NAME })
     .getByRole("button", { name: /Премахни/ })
     .click();
 
@@ -217,7 +217,7 @@ test("a second tab sees the change without reloading", async ({ context }) => {
   await first.goto(`/products/${POLLEN_SLUG}`);
 
   const second = await context.newPage();
-  await second.goto(`/products/${HONEY_SLUG}`);
+  await second.goto(`/products/${SECOND_SLUG}`);
   await second.getByRole("button", { name: "Добави в количката" }).click();
 
   await expect(cartLink(first)).toHaveAccessibleName("Количка, 1 бр.");

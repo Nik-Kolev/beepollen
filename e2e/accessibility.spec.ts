@@ -7,8 +7,7 @@ const PAGES = [
   ["the homepage", "/"],
   ["a product page", "/products/pchelen-prashets-500g"],
   ["the cart page", "/cart"],
-  ["the office list", "/delivery-test"],
-  ["the office map", "/delivery-test/map"],
+  ["the office picker", "/delivery-test"],
 ] as const;
 
 for (const [name, path] of PAGES) {

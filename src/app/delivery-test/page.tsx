@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { Container } from "@/components/container";
-import { OfficePicker } from "@/components/delivery/office-picker";
+import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
 import { listEcontOffices } from "@/lib/econt";
 
 export const metadata: Metadata = {
@@ -18,17 +17,12 @@ export default async function DeliveryTestPage() {
   return (
     <Container>
       <div className="py-8 sm:py-12">
-        <h1 className="text-2xl font-semibold sm:text-3xl">Избор на офис</h1>
-        <p className="mt-2 text-ink-soft">
-          Списък без карта.{" "}
-          <Link href="/delivery-test/map" className="underline">
-            Вариантът с карта
-          </Link>
-          .
-        </p>
+        <h1 className="text-2xl font-semibold sm:text-3xl">
+          Доставка до офис на куриер
+        </h1>
 
-        <div className="mt-8">
-          <OfficePicker offices={offices} />
+        <div className="mt-6">
+          <OfficeCityPicker offices={offices} />
         </div>
       </div>
     </Container>

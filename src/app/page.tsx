@@ -35,7 +35,7 @@ export default async function Home() {
             {products.length === 0 ? (
               <p className="text-ink-soft mt-8">Няма налични продукти.</p>
             ) : (
-              <ul className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-8 grid grid-cols-[repeat(auto-fit,minmax(min(20rem,100%),1fr))] gap-8 sm:gap-10">
                 {products.map((product, index) => (
                   <li key={product.id}>
                     <ProductCard

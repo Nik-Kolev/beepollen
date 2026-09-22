@@ -15,8 +15,8 @@ import { productPhotoTransitionName } from "@/lib/view-transition";
 // product: it is styling, and a column would have to be filled for every row.
 const DECOR: readonly { comb: HoneycombVariant; bee: string | null }[] = [
   { comb: "climb", bee: "top-3 right-3 w-10 -rotate-12" },
-  { comb: "climbRight", bee: null },
-  { comb: "climbStep", bee: "bottom-3 left-3 w-9 rotate-6" },
+  { comb: "climbRight", bee: "bottom-3 left-3 w-9 rotate-6" },
+  { comb: "climbStep", bee: null },
 ];
 
 export function ProductCard({
@@ -47,7 +47,7 @@ export function ProductCard({
                 fill
                 loading={aboveFold ? "eager" : "lazy"}
                 fetchPriority={aboveFold ? "high" : "auto"}
-                sizes="(min-width: 1024px) 384px, (min-width: 640px) 50vw, 100vw"
+                sizes="(min-width: 1152px) 532px, (min-width: 768px) 50vw, 100vw"
                 className="object-cover"
               />
             )}

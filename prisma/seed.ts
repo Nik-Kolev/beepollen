@@ -1,8 +1,15 @@
 import prisma from "@/lib/prisma";
 
-// Lorem ipsum and visible markers only: plausible Bulgarian filler and an
-// invented price both survive to launch unnoticed.
+// Lorem ipsum and visible markers only: plausible Bulgarian filler survives to
+// launch unnoticed, where a marker cannot.
 const SUMMARY = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+
+// Placeholder prices the owner still owes; deleted at launch, never corrected.
+// Distinct on purpose — equal prices hide a quantity or subtotal bug.
+const TODO_PRICE = {
+  pollen500: 2450,
+  pollen1000: 4590,
+};
 
 const DESCRIPTION = [
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod",
@@ -26,7 +33,7 @@ const products = [
     summary: SUMMARY,
     description: DESCRIPTION,
     variety: null,
-    priceCents: 0,
+    priceCents: TODO_PRICE.pollen500,
     sortOrder: 0,
     isPublished: true,
     netWeightGrams: 500,
@@ -46,7 +53,7 @@ const products = [
     summary: SUMMARY,
     description: DESCRIPTION,
     variety: null,
-    priceCents: 0,
+    priceCents: TODO_PRICE.pollen1000,
     sortOrder: 1,
     isPublished: true,
     netWeightGrams: 1000,
@@ -56,90 +63,6 @@ const products = [
       {
         path: "/products/pollen-plate-with-bag.jpg",
         alt: "Пчелен прашец в чиния пред пакет от 1 кг",
-      },
-    ],
-  },
-  {
-    id: 4,
-    slug: "pchelen-med-450g",
-    name: "Пчелен мед 450 г",
-    summary: SUMMARY,
-    description: DESCRIPTION,
-    variety: "TODO: сорт",
-    priceCents: 0,
-    sortOrder: 2,
-    isPublished: true,
-    netWeightGrams: 450,
-    ...FOOD_INFORMATION,
-    images: [
-      {
-        path: "/products/honey-jars.jpg",
-        alt: "Два буркана мед върху дървена дъска сред зеленина",
-      },
-      {
-        path: "/products/honey-jars-stacked.jpg",
-        alt: "Редици буркани с мед на дървена маса",
-      },
-    ],
-  },
-  {
-    id: 5,
-    slug: "pchelen-med-900g",
-    name: "Пчелен мед 900 г",
-    summary: SUMMARY,
-    description: DESCRIPTION,
-    variety: "TODO: сорт",
-    priceCents: 0,
-    sortOrder: 3,
-    isPublished: true,
-    netWeightGrams: 900,
-    ...FOOD_INFORMATION,
-    images: [
-      {
-        path: "/products/honey-jars-apiary.jpg",
-        alt: "Четири буркана мед на дървена маса до рамка с пита",
-      },
-      {
-        path: "/products/honey-jars-crystallised.jpg",
-        alt: "Буркан с кристализирал мед до буркан с течен мед",
-      },
-    ],
-  },
-  {
-    id: 6,
-    slug: "med-s-pita-450g",
-    name: "Мед с пита 450 г",
-    summary: SUMMARY,
-    description: DESCRIPTION,
-    variety: "TODO: сорт",
-    priceCents: 0,
-    sortOrder: 4,
-    isPublished: true,
-    netWeightGrams: 450,
-    ...FOOD_INFORMATION,
-    images: [
-      {
-        path: "/products/honey-comb-in-jar.jpg",
-        alt: "Буркан мед с парче пита вътре",
-      },
-    ],
-  },
-  {
-    id: 7,
-    slug: "pchelna-pita-400g",
-    name: "Пчелна пита 400 г",
-    summary: SUMMARY,
-    description: DESCRIPTION,
-    variety: "TODO: сорт",
-    priceCents: 0,
-    sortOrder: 5,
-    isPublished: true,
-    netWeightGrams: 400,
-    ...FOOD_INFORMATION,
-    images: [
-      {
-        path: "/products/honeycomb.jpg",
-        alt: "Пчелна пита със запечатани восъчни капачета",
       },
     ],
   },
@@ -153,7 +76,7 @@ const products = [
     description: DESCRIPTION,
     variety: null,
     priceCents: 0,
-    sortOrder: 6,
+    sortOrder: 2,
     isPublished: false,
     netWeightGrams: null,
     composition: null,
@@ -166,6 +89,12 @@ const products = [
 ];
 
 async function main() {
+  // Upsert alone leaves a product dropped from this file sitting in an existing
+  // database, still published; images cascade with it.
+  await prisma.product.deleteMany({
+    where: { id: { notIn: products.map((product) => product.id) } },
+  });
+
   for (const { id, images, ...product } of products) {
     await prisma.product.upsert({
       where: { id },

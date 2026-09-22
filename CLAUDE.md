@@ -96,8 +96,8 @@ from `develop` once a meaningful chunk of work is finished, and is never the
 target of a feature PR.
 
 Every PR runs `.github/workflows/ci.yml`. The `ci` job installs, then runs the
-`format:check`, `lint`, `typecheck`, `db:setup` and `build` npm scripts;
-`npm run ci` runs the same five locally. An `e2e` job and a `lighthouse` job both
+`format:check`, `lint`, `typecheck`, `test:unit`, `db:setup` and `build` npm
+scripts; `npm run ci` runs the same six locally. An `e2e` job and a `lighthouse` job both
 need `ci`, so browser tests never delay that fast feedback — `npm run test:e2e`
 and `npm run test:perf` are their local equivalents, kept out of `npm run ci` so
 a local check stays quick. All three together are what a green PR means. `typecheck` regenerates route types before `tsc` because
@@ -151,6 +151,35 @@ The product page's JSON-LD carries no `offers` on purpose. Every price is a
 placeholder until the owner supplies real ones, and a structured price is one
 search engines will publish — which was true of the €0.00 that came before these
 and is worse now that the numbers look real.
+
+## Orders
+
+`placeOrder` in `src/lib/orders.ts` is the trust boundary. Only a slug and a
+quantity survive validation; the name, price and availability of every line are
+read back from the database, and Zod strips anything else the caller sends. A
+product that is unpublished, out of stock or priced at zero is refused rather
+than sold.
+
+The idempotency key is a check-then-act: the pre-read cannot stop a concurrent
+submission, so the unique index is what does, and the P2002 it raises is caught
+and answered with the committed order. On `@prisma/adapter-libsql` that error
+leaves the documented `meta.target` undefined and reports the violated fields at
+`meta.driverAdapterError.cause.constraint.fields` — code matching only on
+`target` silently treats the conflict as an unrelated failure and rethrows.
+
+`Order` snapshots `contactName` and `contactPhone` the same way `OrderItem`
+snapshots a product: `Customer` is the latest-known contact, never the record of
+what an order was placed with. A `Consent` row stores the wording exactly as it
+was shown, so editing `CONSENT_WORDING` never rewrites what someone agreed to.
+
+The honeypot field is named `website` and is checked after parsing rather than in
+the schema, so its rejection is byte-identical to the rate limiter's — a
+validation error naming the field would tell a bot which check caught it. The
+rate limiter is in-process and resets on deploy, which suits one Node process on
+one host and would count per instance on any other.
+
+`deliveryCents` is always zero until the courier choice exists; the column is
+there so adding it costs no migration.
 
 ## Delivery
 
@@ -214,7 +243,20 @@ Dockerfile copies both in explicitly — drop either and the site still returns
 
 ## Testing
 
-Playwright starts the app with `npm run build:demo && npm start`, not `next dev`.
+Two layers. `npm run test:unit` runs `node:test` through tsx over `tests/**`,
+for logic reachable without a browser — the order service above all, where the
+rules being tested are the ones that stop a crafted request. It has no mocking
+library on purpose: `scripts/test-unit.mjs` points `DATABASE_URL` at its own
+`data/test.db`, deletes it, migrates and seeds it on every run, so the real
+constraints fire and nothing can touch `data/dev.db`. Files run one at a time,
+since they share that database.
+
+Playwright is the other layer. It starts the app with
+`npm run build:demo && npm start`, not `next dev` — but `reuseExistingServer` is
+on outside CI, so a local run silently attaches to whatever already holds the
+port. With `npm run dev` up, the whole suite tests Turbopack dev instead of the
+build and can fail on differences that do not exist in what ships. Stop the dev
+server before a local suite run, or read the result as provisional.
 Dev runs Turbopack and is not what ships, so a smoke test against it proves less
 than the seconds it saves. The suite runs twice, mobile project first, because
 mobile is the priority everything else here is built around.

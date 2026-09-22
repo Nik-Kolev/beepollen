@@ -1,0 +1,86 @@
+enum OrderStatus {
+  NEW
+  SHIPPED
+  CANCELLED
+}
+
+enum ConsentKind {
+  TERMS
+  OFFERS
+}
+
+model Customer {
+  id    Int    @id @default(autoincrement())
+  name  String
+  email String @unique
+  phone String
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  customerId Int
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  status     OrderStatus @default(NEW)
+
+  // Snapshotted for the same reason OrderItem snapshots its product: the
+  // Customer row is the latest known contact, not what this order was placed on.
+  contactName  String
+  contactPhone String
+
+  itemsCents    Int
+  deliveryCents Int @default(0)
+  totalCents    Int
+
+  // Unique, so a resubmitted form returns the first order instead of writing a
+  // second one.
+  idempotencyKey String @unique
+
+  items    OrderItem[]
+  consents Consent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id      Int   @id @default(autoincrement())
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // SetNull, not Cascade: the seed deletes products dropped from the catalogue,
+  // and a past order must survive that. Every field below is a snapshot.
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  slug           String
+  name           String
+  unitPriceCents Int
+  quantity       Int
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Consent {
+  id      Int         @id @default(autoincrement())
+  orderId Int
+  order   Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind    ConsentKind
+
+  // The wording as it was shown when ticked: GDPR wants consent demonstrable,
+  // which a boolean cannot do once the page text changes.
+  wording   String
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@unique([orderId, kind])
+  @@index([orderId])
+}

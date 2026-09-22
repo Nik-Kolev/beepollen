@@ -6,7 +6,7 @@ const CART_VERSION = 1;
 
 export const MAX_LINE_QUANTITY = 99;
 
-const MAX_LINES = 50;
+export const MAX_LINES = 50;
 
 const cartSchema = z.object({
   version: z.literal(CART_VERSION),
@@ -26,7 +26,7 @@ export type CartItem = Cart["items"][number];
 export const EMPTY_CART: Cart = { version: CART_VERSION, items: [] };
 
 // A repeated slug is summed rather than rejected: rejecting empties the cart.
-function collapseDuplicates(items: CartItem[]): CartItem[] {
+export function collapseDuplicates(items: CartItem[]): CartItem[] {
   const quantities = new Map<string, number>();
 
   for (const { slug, quantity } of items) {

@@ -12,6 +12,8 @@ import {
 } from "@/lib/products";
 import { SITE_URL } from "@/lib/site";
 
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
   const products = await listPublishedProductSlugs();
 

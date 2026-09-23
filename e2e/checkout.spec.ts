@@ -86,6 +86,22 @@ test("a withdrawn product is named rather than dropped", async ({ page }) => {
 
   await expect(withdrawn).toContainText("no-such-product");
   await expect(summaryRows(page)).toHaveCount(2);
+
+  await expect(
+    page.getByRole("button", { name: "Завърши поръчката" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByText(
+      "Премахнете продуктите, които вече не се предлагат, за да продължите.",
+    ),
+  ).toBeVisible();
+
+  await withdrawn.getByRole("button", { name: /Премахни/ }).click();
+
+  await expect(summaryRows(page)).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: "Завърши поръчката" }),
+  ).toBeEnabled();
 });
 
 test("the consent wording is rendered as it will be stored", async ({

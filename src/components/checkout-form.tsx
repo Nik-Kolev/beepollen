@@ -8,6 +8,8 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
 } from "react";
 
 import { submitOrder } from "@/app/checkout/actions";
@@ -43,16 +45,50 @@ const INCOMPLETE_ORDER =
 const UNAVAILABLE_LINES =
   "Отбелязаните продукти вече не се предлагат. Премахнете ги, за да продължите.";
 
+const WITHDRAWN_LINES =
+  "Премахнете продуктите, които вече не се предлагат, за да продължите.";
+
+const MISSING_PRICE =
+  "Продукт в количката все още няма цена, затова поръчката не може да бъде завършена.";
+
 // Deliberately says nothing about which check refused it.
 const REFUSED =
   "Поръчката не може да бъде приета в момента. Опитайте по-късно.";
 
-function summaryError(result: PlaceOrderResult | null) {
+type Answers = {
+  name: string;
+  email: string;
+  phone: string;
+  acceptsTerms: boolean;
+  acceptsOffers: boolean;
+};
+
+const EMPTY_ANSWERS: Answers = {
+  name: "",
+  email: "",
+  phone: "",
+  acceptsTerms: false,
+  acceptsOffers: false,
+};
+
+// Pinned to the result it answers, so a newer refusal makes it stale by
+// identity rather than needing an effect to clear it.
+type Corrected = { of: PlaceOrderResult | null; fields: Set<string> };
+
+const NOTHING_CORRECTED: Corrected = { of: null, fields: new Set() };
+
+function summaryError(
+  result: PlaceOrderResult | null,
+  stillUnavailable: boolean,
+) {
   if (!result || result.ok) return null;
   if (result.code === "REJECTED") return REFUSED;
-  if (result.code === "UNAVAILABLE_ITEMS") return UNAVAILABLE_LINES;
+  if (result.code === "UNAVAILABLE_ITEMS") {
+    return stillUnavailable ? UNAVAILABLE_LINES : null;
+  }
 
-  return result.fields.some((field) => field in FIELD_ERROR)
+  // A field the form cannot mark would otherwise be refused in silence.
+  return result.fields.every((field) => field in FIELD_ERROR)
     ? null
     : INCOMPLETE_ORDER;
 }
@@ -109,6 +145,10 @@ function OrderPlaced({ order }: { order: PlacedOrder }) {
 function FilledCheckout({
   items,
   products,
+  answers,
+  setAnswers,
+  corrected,
+  setCorrected,
   result,
   pending,
   formAction,
@@ -116,17 +156,16 @@ function FilledCheckout({
 }: {
   items: CartItem[];
   products: CartProduct[];
+  answers: Answers;
+  setAnswers: Dispatch<SetStateAction<Answers>>;
+  corrected: Corrected;
+  setCorrected: Dispatch<SetStateAction<Corrected>>;
   result: PlaceOrderResult | null;
   pending: boolean;
   formAction: (formData: FormData) => void;
   onRemove: (slug: string) => void;
 }) {
   const [idempotencyKey] = useState(() => crypto.randomUUID());
-  // Controlled, because React resets an uncontrolled form once its action
-  // returns -- which threw away the fields the buyer had got right.
-  const [contact, setContact] = useState({ name: "", email: "", phone: "" });
-  const [acceptsTerms, setAcceptsTerms] = useState(false);
-  const [acceptsOffers, setAcceptsOffers] = useState(false);
   const catalogue = new Map(products.map((product) => [product.slug, product]));
   const lines = items.map(({ slug, quantity }) => ({
     slug,
@@ -140,16 +179,30 @@ function FilledCheckout({
   const everyPriceKnown = lines.every(
     (line) => (line.product?.priceCents ?? 0) > 0,
   );
+  // A line the catalogue no longer carries and a line with no price both fail
+  // the order service, so the page says which rather than letting it round trip.
+  const withdrawn = lines.some((line) => !line.product);
+  const blocked = withdrawn
+    ? WITHDRAWN_LINES
+    : everyPriceKnown
+      ? null
+      : MISSING_PRICE;
 
-  const invalid =
+  const correctedFields =
+    corrected.of === result ? corrected.fields : new Set<string>();
+  const reported =
     result && !result.ok && result.code === "VALIDATION_ERROR"
-      ? new Set(result.fields)
-      : new Set<string>();
+      ? result.fields
+      : [];
+  const invalid = new Set(
+    reported.filter((field) => !correctedFields.has(field)),
+  );
   const unavailable =
     result && !result.ok && result.code === "UNAVAILABLE_ITEMS"
       ? new Set(result.slugs)
       : new Set<string>();
-  const summary = summaryError(result);
+  const stillUnavailable = lines.some((line) => unavailable.has(line.slug));
+  const summary = summaryError(result, stillUnavailable);
 
   function fieldProps(name: string) {
     return invalid.has(name)
@@ -161,11 +214,25 @@ function FilledCheckout({
     return invalid.has(name) ? FIELD_INVALID : FIELD;
   }
 
-  function onContactChange(field: keyof typeof contact) {
-    return (event: ChangeEvent<HTMLInputElement>) => {
-      const { value } = event.target;
+  function markCorrected(field: string) {
+    setCorrected((current) => ({
+      of: result,
+      fields:
+        current.of === result
+          ? new Set(current.fields).add(field)
+          : new Set([field]),
+    }));
+  }
 
-      setContact((current) => ({ ...current, [field]: value }));
+  function onAnswerChange(field: keyof Answers) {
+    return (event: ChangeEvent<HTMLInputElement>) => {
+      const { value, checked, type } = event.target;
+
+      markCorrected(field);
+      setAnswers((current) => ({
+        ...current,
+        [field]: type === "checkbox" ? checked : value,
+      }));
     };
   }
 
@@ -210,8 +277,8 @@ function FilledCheckout({
                 type="text"
                 autoComplete="name"
                 required
-                value={contact.name}
-                onChange={onContactChange("name")}
+                value={answers.name}
+                onChange={onAnswerChange("name")}
                 className={fieldClass("name")}
                 {...fieldProps("name")}
               />
@@ -232,8 +299,8 @@ function FilledCheckout({
                 type="email"
                 autoComplete="email"
                 required
-                value={contact.email}
-                onChange={onContactChange("email")}
+                value={answers.email}
+                onChange={onAnswerChange("email")}
                 className={fieldClass("email")}
                 {...fieldProps("email")}
               />
@@ -254,8 +321,8 @@ function FilledCheckout({
                 type="tel"
                 autoComplete="tel"
                 required
-                value={contact.phone}
-                onChange={onContactChange("phone")}
+                value={answers.phone}
+                onChange={onAnswerChange("phone")}
                 className={fieldClass("phone")}
                 {...fieldProps("phone")}
               />
@@ -278,8 +345,8 @@ function FilledCheckout({
                   type="checkbox"
                   name="acceptsTerms"
                   required
-                  checked={acceptsTerms}
-                  onChange={(event) => setAcceptsTerms(event.target.checked)}
+                  checked={answers.acceptsTerms}
+                  onChange={onAnswerChange("acceptsTerms")}
                   className={CHECKBOX}
                   {...fieldProps("acceptsTerms")}
                 />
@@ -296,8 +363,8 @@ function FilledCheckout({
               <input
                 type="checkbox"
                 name="acceptsOffers"
-                checked={acceptsOffers}
-                onChange={(event) => setAcceptsOffers(event.target.checked)}
+                checked={answers.acceptsOffers}
+                onChange={onAnswerChange("acceptsOffers")}
                 className={CHECKBOX}
               />
               <span>{CONSENT_WORDING.OFFERS}</span>
@@ -334,7 +401,7 @@ function FilledCheckout({
                 <p className="text-ink-soft mt-1 text-sm">
                   {product ? `${quantity} бр.` : slug}
                 </p>
-                {unavailable.has(slug) && (
+                {(unavailable.has(slug) || !product) && (
                   <button
                     type="button"
                     onClick={() => onRemove(slug)}
@@ -363,18 +430,24 @@ function FilledCheckout({
 
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || blocked !== null}
           className="bg-action text-action-ink disabled:bg-placeholder disabled:text-ink-soft mt-6 w-full rounded-md px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed"
         >
           {pending ? "Изпращане…" : "Завърши поръчката"}
         </button>
+
+        {blocked && <p className={ERROR_TEXT}>{blocked}</p>}
       </section>
     </form>
   );
 }
 
+// The answers live here rather than in the form, so emptying the cart -- by
+// removing the last line, or from another tab -- cannot discard what was typed.
 export function CheckoutForm({ products }: { products: CartProduct[] }) {
   const { cart, ready, remove, clear } = useCart();
+  const [answers, setAnswers] = useState(EMPTY_ANSWERS);
+  const [corrected, setCorrected] = useState(NOTHING_CORRECTED);
   const [result, formAction, pending] = useActionState(submitOrder, null);
   const placed = result?.ok ? result.order : null;
 
@@ -390,6 +463,10 @@ export function CheckoutForm({ products }: { products: CartProduct[] }) {
     <FilledCheckout
       items={cart.items}
       products={products}
+      answers={answers}
+      setAnswers={setAnswers}
+      corrected={corrected}
+      setCorrected={setCorrected}
       result={result}
       pending={pending}
       formAction={formAction}

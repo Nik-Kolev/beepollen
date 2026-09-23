@@ -62,7 +62,7 @@ export function Footer() {
               <h2 className="text-xs font-semibold tracking-[0.12em] uppercase">
                 {column.heading}
               </h2>
-              <ul className="text-footer-ink-soft mt-4 space-y-2.5">
+              <ul role="list" className="text-footer-ink-soft mt-4 space-y-2.5">
                 {column.lines.map((line) => (
                   <li key={line}>{line}</li>
                 ))}

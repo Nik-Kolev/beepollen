@@ -31,7 +31,10 @@ export function Header() {
             </span>
           </Link>
 
-          <ul className="order-last flex w-full justify-center gap-6 text-sm sm:order-none sm:ml-auto sm:w-auto">
+          <ul
+            role="list"
+            className="order-last flex w-full justify-center gap-6 text-sm sm:order-none sm:ml-auto sm:w-auto"
+          >
             {navPlaceholders.map((label) => (
               <li key={label}>{label}</li>
             ))}

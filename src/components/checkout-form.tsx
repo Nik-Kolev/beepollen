@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState } from "react";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
 
 import { submitOrder } from "@/app/checkout/actions";
 import { useCart } from "@/hooks/use-cart";
@@ -65,9 +72,18 @@ function EmptyCheckout() {
 }
 
 function OrderPlaced({ order }: { order: PlacedOrder }) {
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  // The form it replaced is gone, so focus would otherwise fall to the body.
+  useEffect(() => {
+    heading.current?.focus();
+  }, []);
+
   return (
     <div className="py-10">
-      <h2 className="text-xl font-semibold">Поръчката е приета</h2>
+      <h2 ref={heading} tabIndex={-1} className="text-xl font-semibold">
+        Поръчката е приета
+      </h2>
       <p className="mt-4">
         Номер на поръчката:{" "}
         <strong className="text-brand-deep">{order.reference}</strong>
@@ -106,6 +122,11 @@ function FilledCheckout({
   onRemove: (slug: string) => void;
 }) {
   const [idempotencyKey] = useState(() => crypto.randomUUID());
+  // Controlled, because React resets an uncontrolled form once its action
+  // returns -- which threw away the fields the buyer had got right.
+  const [contact, setContact] = useState({ name: "", email: "", phone: "" });
+  const [acceptsTerms, setAcceptsTerms] = useState(false);
+  const [acceptsOffers, setAcceptsOffers] = useState(false);
   const catalogue = new Map(products.map((product) => [product.slug, product]));
   const lines = items.map(({ slug, quantity }) => ({
     slug,
@@ -140,10 +161,26 @@ function FilledCheckout({
     return invalid.has(name) ? FIELD_INVALID : FIELD;
   }
 
+  function onContactChange(field: keyof typeof contact) {
+    return (event: ChangeEvent<HTMLInputElement>) => {
+      const { value } = event.target;
+
+      setContact((current) => ({ ...current, [field]: value }));
+    };
+  }
+
   return (
     <form
-      action={formAction}
       noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+
+        // Submitted by hand rather than through the action prop, because that
+        // resets the form and throws away the fields the buyer got right.
+        const submitted = new FormData(event.currentTarget);
+
+        startTransition(() => formAction(submitted));
+      }}
       className="mt-6 flex flex-col gap-10 lg:flex-row"
     >
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
@@ -173,6 +210,8 @@ function FilledCheckout({
                 type="text"
                 autoComplete="name"
                 required
+                value={contact.name}
+                onChange={onContactChange("name")}
                 className={fieldClass("name")}
                 {...fieldProps("name")}
               />
@@ -193,6 +232,8 @@ function FilledCheckout({
                 type="email"
                 autoComplete="email"
                 required
+                value={contact.email}
+                onChange={onContactChange("email")}
                 className={fieldClass("email")}
                 {...fieldProps("email")}
               />
@@ -213,6 +254,8 @@ function FilledCheckout({
                 type="tel"
                 autoComplete="tel"
                 required
+                value={contact.phone}
+                onChange={onContactChange("phone")}
                 className={fieldClass("phone")}
                 {...fieldProps("phone")}
               />
@@ -235,6 +278,8 @@ function FilledCheckout({
                   type="checkbox"
                   name="acceptsTerms"
                   required
+                  checked={acceptsTerms}
+                  onChange={(event) => setAcceptsTerms(event.target.checked)}
                   className={CHECKBOX}
                   {...fieldProps("acceptsTerms")}
                 />
@@ -251,6 +296,8 @@ function FilledCheckout({
               <input
                 type="checkbox"
                 name="acceptsOffers"
+                checked={acceptsOffers}
+                onChange={(event) => setAcceptsOffers(event.target.checked)}
                 className={CHECKBOX}
               />
               <span>{CONSENT_WORDING.OFFERS}</span>

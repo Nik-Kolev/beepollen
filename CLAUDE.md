@@ -266,6 +266,14 @@ violation. It runs inside the existing suite rather than as its own job, because
 the suite already builds the app and drives a browser. Add a scan for every new
 page — the gate only covers routes a spec actually visits.
 
+`error.tsx` and `global-error.tsx` are outside it because nothing currently
+reaches them in a browser: every route is prerendered, so nothing renders at
+request time to fail; the cart discards unreadable stored data rather than
+throwing; a failed RSC payload fetch falls back to a full-page navigation, not
+the error boundary; and the root layout is static. That is today's shape, not a
+permanent exemption — revisit it when a route first renders at request time, as
+the order submission will.
+
 Lighthouse CI runs as its own `lighthouse` job and cannot run on Windows.
 Lighthouse's CLI never passes Chrome a profile directory, so `chrome-launcher`
 creates a temporary one and fails with `EPERM` deleting it after every run — no

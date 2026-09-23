@@ -77,6 +77,14 @@ the server-side recalculation is owed by the checkout phase, not skipped.
 The cart glyph is a modified Material Symbols path. Its attribution comment is a
 condition of the Apache 2.0 licence, not a note.
 
+Preflight strips the marker from every `ul`, and Safari and VoiceOver drop the
+implicit `list` and `listitem` roles once a list has none, so a list used as a
+grouping sets `role="list"` explicitly. Chromium keeps the roles either way,
+which is why both Playwright projects pass whether or not the attribute is
+there — `e2e/accessibility.spec.ts` asserts no rendered list is left without an
+explicit role instead. A list that is only a layout wrapper says so with
+`role="presentation"` rather than going bare.
+
 A product's photo morphs from its card into the product page through React's
 `ViewTransition`, imported from `react` with no `types` entry in `tsconfig.json`:
 `next-env.d.ts` references Next's types, which pull in React's canary

@@ -39,7 +39,7 @@ export function ProductGallery({
       </ViewTransition>
 
       {images.length > 1 && (
-        <ul className="flex flex-wrap gap-3">
+        <ul role="list" className="flex flex-wrap gap-3">
           {images.map((image, index) => (
             <li key={image.id}>
               <button

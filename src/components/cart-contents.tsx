@@ -161,13 +161,12 @@ export function CartContents({ products }: { products: CartProduct[] }) {
           </span>
         </p>
 
-        <button
-          type="button"
-          disabled
-          className="bg-action text-action-ink disabled:bg-placeholder disabled:text-ink-soft w-full rounded-md px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed sm:w-auto"
+        <Link
+          href="/checkout"
+          className="bg-action text-action-ink w-full rounded-md px-6 py-3 text-center text-sm font-semibold sm:w-auto"
         >
           Към поръчката
-        </button>
+        </Link>
       </div>
     </div>
   );

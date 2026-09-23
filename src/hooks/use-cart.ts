@@ -108,5 +108,9 @@ export function useCart() {
     write(removeItem(getSnapshot(), slug));
   }, []);
 
-  return { cart, ready, add, setQuantity, remove };
+  const clear = useCallback(() => {
+    write(EMPTY_CART);
+  }, []);
+
+  return { cart, ready, add, setQuantity, remove, clear };
 }

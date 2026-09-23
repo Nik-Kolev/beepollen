@@ -7,6 +7,7 @@ const PAGES = [
   ["the homepage", "/"],
   ["a product page", "/products/pchelen-prashets-500g"],
   ["the cart page", "/cart"],
+  ["the checkout page", "/checkout"],
   ["the office picker", "/delivery-test"],
   ["the not-found page", "/no-such-page"],
   ["an unknown product slug", "/products/no-such-product"],
@@ -14,7 +15,7 @@ const PAGES = [
 
 for (const [name, path] of PAGES) {
   test(`${name} has no accessibility violations`, async ({ page }) => {
-    if (path === "/cart") {
+    if (path === "/cart" || path === "/checkout") {
       await seedCart(page, {
         version: 1,
         items: [{ slug: "pchelen-prashets-500g", quantity: 2 }],

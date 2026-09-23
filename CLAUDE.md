@@ -189,6 +189,38 @@ one host and would count per instance on any other.
 `deliveryCents` is always zero until the courier choice exists; the column is
 there so adding it costs no migration.
 
+## Checkout
+
+`/checkout` is one page — contact fields, consents and the line summary. The
+delivery section arrives with the office picker, and until then the total is
+goods only.
+
+The form submits from `onSubmit` inside `startTransition`, never through the
+`action` prop. React resets a form once its action returns, wiping the fields a
+buyer got right; controlling the inputs rescues the text values but not a
+checkbox, because the reset changes the DOM while the state React diffs against
+is unchanged. Calling the action outside a transition logs that `isPending` will
+not update.
+
+The answers, and the set of fields corrected since the last refusal, live in
+`CheckoutForm`, which never unmounts — `FilledCheckout` is swapped out whenever
+the cart empties, and state kept there dies with it.
+
+`FormData` becomes the order payload in `src/lib/checkout-payload.ts`, not in the
+action. A `"use server"` module can export only async functions, so a mapper left
+there is unreachable from a unit test, and driving the action over HTTP needs the
+build-generated action id.
+
+The rate limiter is keyed on `x-real-ip`, falling back to the **last**
+`x-forwarded-for` hop. The first hop is whatever the caller wrote, and a fresh
+value per request would hand itself a fresh bucket.
+
+The catalogue the page hands the browser is the one the build saw, since the
+route is prerendered. A product unpublished, sold out or zeroed after that build
+still looks buyable, so `UNAVAILABLE_ITEMS` from the order service is an expected
+answer rather than a race — the page's own withdrawn and missing-price guards
+only catch what the build already knew.
+
 ## Delivery
 
 `/delivery-test` is a throwaway page for picking a pickup office, and the

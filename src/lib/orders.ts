@@ -45,17 +45,28 @@ export type PlaceOrderResult =
   | { ok: false; code: "UNAVAILABLE_ITEMS"; slugs: string[] }
   | { ok: false; code: "REJECTED" };
 
-export function orderReference(id: number) {
-  return `BP-${String(id).padStart(6, "0")}`;
+// Two orders placed at the same moment compute the same number; the unique
+// index refuses the second, and its retry reads the row that won.
+const REFERENCE_ATTEMPTS = 5;
+
+// The day is the owner's day, not UTC's: an order placed at 02:00 in Sofia
+// belongs to the date he sees on the screen, not to the one before it.
+const sofiaDayMonth = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Europe/Sofia",
+  day: "2-digit",
+  month: "2-digit",
+});
+
+export function orderReferencePrefix(now: Date) {
+  return `BP${sofiaDayMonth.format(now).replace(/\D/g, "")}`;
 }
 
-function toPlacedOrder(order: {
-  id: number;
-  itemsCents: number;
-  deliveryCents: number;
-  totalCents: number;
-}): PlacedOrder {
-  return { ...order, reference: orderReference(order.id) };
+export function nextOrderReference(prefix: string, last: string | null) {
+  const previous = last ? Number(last.slice(prefix.length)) : 0;
+  const sequence =
+    Number.isInteger(previous) && previous > 0 ? previous + 1 : 1;
+
+  return `${prefix}${sequence}`;
 }
 
 function findByIdempotencyKey(idempotencyKey: string) {
@@ -63,6 +74,7 @@ function findByIdempotencyKey(idempotencyKey: string) {
     where: { idempotencyKey },
     select: {
       id: true,
+      reference: true,
       itemsCents: true,
       deliveryCents: true,
       totalCents: true,
@@ -124,7 +136,7 @@ export async function placeOrder(
   const existing = await findByIdempotencyKey(input.idempotencyKey);
 
   if (existing) {
-    return { ok: true, order: toPlacedOrder(existing), repeated: true };
+    return { ok: true, order: existing, repeated: true };
   }
 
   // The same slug twice is summed rather than rejected, matching the cart, so a
@@ -199,46 +211,70 @@ export async function placeOrder(
       : []),
   ];
 
-  try {
-    const order = await prisma.$transaction(async (tx) => {
-      const customer = await tx.customer.upsert({
-        where: { email: input.email },
-        update: { name: input.name, phone: input.phone },
-        create: { name: input.name, email: input.email, phone: input.phone },
-        select: { id: true },
+  const prefix = orderReferencePrefix(new Date());
+
+  for (let attempt = 1; attempt <= REFERENCE_ATTEMPTS; attempt += 1) {
+    try {
+      const order = await prisma.$transaction(async (tx) => {
+        const customer = await tx.customer.upsert({
+          where: { email: input.email },
+          update: { name: input.name, phone: input.phone },
+          create: { name: input.name, email: input.email, phone: input.phone },
+          select: { id: true },
+        });
+
+        // The day's highest number, read by id rather than by date: the prefix
+        // already narrows it to today, and the newest row holds the last one.
+        const last = await tx.order.findFirst({
+          where: { reference: { startsWith: prefix } },
+          orderBy: { id: "desc" },
+          select: { reference: true },
+        });
+
+        return tx.order.create({
+          data: {
+            customerId: customer.id,
+            contactName: input.name,
+            contactPhone: input.phone,
+            reference: nextOrderReference(prefix, last?.reference ?? null),
+            itemsCents,
+            deliveryCents,
+            totalCents: itemsCents + deliveryCents,
+            idempotencyKey: input.idempotencyKey,
+            items: { create: lines },
+            consents: { create: consents },
+          },
+          select: {
+            id: true,
+            reference: true,
+            itemsCents: true,
+            deliveryCents: true,
+            totalCents: true,
+          },
+        });
       });
 
-      return tx.order.create({
-        data: {
-          customerId: customer.id,
-          contactName: input.name,
-          contactPhone: input.phone,
-          itemsCents,
-          deliveryCents,
-          totalCents: itemsCents + deliveryCents,
-          idempotencyKey: input.idempotencyKey,
-          items: { create: lines },
-          consents: { create: consents },
-        },
-        select: {
-          id: true,
-          itemsCents: true,
-          deliveryCents: true,
-          totalCents: true,
-        },
-      });
-    });
+      return { ok: true, order, repeated: false };
+    } catch (error) {
+      const conflicts = conflictingFields(error);
 
-    return { ok: true, order: toPlacedOrder(order), repeated: false };
-  } catch (error) {
-    // The read above is a check-then-act; the unique index is what actually
-    // stops a concurrent submission of the same key from writing twice.
-    if (!conflictingFields(error).includes("idempotencyKey")) throw error;
+      // The read above is a check-then-act; the unique index is what actually
+      // stops a concurrent submission of the same key from writing twice.
+      if (conflicts.includes("idempotencyKey")) {
+        const winner = await findByIdempotencyKey(input.idempotencyKey);
 
-    const winner = await findByIdempotencyKey(input.idempotencyKey);
+        if (!winner) throw error;
 
-    if (!winner) throw error;
+        return { ok: true, order: winner, repeated: true };
+      }
 
-    return { ok: true, order: toPlacedOrder(winner), repeated: true };
+      // The order that won the number is committed by now, so the next attempt
+      // reads it and takes the one after.
+      if (!conflicts.includes("reference")) throw error;
+    }
   }
+
+  // Refused rather than thrown: a throw reaches the error boundary, which takes
+  // the buyer's filled-in form with it.
+  return { ok: false, code: "REJECTED" };
 }

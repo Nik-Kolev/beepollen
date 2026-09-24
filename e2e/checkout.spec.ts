@@ -170,7 +170,7 @@ test.describe("placing an order", () => {
     await expect(
       page.getByRole("heading", { name: "Поръчката е приета" }),
     ).toBeVisible();
-    await expect(page.getByText(/BP-\d{6}/)).toBeVisible();
+    await expect(page.getByText(/BP\d{5,}/)).toBeVisible();
     await expect(cartLink(page)).toHaveAccessibleName("Количка, празна");
   });
 });

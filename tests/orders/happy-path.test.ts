@@ -2,23 +2,13 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
-import { orderReference, placeOrder } from "@/lib/orders";
+import { orderReferencePrefix, placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 
 import { validCheckoutInput } from "../support/checkout";
 
 after(async () => {
   await prisma.$disconnect();
-});
-
-test("orderReference pads the numeric id to six digits with a BP- prefix", () => {
-  assert.equal(orderReference(1), "BP-000001");
-  assert.equal(orderReference(42), "BP-000042");
-  assert.equal(orderReference(123456), "BP-123456");
-});
-
-test("orderReference does not truncate an id wider than six digits", () => {
-  assert.equal(orderReference(1234567), "BP-1234567");
 });
 
 test("prices and names an order strictly from the database, ignoring anything the caller supplies for them", async () => {
@@ -41,7 +31,9 @@ test("prices and names an order strictly from the database, ignoring anything th
   assert.equal(result.order.itemsCents, 3 * 2450);
   assert.equal(result.order.deliveryCents, 0);
   assert.equal(result.order.totalCents, 3 * 2450);
-  assert.equal(result.order.reference, orderReference(result.order.id));
+  assert.ok(
+    result.order.reference.startsWith(orderReferencePrefix(new Date())),
+  );
 
   const item = await prisma.orderItem.findFirst({
     where: { orderId: result.order.id },

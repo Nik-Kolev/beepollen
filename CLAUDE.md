@@ -250,6 +250,16 @@ overlap into one blob; pins outside that set are dimmed and ignore clicks. It
 fits to the middle 80% of the points, since a handful of far-flung offices
 otherwise drag Бургас's view out to Поморие.
 
+The city field is a combobox: its suggestions are `li role="option"` rather than
+buttons, since a button inside an option is not valid, and the active one is
+tracked with `aria-activedescendant` so the keyboard never tabs through 590
+entries. Every step replaces the control that opened it, so focus is moved by
+hand — to the office search or the first office after a city, to the chosen
+panel after an office, back to the city field when it is cleared — and the
+handoff is a ref read in an effect keyed on the choices, because setting state
+in an effect is what `react-hooks/set-state-in-effect` refuses. The `aria-live`
+line names the chosen office instead of emptying.
+
 An office's `name` is not its heading. 159 of the 590 are named after their own
 city, so the heading strips a repeated city prefix, and Econt reports no
 settlement type — there is no way to write `гр.` or `с.` correctly, and the list

@@ -26,7 +26,7 @@ const OFFICE_HEADING = "Попово, офис Попово";
 // Two offices in Попово, so they are listed outright and no search is needed.
 async function chooseOffice(page: Page) {
   await page.getByLabel("Град", { exact: true }).fill(OFFICE_CITY);
-  await page.getByRole("button", { name: OFFICE_CITY, exact: true }).click();
+  await page.getByRole("option", { name: OFFICE_CITY, exact: true }).click();
   await page
     .getByRole("radiogroup", { name: "Офиси на Еконт" })
     .locator("label")
@@ -160,7 +160,10 @@ test.describe("placing an order", () => {
     await expect(page.getByText("Въведете валиден имейл адрес.")).toBeVisible();
     await expect(emailField(page)).toHaveAttribute("aria-invalid", "true");
 
-    await expect(page.getByText(OFFICE_HEADING)).toBeVisible();
+    // The live region repeats the heading, so this is scoped to the panel.
+    await expect(
+      page.getByText("Избран офис", { exact: true }).locator("xpath=.."),
+    ).toContainText(OFFICE_HEADING);
 
     await expect(page.getByLabel("Име и фамилия")).toHaveValue("Мария Иванова");
     await expect(page.getByLabel("Телефон")).toHaveValue("0899777888");

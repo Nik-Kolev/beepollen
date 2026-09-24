@@ -46,7 +46,7 @@ function cityInput(page: Page) {
 
 async function chooseCity(page: Page, name: string) {
   await cityInput(page).fill(name);
-  await page.getByRole("button", { name, exact: true }).click();
+  await page.getByRole("option", { name, exact: true }).click();
 }
 
 function officeSearchInput(page: Page) {
@@ -78,7 +78,7 @@ test("typing in the city field lists matching Bulgarian cities, and reports when
 
   await cityInput(page).fill("поп");
   await expect(
-    page.getByRole("button", { name: SMALL_CITY, exact: true }),
+    page.getByRole("option", { name: SMALL_CITY, exact: true }),
   ).toBeVisible();
 
   await cityInput(page).fill("не съществува такъв град");
@@ -174,7 +174,7 @@ test("choosing an office hides the search field and the office count", async ({
   await officeGroup(page).getByRole("radio").first().click();
 
   await expect(officeSearchInput(page)).toHaveCount(0);
-  await expect(statusLine(page)).toHaveText("");
+  await expect(statusLine(page)).toContainText("Избрахте");
   await expect(page.getByText("Избран офис")).toBeVisible();
 });
 
@@ -291,5 +291,70 @@ test("Промени clears the city, the office and both queries", async ({
   await expect(officeSearchInput(page)).toHaveValue("");
   await expect(statusLine(page)).toHaveText(
     `${BIG_CITY_TOTAL} в ${BIG_CITY} — въведете улица, квартал или име, или натиснете на картата избрания от вас офис.`,
+  );
+});
+
+test("the city field reports itself as a combobox and closes on Escape", async ({
+  page,
+}) => {
+  await openPicker(page);
+
+  await expect(cityInput(page)).toHaveAttribute("aria-expanded", "false");
+
+  await cityInput(page).fill("поп");
+  await expect(cityInput(page)).toHaveAttribute("aria-expanded", "true");
+
+  await cityInput(page).press("Escape");
+
+  await expect(cityInput(page)).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    page.getByRole("option", { name: SMALL_CITY, exact: true }),
+  ).toBeHidden();
+});
+
+test("a city can be chosen with the arrow keys and Enter", async ({ page }) => {
+  await openPicker(page);
+
+  await cityInput(page).fill("поп");
+  await cityInput(page).press("ArrowDown");
+
+  await expect(
+    page.getByRole("option", { name: SMALL_CITY, exact: true }),
+  ).toHaveAttribute("aria-selected", "true");
+
+  await cityInput(page).press("Enter");
+
+  await expect(
+    page.getByRole("button", { name: `Промени града ${SMALL_CITY}` }),
+  ).toBeVisible();
+});
+
+test("choosing a city moves focus on to the control that continues the choice", async ({
+  page,
+}) => {
+  await openPicker(page);
+  await chooseCity(page, BIG_CITY);
+
+  await expect(officeSearchInput(page)).toBeFocused();
+
+  await page.getByRole("button", { name: `Промени града ${BIG_CITY}` }).click();
+
+  await expect(cityInput(page)).toBeFocused();
+
+  await chooseCity(page, SMALL_CITY);
+
+  await expect(officeGroup(page).getByRole("radio").first()).toBeFocused();
+});
+
+test("choosing an office moves focus to it and says which one was chosen", async ({
+  page,
+}) => {
+  await openPicker(page);
+  await chooseCity(page, SMALL_CITY);
+  await officeRow(page, SMALL_CITY_OFFICE_A.street).click();
+
+  await expect(selectedPanel(page)).toBeFocused();
+  await expect(statusLine(page)).toHaveText(
+    `Избрахте ${SMALL_CITY_OFFICE_A.heading}, ${SMALL_CITY_OFFICE_A.street}.`,
   );
 });

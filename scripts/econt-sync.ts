@@ -37,12 +37,22 @@ function report(previous: EcontOfficeRecord[], next: EcontOfficeRecord[]) {
   );
 }
 
+// A truncated response parses like a good one, so a sudden collapse in the
+// count is refused rather than committed over 590 working offices.
+const MAX_SHRINK = 0.2;
+
 async function main() {
   const previous = existsSync(SNAPSHOT_PATH) ? readOfficeSnapshot() : [];
   const next = await fetchEcontOffices();
 
   if (next.length === 0) {
     throw new Error("Econt returned no offices; the snapshot was left alone");
+  }
+
+  if (next.length < previous.length * (1 - MAX_SHRINK)) {
+    throw new Error(
+      `Econt returned ${next.length} offices against ${previous.length} in the snapshot, which was left alone. Delete it to accept the smaller list.`,
+    );
   }
 
   writeOfficeSnapshot(next);

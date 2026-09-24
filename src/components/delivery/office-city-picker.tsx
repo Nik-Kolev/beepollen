@@ -57,7 +57,7 @@ function directionsUrl(office: EcontOffice): string {
 
 // Each step replaces the control that opened it, so focus is moved by hand
 // rather than left on an element React has just unmounted.
-type FocusTarget = "city" | "offices" | "chosenOffice" | null;
+type FocusTarget = "city" | "offices" | null;
 
 function ChangeButton({
   label,
@@ -102,7 +102,6 @@ export function OfficeCityPicker({
   const focusTargetRef = useRef<FocusTarget>(null);
   const cityInputRef = useRef<HTMLInputElement>(null);
   const officeSearchRef = useRef<HTMLInputElement>(null);
-  const chosenOfficeRef = useRef<HTMLDivElement>(null);
   const officeGroupRef = useRef<HTMLDivElement>(null);
 
   const cities = useMemo(() => listEcontCities(offices), [offices]);
@@ -160,11 +159,10 @@ export function OfficeCityPicker({
     onSelect?.(null);
   }
 
-  // The query outlives the choice so its matches stay listed to switch between;
-  // the field and the count hide themselves instead.
+  // Focus stays where it is: the radio that chose is still mounted, so arrow
+  // keys keep browsing the list, and the live region announces the choice.
   function chooseOffice(code: string) {
     setSelectedCode(code);
-    focusTargetRef.current = "chosenOffice";
     onSelect?.(offices.find((office) => office.code === code) ?? null);
   }
 
@@ -174,7 +172,15 @@ export function OfficeCityPicker({
     onSelect?.(null);
   }
 
+  // The picker sits inside the order form, where an unhandled Enter in a text
+  // field submits it and spends one of the buyer's five attempts.
+  function onSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") event.preventDefault();
+  }
+
   function onCityKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") event.preventDefault();
+
     if (event.key === "Escape") {
       setCityOpen(false);
       setActiveCity(-1);
@@ -194,8 +200,6 @@ export function OfficeCityPicker({
     }
 
     if (event.key === "Enter") {
-      event.preventDefault();
-
       // One match needs no arrow key first: it is the only thing Enter can mean.
       const name =
         matchingCities[activeCity] ??
@@ -216,11 +220,6 @@ export function OfficeCityPicker({
 
     if (target === "city") {
       cityInputRef.current?.focus();
-      return;
-    }
-
-    if (target === "chosenOffice") {
-      chosenOfficeRef.current?.focus();
       return;
     }
 
@@ -349,11 +348,7 @@ export function OfficeCityPicker({
 
           {selected && (
             <div className={PANEL_CLASS}>
-              <div
-                ref={chosenOfficeRef}
-                tabIndex={-1}
-                className="min-w-0 flex-1 outline-none"
-              >
+              <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-ink-soft">Избран офис</p>
                 <p className="mt-1 text-lg leading-snug font-semibold text-ink">
                   {officeHeading(selected)}
@@ -394,6 +389,7 @@ export function OfficeCityPicker({
                 type="search"
                 value={officeQuery}
                 onChange={(event) => setOfficeQuery(event.target.value)}
+                onKeyDown={onSearchKeyDown}
                 placeholder="Например Център"
                 autoComplete="off"
                 className="min-h-11 rounded-lg border border-line bg-surface px-4 text-base text-ink outline-none placeholder:text-ink-soft focus-visible:border-action focus-visible:ring-2 focus-visible:ring-action/30"

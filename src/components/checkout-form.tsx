@@ -16,6 +16,12 @@ import { submitOrder } from "@/app/checkout/actions";
 import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
 import { useCart } from "@/hooks/use-cart";
 import type { CartItem } from "@/lib/cart";
+import {
+  FIELD_ERROR,
+  MISSING_PRICE,
+  summaryError,
+  WITHDRAWN_LINES,
+} from "@/lib/checkout-messages";
 import { CONSENT_WORDING } from "@/lib/consent";
 import type { EcontOffice } from "@/lib/econt";
 import { formatPrice } from "@/lib/money";
@@ -33,33 +39,6 @@ const FIELD_INVALID =
 const CHECKBOX = "border-line mt-1 size-5 shrink-0 rounded-sm border";
 
 const ERROR_TEXT = "text-ink mt-2 text-sm font-medium";
-
-const FIELD_ERROR: Record<string, string> = {
-  name: "Въведете име между 2 и 100 знака.",
-  email: "Въведете валиден имейл адрес.",
-  phone: "Въведете телефон между 6 и 30 знака.",
-  acceptsTerms: "Трябва да приемете общите условия, за да продължите.",
-  officeCode: "Изберете офис на Еконт, до който да получите поръчката.",
-};
-
-const UNKNOWN_OFFICE =
-  "Избраният офис вече не фигурира в списъка на Еконт. Изберете друг.";
-
-const INCOMPLETE_ORDER =
-  "Данните на поръчката не са пълни. Презаредете страницата и опитайте отново.";
-
-const UNAVAILABLE_LINES =
-  "Отбелязаните продукти вече не се предлагат. Премахнете ги, за да продължите.";
-
-const WITHDRAWN_LINES =
-  "Премахнете продуктите, които вече не се предлагат, за да продължите.";
-
-const MISSING_PRICE =
-  "Продукт в количката все още няма цена, затова поръчката не може да бъде завършена.";
-
-// Deliberately says nothing about which check refused it.
-const REFUSED =
-  "Поръчката не може да бъде приета в момента. Опитайте по-късно.";
 
 type Answers = {
   name: string;
@@ -82,23 +61,6 @@ const EMPTY_ANSWERS: Answers = {
 type Corrected = { of: PlaceOrderResult | null; fields: Set<string> };
 
 const NOTHING_CORRECTED: Corrected = { of: null, fields: new Set() };
-
-function summaryError(
-  result: PlaceOrderResult | null,
-  stillUnavailable: boolean,
-) {
-  if (!result || result.ok) return null;
-  if (result.code === "REJECTED") return REFUSED;
-  if (result.code === "UNKNOWN_OFFICE") return UNKNOWN_OFFICE;
-  if (result.code === "UNAVAILABLE_ITEMS") {
-    return stillUnavailable ? UNAVAILABLE_LINES : null;
-  }
-
-  // A field the form cannot mark would otherwise be refused in silence.
-  return result.fields.every((field) => field in FIELD_ERROR)
-    ? null
-    : INCOMPLETE_ORDER;
-}
 
 function EmptyCheckout() {
   return (
@@ -217,7 +179,11 @@ function FilledCheckout({
       ? new Set(result.slugs)
       : new Set<string>();
   const stillUnavailable = lines.some((line) => unavailable.has(line.slug));
-  const summary = summaryError(result, stillUnavailable);
+  const summary = summaryError(
+    result,
+    stillUnavailable,
+    correctedFields.has("officeCode"),
+  );
 
   function fieldProps(name: string) {
     return invalid.has(name)

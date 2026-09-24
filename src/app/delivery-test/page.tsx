@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 import { Container } from "@/components/container";
 import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
-import { listEcontOffices } from "@/lib/econt";
+import { listEcontOffices } from "@/lib/delivery-offices";
 
 export const metadata: Metadata = {
   title: "Избор на офис",

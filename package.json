@@ -17,6 +17,7 @@
     "db:studio": "prisma studio --url file://./data/dev.db",
     "db:reset": "prisma migrate reset",
     "db:seed": "prisma db seed",
+    "econt:sync": "tsx scripts/econt-sync.ts",
     "db:fresh": "prisma migrate reset --force && prisma db seed",
     "typecheck": "prisma generate && next typegen && tsc --noEmit",
     "test:unit": "node scripts/test-unit.mjs",

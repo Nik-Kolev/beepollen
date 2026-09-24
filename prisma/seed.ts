@@ -1,3 +1,4 @@
+import { readOfficeSnapshot } from "@/lib/econt-snapshot";
 import prisma from "@/lib/prisma";
 
 // Lorem ipsum and visible markers only: plausible Bulgarian filler survives to
@@ -88,6 +89,37 @@ const products = [
   },
 ];
 
+// Upserted by code rather than replaced, so a row keeps its id across a
+// refreshed snapshot.
+async function seedOffices() {
+  const offices = readOfficeSnapshot();
+
+  await prisma.deliveryOffice.deleteMany({
+    where: {
+      carrier: "ECONT",
+      code: { notIn: offices.map((office) => office.code) },
+    },
+  });
+
+  await prisma.$transaction(
+    offices.map(({ location, ...office }) => {
+      const row = {
+        ...office,
+        latitude: location?.lat ?? null,
+        longitude: location?.lng ?? null,
+      };
+
+      return prisma.deliveryOffice.upsert({
+        where: { carrier_code: { carrier: "ECONT", code: office.code } },
+        update: row,
+        create: { carrier: "ECONT", ...row },
+      });
+    }),
+  );
+
+  return offices.length;
+}
+
 async function main() {
   // Upsert alone leaves a product dropped from this file sitting in an existing
   // database, still published; images cascade with it.
@@ -116,7 +148,11 @@ async function main() {
     ]);
   }
 
-  console.log(`Seeded ${products.length} products.`);
+  const officeCount = await seedOffices();
+
+  console.log(
+    `Seeded ${products.length} products and ${officeCount} Econt offices.`,
+  );
 }
 
 main()

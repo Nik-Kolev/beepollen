@@ -1,0 +1,30 @@
+enum Carrier {
+  ECONT
+  SPEEDY
+}
+
+// Filled from prisma/data/econt-offices.json rather than typed into the seed:
+// the rows are a courier's nomenclature, refreshed by npm run econt:sync.
+model DeliveryOffice {
+  id      Int     @id @default(autoincrement())
+  carrier Carrier
+  code    String
+  name    String
+  city    String
+
+  postCode String?
+  street   String
+  hours    String
+  phone    String?
+
+  // Two offices report a location whose coordinates are both null. They belong
+  // in the list, just not on the map.
+  latitude  Float?
+  longitude Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([carrier, code])
+  @@index([carrier, city])
+}

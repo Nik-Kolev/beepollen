@@ -36,6 +36,11 @@ model Order {
   deliveryCents Int @default(0)
   totalCents    Int
 
+  // BP, the day and month, then this order's number within that day. Stored
+  // rather than derived from the id, which cannot express a per-day counter,
+  // and unique so two concurrent orders cannot take the same number.
+  reference String @unique
+
   // Unique, so a resubmitted form returns the first order instead of writing a
   // second one.
   idempotencyKey String @unique

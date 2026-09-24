@@ -124,11 +124,13 @@ function OrderPlaced({ order }: { order: PlacedOrder }) {
         Номер на поръчката:{" "}
         <strong className="text-brand-deep">{order.reference}</strong>
       </p>
-      <p className="text-ink-soft mt-2">
-        Ще се свържем с вас до 24 часа за потвърждение.
-      </p>
-      <p className="mt-4 text-lg font-semibold">
+      <p className="mt-2 text-lg font-semibold">
         Общо: {formatPrice(order.totalCents)}
+      </p>
+      <p className="text-ink-soft mt-4">Благодарим за поръчката.</p>
+      <p className="text-ink-soft mt-2">
+        TODO: какво следва след поръчката — обаждане за потвърждение, срок за
+        изпращане, или нищо.
       </p>
       <Link
         href="/"

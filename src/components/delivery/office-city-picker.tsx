@@ -69,7 +69,13 @@ function ChangeButton({
   );
 }
 
-export function OfficeCityPicker({ offices }: { offices: EcontOffice[] }) {
+export function OfficeCityPicker({
+  offices,
+  onSelect,
+}: {
+  offices: EcontOffice[];
+  onSelect?: (office: EcontOffice | null) => void;
+}) {
   const [carrier, setCarrier] = useState<CarrierId>(DEFAULT_CARRIER);
   const [cityQuery, setCityQuery] = useState("");
   const [officeQuery, setOfficeQuery] = useState("");
@@ -115,6 +121,7 @@ export function OfficeCityPicker({ offices }: { offices: EcontOffice[] }) {
     setCityQuery("");
     setOfficeQuery("");
     setSelectedCode(null);
+    onSelect?.(null);
   }
 
   function clearCity() {
@@ -122,16 +129,19 @@ export function OfficeCityPicker({ offices }: { offices: EcontOffice[] }) {
     setCityQuery("");
     setOfficeQuery("");
     setSelectedCode(null);
+    onSelect?.(null);
   }
 
   // The query outlives the choice so its matches stay listed to switch between;
   // the field and the count hide themselves instead.
   function chooseOffice(code: string) {
     setSelectedCode(code);
+    onSelect?.(offices.find((office) => office.code === code) ?? null);
   }
 
   function clearOffice() {
     setSelectedCode(null);
+    onSelect?.(null);
   }
 
   const status =

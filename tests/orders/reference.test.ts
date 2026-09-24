@@ -9,7 +9,7 @@ import {
 } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 
-import { validCheckoutInput } from "../support/checkout";
+import { TEST_OFFICE_SNAPSHOT, validCheckoutInput } from "../support/checkout";
 
 after(async () => {
   await prisma.$disconnect();
@@ -86,6 +86,7 @@ test("an order from another day does not carry its number into today", async () 
       customerId: customer.id,
       contactName: "Стара поръчка",
       contactPhone: "0888000000",
+      ...TEST_OFFICE_SNAPSHOT,
       // Day 00 of month 00: a prefix no calendar date can produce, so the run
       // date cannot turn this row into one of today's.
       reference: "BP000099",
@@ -157,6 +158,7 @@ test("an order is refused rather than thrown when every attempt loses its number
     customerId: customer.id,
     contactName: "Блокирана номерация",
     contactPhone: "0888000000",
+    ...TEST_OFFICE_SNAPSHOT,
     reference,
     itemsCents: 1,
     deliveryCents: 0,

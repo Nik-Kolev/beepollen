@@ -22,6 +22,7 @@ test("a missing field reads as an empty string rather than null", () => {
     email: "",
     phone: "",
     items: [],
+    officeCode: "",
     acceptsTerms: false,
     acceptsOffers: false,
     idempotencyKey: "",

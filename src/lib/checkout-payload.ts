@@ -20,6 +20,7 @@ export function checkoutPayload(formData: FormData) {
     email: text(formData.get("email")),
     phone: text(formData.get("phone")),
     items: items(formData.get("items")),
+    officeCode: text(formData.get("officeCode")),
     acceptsTerms: formData.get("acceptsTerms") === "on",
     acceptsOffers: formData.get("acceptsOffers") === "on",
     idempotencyKey: text(formData.get("idempotencyKey")),

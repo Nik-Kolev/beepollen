@@ -19,6 +19,21 @@ function emailField(page: Page) {
   return page.getByLabel("Имейл", { exact: true });
 }
 
+const OFFICE_CITY = "Попово";
+const OFFICE_STREET = "бул. България №117";
+const OFFICE_HEADING = "Попово, офис Попово";
+
+// Two offices in Попово, so they are listed outright and no search is needed.
+async function chooseOffice(page: Page) {
+  await page.getByLabel("Град", { exact: true }).fill(OFFICE_CITY);
+  await page.getByRole("button", { name: OFFICE_CITY, exact: true }).click();
+  await page
+    .getByRole("radiogroup", { name: "Офиси на Еконт" })
+    .locator("label")
+    .filter({ hasText: OFFICE_STREET })
+    .click();
+}
+
 async function fillContact(page: Page, email: string) {
   await page.getByLabel("Име и фамилия").fill("Мария Иванова");
   await emailField(page).fill(email);
@@ -139,10 +154,13 @@ test.describe("placing an order", () => {
     await page.goto("/checkout");
 
     await fillContact(page, "not-an-email");
+    await chooseOffice(page);
     await page.getByRole("button", { name: "Завърши поръчката" }).click();
 
     await expect(page.getByText("Въведете валиден имейл адрес.")).toBeVisible();
     await expect(emailField(page)).toHaveAttribute("aria-invalid", "true");
+
+    await expect(page.getByText(OFFICE_HEADING)).toBeVisible();
 
     await expect(page.getByLabel("Име и фамилия")).toHaveValue("Мария Иванова");
     await expect(page.getByLabel("Телефон")).toHaveValue("0899777888");
@@ -155,6 +173,26 @@ test.describe("placing an order", () => {
     );
   });
 
+  test("an order with no office chosen is refused and says which field", async ({
+    page,
+  }) => {
+    await seedCart(page, {
+      version: 1,
+      items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    });
+    await page.goto("/checkout");
+
+    await fillContact(page, "maria.ivanova@example.com");
+    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+
+    await expect(
+      page.getByText("Изберете офис на Еконт, до който да получите поръчката."),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Поръчката е приета" }),
+    ).toHaveCount(0);
+  });
+
   test("a placed order returns a reference and empties the cart", async ({
     page,
   }) => {
@@ -165,6 +203,7 @@ test.describe("placing an order", () => {
     await page.goto("/checkout");
 
     await fillContact(page, "maria.ivanova@example.com");
+    await chooseOffice(page);
     await page.getByRole("button", { name: "Завърши поръчката" }).click();
 
     await expect(

@@ -13,9 +13,11 @@ import {
 } from "react";
 
 import { submitOrder } from "@/app/checkout/actions";
+import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
 import { useCart } from "@/hooks/use-cart";
 import type { CartItem } from "@/lib/cart";
 import { CONSENT_WORDING } from "@/lib/consent";
+import type { EcontOffice } from "@/lib/econt";
 import { formatPrice } from "@/lib/money";
 import type { PlaceOrderResult, PlacedOrder } from "@/lib/orders";
 import type { CartProduct } from "@/lib/products";
@@ -37,7 +39,11 @@ const FIELD_ERROR: Record<string, string> = {
   email: "Въведете валиден имейл адрес.",
   phone: "Въведете телефон между 6 и 30 знака.",
   acceptsTerms: "Трябва да приемете общите условия, за да продължите.",
+  officeCode: "Изберете офис на Еконт, до който да получите поръчката.",
 };
+
+const UNKNOWN_OFFICE =
+  "Избраният офис вече не фигурира в списъка на Еконт. Изберете друг.";
 
 const INCOMPLETE_ORDER =
   "Данните на поръчката не са пълни. Презаредете страницата и опитайте отново.";
@@ -83,6 +89,7 @@ function summaryError(
 ) {
   if (!result || result.ok) return null;
   if (result.code === "REJECTED") return REFUSED;
+  if (result.code === "UNKNOWN_OFFICE") return UNKNOWN_OFFICE;
   if (result.code === "UNAVAILABLE_ITEMS") {
     return stillUnavailable ? UNAVAILABLE_LINES : null;
   }
@@ -147,6 +154,9 @@ function OrderPlaced({ order }: { order: PlacedOrder }) {
 function FilledCheckout({
   items,
   products,
+  offices,
+  office,
+  setOffice,
   answers,
   setAnswers,
   corrected,
@@ -158,6 +168,9 @@ function FilledCheckout({
 }: {
   items: CartItem[];
   products: CartProduct[];
+  offices: EcontOffice[];
+  office: EcontOffice | null;
+  setOffice: Dispatch<SetStateAction<EcontOffice | null>>;
   answers: Answers;
   setAnswers: Dispatch<SetStateAction<Answers>>;
   corrected: Corrected;
@@ -254,6 +267,7 @@ function FilledCheckout({
     >
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <input type="hidden" name="items" value={JSON.stringify(items)} />
+      <input type="hidden" name="officeCode" value={office?.code ?? ""} />
 
       <div className="flex flex-col gap-8 lg:flex-1">
         {summary && (
@@ -335,6 +349,26 @@ function FilledCheckout({
               )}
             </div>
           </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold">Доставка до офис</h2>
+
+          <div className="mt-4">
+            <OfficeCityPicker
+              offices={offices}
+              onSelect={(chosen) => {
+                markCorrected("officeCode");
+                setOffice(chosen);
+              }}
+            />
+          </div>
+
+          {invalid.has("officeCode") && (
+            <p id="officeCode-error" className={ERROR_TEXT}>
+              {FIELD_ERROR.officeCode}
+            </p>
+          )}
         </section>
 
         <section>
@@ -446,8 +480,15 @@ function FilledCheckout({
 
 // The answers live here rather than in the form, so emptying the cart -- by
 // removing the last line, or from another tab -- cannot discard what was typed.
-export function CheckoutForm({ products }: { products: CartProduct[] }) {
+export function CheckoutForm({
+  products,
+  offices,
+}: {
+  products: CartProduct[];
+  offices: EcontOffice[];
+}) {
   const { cart, ready, remove, clear } = useCart();
+  const [office, setOffice] = useState<EcontOffice | null>(null);
   const [answers, setAnswers] = useState(EMPTY_ANSWERS);
   const [corrected, setCorrected] = useState(NOTHING_CORRECTED);
   const [result, formAction, pending] = useActionState(submitOrder, null);
@@ -465,6 +506,9 @@ export function CheckoutForm({ products }: { products: CartProduct[] }) {
     <FilledCheckout
       items={cart.items}
       products={products}
+      offices={offices}
+      office={office}
+      setOffice={setOffice}
       answers={answers}
       setAnswers={setAnswers}
       corrected={corrected}

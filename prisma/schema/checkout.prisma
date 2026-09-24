@@ -32,6 +32,14 @@ model Order {
   contactName  String
   contactPhone String
 
+  // Snapshotted for the same reason the contact is: a refreshed office list
+  // can drop a row, and a past order must keep where it was going.
+  officeCarrier Carrier
+  officeCode    String
+  officeName    String
+  officeCity    String
+  officeStreet  String
+
   itemsCents    Int
   deliveryCents Int @default(0)
   totalCents    Int

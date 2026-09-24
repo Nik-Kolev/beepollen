@@ -183,6 +183,13 @@ the day's last one orders by `id`, never by `reference`: `BP240910` sorts before
 refused, since a throw would reach the error boundary and take the buyer's
 filled-in form with it.
 
+The chosen office is read back from `DeliveryOffice` by carrier and code rather
+than trusted, and a code the table does not hold is answered with
+`UNKNOWN_OFFICE` — the page is prerendered, so the snapshot can move after the
+build that shipped it. Its carrier, code, name, city and street are then
+snapshotted onto the order rather than referenced, because `econt:sync` can drop
+an office.
+
 `Order` snapshots `contactName` and `contactPhone` the same way `OrderItem`
 snapshots a product: `Customer` is the latest-known contact, never the record of
 what an order was placed with. A `Consent` row stores the wording exactly as it
@@ -199,9 +206,9 @@ there so adding it costs no migration.
 
 ## Checkout
 
-`/checkout` is one page — contact fields, consents and the line summary. The
-delivery section arrives with the office picker, and until then the total is
-goods only.
+`/checkout` is one page — contact fields, the office picker, consents and the
+line summary. The total is goods only until a tariff exists, so `deliveryCents`
+stays zero.
 
 The form submits from `onSubmit` inside `startTransition`, never through the
 `action` prop. React resets a form once its action returns, wiping the fields a
@@ -231,8 +238,10 @@ only catch what the build already knew.
 
 ## Delivery
 
-`/delivery-test` is a throwaway page for picking a pickup office, and the
-header's `Доставка` link points at it. **Both go before launch.**
+The office picker is a section of `/checkout`, between the contact fields and
+the consents. Its choice reaches the action as a hidden `officeCode` and is held
+in `CheckoutForm`, which never unmounts, so a refused submission keeps it like
+every other answer.
 
 City then office: a city with three or fewer offices lists them outright, and
 from four up a search narrows the list instead. The map draws pins for whatever
@@ -264,13 +273,26 @@ Automated stations — Еконтомат, Speedymat, BoxNow — are filtered ou
 office list, because an order is paid at a counter and a locker takes card only.
 The filter is on `isAPS` and applies to every carrier.
 
-`listEcontOffices` fetches at build time, so a build needs Econt reachable, and
-the 2.45 MB response is over Next's 2 MB data-cache limit — the page's daily
-revalidation refetches rather than reading a cache. A real delivery phase should
-store the list rather than fetch it during a build.
+Nothing in the running app calls Econt. `prisma/data/econt-offices.json` is a
+committed snapshot of 590 offices, the seed fills `DeliveryOffice` from it, and
+`listEcontOffices` reads that table. `npm run econt:sync` is the only caller of
+`src/lib/econt-nomenclature.ts`: it refetches, rewrites the snapshot and reports
+what was added, removed and changed, so a refresh arrives as a reviewable diff.
+Running it on a schedule waits for a host with cron. The 2.45 MB response is
+over Next's 2 MB data-cache limit, which is why fetching it during a build was
+never cached and made every build depend on Econt being up.
 
-The map draws on free OpenStreetMap tiles, whose usage policy bars commercial
-use. **A shop needs its own tile provider before launch.**
+`src/lib/econt.ts` is client-safe — the type, the label and the sort, nothing
+more — because the picker's client components import from it. The remote call,
+its Zod schema and its mapping live in `econt-nomenclature.ts`, and the Prisma
+read in `delivery-offices.ts`.
+
+The map draws on free OpenStreetMap tiles. Their usage policy, re-read on
+24 Sep 2026, permits normal interactive viewing by a human on three conditions:
+visible attribution on the map, a clear User-Agent naming the caller, and no
+preloading of regions or zoom stacks. The tile layer carries the attribution and
+the sync script sets the User-Agent; a browser sends its own. The service is
+best-effort and can be withdrawn without notice.
 
 ## Docker
 

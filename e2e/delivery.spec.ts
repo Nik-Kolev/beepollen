@@ -1,5 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { seedCart } from "./seed-cart";
+
 const SMALL_CITY = "Попово";
 
 // The row shows the office's full label; the chosen-office panel drops the
@@ -27,6 +29,15 @@ const SINGLE_OFFICE_CITY = "Ябланово";
 // back to the address instead of a lat/lng pair.
 const NO_COORDS_CITY = "Нови Искър";
 const NO_COORDS_OFFICE_STREET = "кв. ЖП гара Курило ул. Търговска №18";
+
+// The picker renders inside the order form, which a filled cart is what opens.
+async function openPicker(page: Page) {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+  });
+  await page.goto("/checkout");
+}
 
 // Exact, or it also matches the "Промени града …" button's aria-label.
 function cityInput(page: Page) {
@@ -63,7 +74,7 @@ function selectedPanel(page: Page) {
 test("typing in the city field lists matching Bulgarian cities, and reports when none match", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
 
   await cityInput(page).fill("поп");
   await expect(
@@ -79,7 +90,7 @@ test("typing in the city field lists matching Bulgarian cities, and reports when
 test("choosing a city replaces the field with a summary panel", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, SMALL_CITY);
 
   await expect(cityInput(page)).toHaveCount(0);
@@ -92,7 +103,7 @@ test("choosing a city replaces the field with a summary panel", async ({
 test("a small city lists its offices outright, with no search field", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, SMALL_CITY);
 
   await expect(officeSearchInput(page)).toHaveCount(0);
@@ -104,7 +115,7 @@ test("a small city lists its offices outright, with no search field", async ({
 test("a large city needs a search before any office is listed", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, LARGE_CITY);
 
   await expect(officeSearchInput(page)).toBeVisible();
@@ -115,7 +126,7 @@ test("a large city needs a search before any office is listed", async ({
 });
 
 test("typing in the office search filters the list", async ({ page }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, BIG_CITY);
   await officeSearchInput(page).fill(BIG_CITY_SEARCH_TERM);
 
@@ -128,7 +139,7 @@ test("typing in the office search filters the list", async ({ page }) => {
 });
 
 test("an office search with no matches shows a message", async ({ page }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, BIG_CITY);
   await officeSearchInput(page).fill("zzzzzz");
 
@@ -139,7 +150,7 @@ test("an office search with no matches shows a message", async ({ page }) => {
 test("choosing an office shows its details and a directions link", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, SMALL_CITY);
   await officeRow(page, SMALL_CITY_OFFICE_A.street).click();
 
@@ -157,7 +168,7 @@ test("choosing an office shows its details and a directions link", async ({
 test("choosing an office hides the search field and the office count", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, BIG_CITY);
   await officeSearchInput(page).fill(BIG_CITY_SEARCH_TERM);
   await officeGroup(page).getByRole("radio").first().click();
@@ -170,7 +181,7 @@ test("choosing an office hides the search field and the office count", async ({
 test("Изчисти clears only the office, leaving the city selected", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, SMALL_CITY);
   await officeRow(page, SMALL_CITY_OFFICE_A.street).click();
 
@@ -186,7 +197,7 @@ test("Изчисти clears only the office, leaving the city selected", async (
 test("clearing a chosen office in a large city brings back the search that found it", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, BIG_CITY);
   await officeSearchInput(page).fill(BIG_CITY_SEARCH_TERM);
   await officeGroup(page).getByRole("radio").first().click();
@@ -202,7 +213,7 @@ test("clearing a chosen office in a large city brings back the search that found
 test("a chosen office in a large city can be swapped for another from the list", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, BIG_CITY);
   await officeSearchInput(page).fill(BIG_CITY_SEARCH_TERM);
 
@@ -222,7 +233,7 @@ test("a chosen office in a large city can be swapped for another from the list",
 test("a city with a single office lists it without a search field", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, SINGLE_OFFICE_CITY);
 
   await expect(officeSearchInput(page)).toHaveCount(0);
@@ -233,7 +244,7 @@ test("a city with a single office lists it without a search field", async ({
 test("an office with no coordinates falls back to its address for directions", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, NO_COORDS_CITY);
   await officeRow(page, NO_COORDS_OFFICE_STREET).click();
 
@@ -248,7 +259,7 @@ test("an office with no coordinates falls back to its address for directions", a
 test("the offices list stays visible after a choice, so another can be picked", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, SMALL_CITY);
   await officeRow(page, SMALL_CITY_OFFICE_A.street).click();
 
@@ -264,7 +275,7 @@ test("the offices list stays visible after a choice, so another can be picked", 
 test("Промени clears the city, the office and both queries", async ({
   page,
 }) => {
-  await page.goto("/delivery-test");
+  await openPicker(page);
   await chooseCity(page, BIG_CITY);
   await officeSearchInput(page).fill(BIG_CITY_SEARCH_TERM);
   await officeGroup(page).getByRole("radio").first().click();

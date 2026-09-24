@@ -8,7 +8,6 @@ const PAGES = [
   ["a product page", "/products/pchelen-prashets-500g"],
   ["the cart page", "/cart"],
   ["the checkout page", "/checkout"],
-  ["the office picker", "/delivery-test"],
   ["the not-found page", "/no-such-page"],
   ["an unknown product slug", "/products/no-such-product"],
 ] as const;

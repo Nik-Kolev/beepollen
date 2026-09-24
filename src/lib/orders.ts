@@ -21,6 +21,7 @@ export const checkoutInputSchema = z.object({
     )
     .min(1)
     .max(MAX_LINES),
+  officeCode: z.string().trim().min(1).max(50),
   acceptsTerms: z.literal(true),
   acceptsOffers: z.boolean(),
   idempotencyKey: z.uuid(),
@@ -43,6 +44,7 @@ export type PlaceOrderResult =
   | { ok: true; order: PlacedOrder; repeated: boolean }
   | { ok: false; code: "VALIDATION_ERROR"; fields: string[] }
   | { ok: false; code: "UNAVAILABLE_ITEMS"; slugs: string[] }
+  | { ok: false; code: "UNKNOWN_OFFICE" }
   | { ok: false; code: "REJECTED" };
 
 // Two orders placed at the same moment compute the same number; the unique
@@ -186,12 +188,21 @@ export async function placeOrder(
     return { ok: false, code: "UNAVAILABLE_ITEMS", slugs: unavailable };
   }
 
+  // The page was prerendered against an older snapshot, so the code it sends
+  // is checked here rather than trusted.
+  const office = await prisma.deliveryOffice.findUnique({
+    where: { carrier_code: { carrier: "ECONT", code: input.officeCode } },
+    select: { carrier: true, code: true, name: true, city: true, street: true },
+  });
+
+  if (!office) return { ok: false, code: "UNKNOWN_OFFICE" };
+
   const itemsCents = lines.reduce(
     (total, line) => total + line.unitPriceCents * line.quantity,
     0,
   );
-  // Delivery is chosen on the cart page at B9; until then every order is
-  // priced as if collection were free, and the column is already here.
+  // The office is chosen but not yet priced: a tariff arrives with B11, and
+  // until then every order is priced as if delivery were free.
   const deliveryCents = 0;
 
   const consents: {
@@ -236,6 +247,11 @@ export async function placeOrder(
             customerId: customer.id,
             contactName: input.name,
             contactPhone: input.phone,
+            officeCarrier: office.carrier,
+            officeCode: office.code,
+            officeName: office.name,
+            officeCity: office.city,
+            officeStreet: office.street,
             reference: nextOrderReference(prefix, last?.reference ?? null),
             itemsCents,
             deliveryCents,

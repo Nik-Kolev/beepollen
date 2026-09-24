@@ -25,6 +25,10 @@ const BIG_CITY_SEARCH_MATCHES = 3;
 
 const SINGLE_OFFICE_CITY = "Ябланово";
 
+// What the order form says when it is submitted with no office chosen.
+const OFFICE_REQUIRED =
+  "Изберете офис на Еконт, до който да получите поръчката.";
+
 // Two of the 590 offices carry no coordinates, so their directions link falls
 // back to the address instead of a lat/lng pair.
 const NO_COORDS_CITY = "Нови Искър";
@@ -346,15 +350,63 @@ test("choosing a city moves focus on to the control that continues the choice", 
   await expect(officeGroup(page).getByRole("radio").first()).toBeFocused();
 });
 
-test("choosing an office moves focus to it and says which one was chosen", async ({
+test("choosing an office says which one was chosen and leaves focus in the list", async ({
   page,
 }) => {
   await openPicker(page);
   await chooseCity(page, SMALL_CITY);
   await officeRow(page, SMALL_CITY_OFFICE_A.street).click();
 
-  await expect(selectedPanel(page)).toBeFocused();
   await expect(statusLine(page)).toHaveText(
     `Избрахте ${SMALL_CITY_OFFICE_A.heading}, ${SMALL_CITY_OFFICE_A.street}.`,
   );
+  await expect(officeGroup(page).getByRole("radio").first()).toBeFocused();
+});
+
+test("the arrow keys walk the office list without focus leaving it", async ({
+  page,
+}) => {
+  await openPicker(page);
+  await chooseCity(page, SMALL_CITY);
+
+  const radios = officeGroup(page).getByRole("radio");
+
+  await expect(radios.first()).toBeFocused();
+
+  await radios.first().press("ArrowDown");
+
+  await expect(radios.nth(1)).toBeFocused();
+  await expect(radios.nth(1)).toBeChecked();
+
+  await radios.nth(1).press("ArrowUp");
+
+  await expect(radios.first()).toBeFocused();
+  await expect(radios.first()).toBeChecked();
+});
+
+// The picker sits inside the order form, so an unhandled Enter would submit it
+// and spend one of the five attempts the rate limiter allows.
+test("Enter in a picker field never submits the order", async ({ page }) => {
+  await openPicker(page);
+
+  // Counting the requests, because asserting that a message never appeared
+  // passes just as well when the answer has simply not arrived yet.
+  const posts: string[] = [];
+
+  page.on("request", (request) => {
+    if (request.method() === "POST") posts.push(request.url());
+  });
+
+  await cityInput(page).fill("зззз");
+  await cityInput(page).press("Enter");
+  await page.waitForLoadState("networkidle");
+
+  await chooseCity(page, BIG_CITY);
+  await officeSearchInput(page).fill(BIG_CITY_SEARCH_TERM);
+  await officeSearchInput(page).press("Enter");
+  await page.waitForLoadState("networkidle");
+
+  expect(posts).toEqual([]);
+  await expect(page.getByText(OFFICE_REQUIRED)).toHaveCount(0);
+  await expect(officeSearchInput(page)).toHaveValue(BIG_CITY_SEARCH_TERM);
 });

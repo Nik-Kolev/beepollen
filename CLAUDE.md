@@ -253,12 +253,19 @@ otherwise drag Бургас's view out to Поморие.
 The city field is a combobox: its suggestions are `li role="option"` rather than
 buttons, since a button inside an option is not valid, and the active one is
 tracked with `aria-activedescendant` so the keyboard never tabs through 590
-entries. Every step replaces the control that opened it, so focus is moved by
-hand — to the office search or the first office after a city, to the chosen
-panel after an office, back to the city field when it is cleared — and the
-handoff is a ref read in an effect keyed on the choices, because setting state
-in an effect is what `react-hooks/set-state-in-effect` refuses. The `aria-live`
-line names the chosen office instead of emptying.
+entries. Where a step replaces the control that opened it, focus is moved by
+hand — to the office search or the first office after a city, back to the city
+field when it is cleared — through a ref read in an effect keyed on the choices,
+because setting state in an effect is what `react-hooks/set-state-in-effect`
+refuses. Choosing an office moves nothing: that radio stays mounted, and taking
+focus off it would break the arrow keys that walk the list. The `aria-live` line
+names the chosen office instead of emptying.
+
+The picker sits inside the order form, so every one of its text fields swallows
+Enter. Without that, a search term and a press of Enter submit the order and
+spend one of the five attempts the rate limiter allows. Asserting that the
+refusal never appeared does not catch it — the assertion passes while the answer
+is still in flight, so `e2e/delivery.spec.ts` counts the page's POSTs instead.
 
 An office's `name` is not its heading. 159 of the 590 are named after their own
 city, so the heading strips a repeated city prefix, and Econt reports no

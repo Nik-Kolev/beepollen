@@ -27,7 +27,7 @@ export const checkoutInputSchema = z.object({
   idempotencyKey: z.uuid(),
   // Honeypot. Any value fails the order, so it is checked after parsing rather
   // than here, where the error would name the field that caught the bot.
-  website: z.string().max(200).optional(),
+  website: z.string().optional(),
 });
 
 export type CheckoutInput = z.infer<typeof checkoutInputSchema>;

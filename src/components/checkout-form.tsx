@@ -17,10 +17,9 @@ import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
 import { useCart } from "@/hooks/use-cart";
 import type { CartItem } from "@/lib/cart";
 import {
+  blockedReason,
   FIELD_ERROR,
-  MISSING_PRICE,
   summaryError,
-  WITHDRAWN_LINES,
 } from "@/lib/checkout-messages";
 import { CONSENT_WORDING } from "@/lib/consent";
 import type { EcontOffice } from "@/lib/econt";
@@ -156,14 +155,7 @@ function FilledCheckout({
   const everyPriceKnown = lines.every(
     (line) => (line.product?.priceCents ?? 0) > 0,
   );
-  // A line the catalogue no longer carries and a line with no price both fail
-  // the order service, so the page says which rather than letting it round trip.
-  const withdrawn = lines.some((line) => !line.product);
-  const blocked = withdrawn
-    ? WITHDRAWN_LINES
-    : everyPriceKnown
-      ? null
-      : MISSING_PRICE;
+  const blocked = blockedReason(lines);
 
   const correctedFields =
     corrected.of === result ? corrected.fields : new Set<string>();
@@ -403,7 +395,12 @@ function FilledCheckout({
                 <p className="text-ink-soft mt-1 text-sm">
                   {product ? `${quantity} бр.` : slug}
                 </p>
-                {(unavailable.has(slug) || !product) && (
+                {product?.stock === "NONE" && (
+                  <p className="text-ink-soft mt-1 text-sm">Изчерпан</p>
+                )}
+                {(unavailable.has(slug) ||
+                  !product ||
+                  product.stock === "NONE") && (
                   <button
                     type="button"
                     onClick={() => onRemove(slug)}

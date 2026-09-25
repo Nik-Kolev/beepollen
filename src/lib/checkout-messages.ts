@@ -1,4 +1,5 @@
 import type { PlaceOrderResult } from "@/lib/orders";
+import type { CartProduct } from "@/lib/products";
 
 export const FIELD_ERROR: Record<string, string> = {
   name: "Въведете име между 2 и 100 знака.",
@@ -19,6 +20,9 @@ export const UNAVAILABLE_LINES =
 
 export const WITHDRAWN_LINES =
   "Премахнете продуктите, които вече не се предлагат, за да продължите.";
+
+export const SOLD_OUT_LINES =
+  "Премахнете изчерпаните продукти, за да продължите.";
 
 export const MISSING_PRICE =
   "Продукт в количката все още няма цена, затова поръчката не може да бъде завършена.";
@@ -47,4 +51,18 @@ export function summaryError(
   return result.fields.every((field) => field in FIELD_ERROR)
     ? null
     : INCOMPLETE_ORDER;
+}
+
+type CheckoutLine = { product?: Pick<CartProduct, "priceCents" | "stock"> };
+
+export function blockedReason(lines: CheckoutLine[]) {
+  if (lines.some((line) => !line.product)) return WITHDRAWN_LINES;
+  if (lines.some((line) => line.product?.stock === "NONE")) {
+    return SOLD_OUT_LINES;
+  }
+  if (lines.some((line) => (line.product?.priceCents ?? 0) <= 0)) {
+    return MISSING_PRICE;
+  }
+
+  return null;
 }

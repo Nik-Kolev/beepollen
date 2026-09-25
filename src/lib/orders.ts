@@ -8,10 +8,17 @@ import { takeToken } from "@/lib/rate-limit";
 
 export const ORDER_RATE_LIMIT = { limit: 5, windowMs: 10 * 60 * 1000 };
 
+const BULGARIAN_PHONE = /^(?:(?:\+|00)3590?|0)([1-9]\d{7,8})$/;
+
 export const checkoutInputSchema = z.object({
   name: z.string().trim().min(2).max(100),
-  email: z.email().max(200),
-  phone: z.string().trim().min(6).max(30),
+  email: z.string().trim().toLowerCase().pipe(z.email().max(200)),
+  phone: z
+    .string()
+    .max(30)
+    .transform((value) => value.replace(/[\s().-]/g, ""))
+    .pipe(z.string().regex(BULGARIAN_PHONE))
+    .transform((value) => value.replace(BULGARIAN_PHONE, "+359$1")),
   items: z
     .array(
       z.object({

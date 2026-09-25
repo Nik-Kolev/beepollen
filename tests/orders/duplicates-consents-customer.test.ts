@@ -134,7 +134,7 @@ test("upserts the customer by email so two orders from one address produce one c
   const customers = await prisma.customer.findMany({ where: { email } });
   assert.equal(customers.length, 1);
   assert.equal(customers[0]?.name, "Второ Име");
-  assert.equal(customers[0]?.phone, "0888000002");
+  assert.equal(customers[0]?.phone, "+359888000002");
 
   const orders = await prisma.order.findMany({
     where: { id: { in: [first.order.id, second.order.id] } },

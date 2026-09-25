@@ -138,6 +138,6 @@ test("snapshots the contact name and phone onto the order, so a later order unde
 
   assert.deepEqual(stored, {
     contactName: "Първо Име",
-    contactPhone: "0888000001",
+    contactPhone: "+359888000001",
   });
 });

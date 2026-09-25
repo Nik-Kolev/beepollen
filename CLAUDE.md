@@ -190,6 +190,10 @@ build that shipped it. Its carrier, code, name, city and street are then
 snapshotted onto the order rather than referenced, because `econt:sync` can drop
 an office.
 
+The email is trimmed and lowercased before it keys `Customer`, and the phone is
+accepted only as a Bulgarian number and stored as `+359…`, because Econt
+delivers only in Bulgaria.
+
 `Order` snapshots `contactName` and `contactPhone` the same way `OrderItem`
 snapshots a product: `Customer` is the latest-known contact, never the record of
 what an order was placed with. A `Consent` row stores the wording exactly as it

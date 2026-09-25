@@ -43,6 +43,20 @@ test("does not count an order from a different IP address against another addres
   assert.equal(stillAllowed.ok, true);
 });
 
+test("does not count a submission refused by validation against the address's limit", async () => {
+  resetRateLimits();
+  const ip = "198.51.100.30";
+
+  for (let i = 0; i < ORDER_RATE_LIMIT.limit; i++) {
+    const refused = await placeOrder(validCheckoutInput({ phone: "1" }), ip);
+    assert.equal(refused.ok, false);
+    assert.equal(!refused.ok && refused.code, "VALIDATION_ERROR");
+  }
+
+  const corrected = await placeOrder(validCheckoutInput(), ip);
+  assert.equal(corrected.ok, true);
+});
+
 test("never rate limits a submission with no IP address, however many are placed", async () => {
   resetRateLimits();
 

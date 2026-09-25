@@ -109,12 +109,6 @@ export async function placeOrder(
   raw: unknown,
   ipAddress: string | null,
 ): Promise<PlaceOrderResult> {
-  // Before the database is touched. An unknown address is not rate limited, so
-  // one unidentifiable caller cannot lock out every other one.
-  if (ipAddress && !takeToken(`order:${ipAddress}`, ORDER_RATE_LIMIT)) {
-    return { ok: false, code: "REJECTED" };
-  }
-
   const parsed = checkoutInputSchema.safeParse(raw);
 
   if (!parsed.success) {
@@ -134,6 +128,10 @@ export async function placeOrder(
   const input = parsed.data;
 
   if (input.website) return { ok: false, code: "REJECTED" };
+
+  if (ipAddress && !takeToken(`order:${ipAddress}`, ORDER_RATE_LIMIT)) {
+    return { ok: false, code: "REJECTED" };
+  }
 
   const existing = await findByIdempotencyKey(input.idempotencyKey);
 

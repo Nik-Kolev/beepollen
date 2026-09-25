@@ -299,6 +299,17 @@ test("rejects a submission with a non-empty honeypot value and writes nothing", 
   assert.equal(await prisma.order.count({ where: { idempotencyKey } }), 0);
 });
 
+test("rejects a long honeypot value the same way, without naming the field", async () => {
+  const idempotencyKey = randomUUID();
+  const result = await placeOrder(
+    validCheckoutInput({ idempotencyKey, website: "x".repeat(201) }),
+    null,
+  );
+
+  assert.deepEqual(result, { ok: false, code: "REJECTED" });
+  assert.equal(await prisma.order.count({ where: { idempotencyKey } }), 0);
+});
+
 test("accepts a submission with an empty honeypot string", async () => {
   const result = await placeOrder(validCheckoutInput({ website: "" }), null);
   assert.equal(result.ok, true);

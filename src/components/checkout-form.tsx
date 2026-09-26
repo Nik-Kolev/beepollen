@@ -110,9 +110,8 @@ function OrderPlaced({ order }: { order: PlacedOrder }) {
   );
 }
 
-// Mounts only once the cart has been read, so the key is minted in the browser
-// and lasts exactly as long as this page does.
 function FilledCheckout({
+  ready,
   items,
   products,
   offices,
@@ -127,6 +126,7 @@ function FilledCheckout({
   formAction,
   onRemove,
 }: {
+  ready: boolean;
   items: CartItem[];
   products: CartProduct[];
   offices: EcontOffice[];
@@ -141,7 +141,7 @@ function FilledCheckout({
   formAction: (formData: FormData) => void;
   onRemove: (slug: string) => void;
 }) {
-  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const idempotencyKey = useRef<string | null>(null);
   const catalogue = new Map(products.map((product) => [product.slug, product]));
   const lines = items.map(({ slug, quantity }) => ({
     slug,
@@ -218,225 +218,235 @@ function FilledCheckout({
         // Submitted by hand rather than through the action prop, because that
         // resets the form and throws away the fields the buyer got right.
         const submitted = new FormData(event.currentTarget);
+        idempotencyKey.current ??= crypto.randomUUID();
+        submitted.set("idempotencyKey", idempotencyKey.current);
 
         startTransition(() => formAction(submitted));
       }}
-      className="mt-6 flex flex-col gap-10 lg:flex-row"
+      className="mt-6"
     >
-      <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <input type="hidden" name="items" value={JSON.stringify(items)} />
       <input type="hidden" name="officeCode" value={office?.code ?? ""} />
 
-      <div className="flex flex-col gap-8 lg:flex-1">
-        {summary && (
-          <p
-            role="alert"
-            className="border-ink text-ink border-l-4 pl-4 font-medium"
-          >
-            {summary}
-          </p>
-        )}
-
-        <section>
-          <h2 className="text-lg font-semibold">Данни за връзка</h2>
-
-          <div className="mt-4 flex flex-col gap-4">
-            <div>
-              <label htmlFor="name" className={LABEL}>
-                Име и фамилия
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                value={answers.name}
-                onChange={onAnswerChange("name")}
-                className={fieldClass("name")}
-                {...fieldProps("name")}
-              />
-              {invalid.has("name") && (
-                <p id="name-error" className={ERROR_TEXT}>
-                  {FIELD_ERROR.name}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="email" className={LABEL}>
-                Имейл
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={answers.email}
-                onChange={onAnswerChange("email")}
-                className={fieldClass("email")}
-                {...fieldProps("email")}
-              />
-              {invalid.has("email") && (
-                <p id="email-error" className={ERROR_TEXT}>
-                  {FIELD_ERROR.email}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="phone" className={LABEL}>
-                Телефон
-              </label>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                autoComplete="tel"
-                required
-                value={answers.phone}
-                onChange={onAnswerChange("phone")}
-                className={fieldClass("phone")}
-                {...fieldProps("phone")}
-              />
-              {invalid.has("phone") && (
-                <p id="phone-error" className={ERROR_TEXT}>
-                  {FIELD_ERROR.phone}
-                </p>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold">Доставка до офис</h2>
-
-          <div className="mt-4">
-            <OfficeCityPicker
-              offices={offices}
-              onSelect={(chosen) => {
-                markCorrected("officeCode");
-                setOffice(chosen);
-              }}
-            />
-          </div>
-
-          {invalid.has("officeCode") && (
-            <p id="officeCode-error" className={ERROR_TEXT}>
-              {FIELD_ERROR.officeCode}
+      <fieldset
+        disabled={!ready}
+        className="flex min-w-0 flex-col gap-10 lg:flex-row"
+      >
+        <div className="flex flex-col gap-8 lg:flex-1">
+          {summary && (
+            <p
+              role="alert"
+              className="border-ink text-ink border-l-4 pl-4 font-medium"
+            >
+              {summary}
             </p>
           )}
-        </section>
 
-        <section>
-          <h2 className="text-lg font-semibold">Съгласия</h2>
+          <section>
+            <h2 className="text-lg font-semibold">Данни за връзка</h2>
 
-          <div className="mt-4 flex flex-col gap-4">
-            <div>
+            <div className="mt-4 flex flex-col gap-4">
+              <div>
+                <label htmlFor="name" className={LABEL}>
+                  Име и фамилия
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={answers.name}
+                  onChange={onAnswerChange("name")}
+                  className={fieldClass("name")}
+                  {...fieldProps("name")}
+                />
+                {invalid.has("name") && (
+                  <p id="name-error" className={ERROR_TEXT}>
+                    {FIELD_ERROR.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="email" className={LABEL}>
+                  Имейл
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={answers.email}
+                  onChange={onAnswerChange("email")}
+                  className={fieldClass("email")}
+                  {...fieldProps("email")}
+                />
+                {invalid.has("email") && (
+                  <p id="email-error" className={ERROR_TEXT}>
+                    {FIELD_ERROR.email}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="phone" className={LABEL}>
+                  Телефон
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  value={answers.phone}
+                  onChange={onAnswerChange("phone")}
+                  className={fieldClass("phone")}
+                  {...fieldProps("phone")}
+                />
+                {invalid.has("phone") && (
+                  <p id="phone-error" className={ERROR_TEXT}>
+                    {FIELD_ERROR.phone}
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold">Доставка до офис</h2>
+
+            <div className="mt-4">
+              <OfficeCityPicker
+                offices={offices}
+                onSelect={(chosen) => {
+                  markCorrected("officeCode");
+                  setOffice(chosen);
+                }}
+              />
+            </div>
+
+            {invalid.has("officeCode") && (
+              <p id="officeCode-error" className={ERROR_TEXT}>
+                {FIELD_ERROR.officeCode}
+              </p>
+            )}
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold">Съгласия</h2>
+
+            <div className="mt-4 flex flex-col gap-4">
+              <div>
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    name="acceptsTerms"
+                    required
+                    checked={answers.acceptsTerms}
+                    onChange={onAnswerChange("acceptsTerms")}
+                    className={CHECKBOX}
+                    {...fieldProps("acceptsTerms")}
+                  />
+                  <span>{CONSENT_WORDING.TERMS}</span>
+                </label>
+                {invalid.has("acceptsTerms") && (
+                  <p id="acceptsTerms-error" className={ERROR_TEXT}>
+                    {FIELD_ERROR.acceptsTerms}
+                  </p>
+                )}
+              </div>
+
               <label className="flex items-start gap-3 text-sm">
                 <input
                   type="checkbox"
-                  name="acceptsTerms"
-                  required
-                  checked={answers.acceptsTerms}
-                  onChange={onAnswerChange("acceptsTerms")}
+                  name="acceptsOffers"
+                  checked={answers.acceptsOffers}
+                  onChange={onAnswerChange("acceptsOffers")}
                   className={CHECKBOX}
-                  {...fieldProps("acceptsTerms")}
                 />
-                <span>{CONSENT_WORDING.TERMS}</span>
+                <span>{CONSENT_WORDING.OFFERS}</span>
               </label>
-              {invalid.has("acceptsTerms") && (
-                <p id="acceptsTerms-error" className={ERROR_TEXT}>
-                  {FIELD_ERROR.acceptsTerms}
-                </p>
-              )}
             </div>
+          </section>
 
-            <label className="flex items-start gap-3 text-sm">
-              <input
-                type="checkbox"
-                name="acceptsOffers"
-                checked={answers.acceptsOffers}
-                onChange={onAnswerChange("acceptsOffers")}
-                className={CHECKBOX}
-              />
-              <span>{CONSENT_WORDING.OFFERS}</span>
-            </label>
+          {/* Nothing focusable reaches it, so any value came from a bot. */}
+          <div className="sr-only" aria-hidden="true">
+            <label htmlFor="website">Website</label>
+            <input
+              id="website"
+              name="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+            />
           </div>
-        </section>
-
-        {/* Nothing focusable reaches it, so any value came from a bot. */}
-        <div className="sr-only" aria-hidden="true">
-          <label htmlFor="website">Website</label>
-          <input
-            id="website"
-            name="website"
-            type="text"
-            tabIndex={-1}
-            autoComplete="off"
-          />
         </div>
-      </div>
 
-      <section className="lg:w-80 lg:shrink-0">
-        <h2 className="text-lg font-semibold">Вашата поръчка</h2>
+        <section className="lg:w-80 lg:shrink-0">
+          <h2 className="text-lg font-semibold">Вашата поръчка</h2>
 
-        <ul
-          role="list"
-          className="border-line divide-line mt-4 divide-y border-y"
-        >
-          {lines.map(({ slug, quantity, product }) => (
-            <li key={slug} className="flex items-start gap-4 py-4">
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">
-                  {product ? product.name : "Продуктът вече не се предлага"}
+          <ul
+            role="list"
+            className="border-line divide-line mt-4 divide-y border-y"
+          >
+            {lines.map(({ slug, quantity, product }) => (
+              <li key={slug} className="flex items-start gap-4 py-4">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">
+                    {product ? product.name : "Продуктът вече не се предлага"}
+                  </p>
+                  <p className="text-ink-soft mt-1 text-sm">
+                    {product ? `${quantity} бр.` : slug}
+                  </p>
+                  {product?.stock === "NONE" && (
+                    <p className="text-ink-soft mt-1 text-sm">Изчерпан</p>
+                  )}
+                  {(unavailable.has(slug) ||
+                    !product ||
+                    product.stock === "NONE") && (
+                    <button
+                      type="button"
+                      onClick={() => onRemove(slug)}
+                      className="text-ink hover:text-brand-deep mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0"
+                    >
+                      Премахни
+                      <span className="sr-only"> {product?.name ?? slug}</span>
+                    </button>
+                  )}
+                </div>
+                <p className="shrink-0 font-semibold tabular-nums">
+                  {product && product.priceCents > 0
+                    ? formatPrice(product.priceCents * quantity)
+                    : "TODO: цена"}
                 </p>
-                <p className="text-ink-soft mt-1 text-sm">
-                  {product ? `${quantity} бр.` : slug}
-                </p>
-                {product?.stock === "NONE" && (
-                  <p className="text-ink-soft mt-1 text-sm">Изчерпан</p>
-                )}
-                {(unavailable.has(slug) ||
-                  !product ||
-                  product.stock === "NONE") && (
-                  <button
-                    type="button"
-                    onClick={() => onRemove(slug)}
-                    className="text-ink hover:text-brand-deep mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0"
-                  >
-                    Премахни
-                    <span className="sr-only"> {product?.name ?? slug}</span>
-                  </button>
-                )}
-              </div>
-              <p className="shrink-0 font-semibold tabular-nums">
-                {product && product.priceCents > 0
-                  ? formatPrice(product.priceCents * quantity)
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-6 flex items-center justify-between text-lg font-semibold">
+            <span>Общо</span>
+            <span className="text-brand-deep">
+              {!ready
+                ? null
+                : everyPriceKnown
+                  ? formatPrice(totalCents)
                   : "TODO: цена"}
-              </p>
-            </li>
-          ))}
-        </ul>
+            </span>
+          </p>
 
-        <p className="mt-6 flex items-center justify-between text-lg font-semibold">
-          <span>Общо</span>
-          <span className="text-brand-deep">
-            {everyPriceKnown ? formatPrice(totalCents) : "TODO: цена"}
-          </span>
-        </p>
+          <button
+            type="submit"
+            disabled={pending || blocked !== null}
+            className="bg-action text-action-ink disabled:bg-placeholder disabled:text-ink-soft mt-6 w-full rounded-md px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed"
+          >
+            {pending ? "Изпращане…" : "Завърши поръчката"}
+          </button>
 
-        <button
-          type="submit"
-          disabled={pending || blocked !== null}
-          className="bg-action text-action-ink disabled:bg-placeholder disabled:text-ink-soft mt-6 w-full rounded-md px-6 py-3 text-sm font-semibold disabled:cursor-not-allowed"
-        >
-          {pending ? "Изпращане…" : "Завърши поръчката"}
-        </button>
-
-        {blocked && <p className={ERROR_TEXT}>{blocked}</p>}
-      </section>
+          {blocked && <p className={ERROR_TEXT}>{blocked}</p>}
+        </section>
+      </fieldset>
     </form>
   );
 }
@@ -462,11 +472,11 @@ export function CheckoutForm({
   }, [placed, clear]);
 
   if (placed) return <OrderPlaced order={placed} />;
-  if (!ready) return <div className="py-10" aria-hidden="true" />;
-  if (cart.items.length === 0) return <EmptyCheckout />;
+  if (ready && cart.items.length === 0) return <EmptyCheckout />;
 
   return (
     <FilledCheckout
+      ready={ready}
       items={cart.items}
       products={products}
       offices={offices}

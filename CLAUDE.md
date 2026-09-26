@@ -225,6 +225,14 @@ The answers, and the set of fields corrected since the last refusal, live in
 `CheckoutForm`, which never unmounts — `FilledCheckout` is swapped out whenever
 the cart empties, and state kept there dies with it.
 
+The form is in the prerendered HTML inside a `fieldset` that stays disabled
+until the cart has been read; only the lines and the total wait for the browser.
+Rendered after the read instead, the page stayed empty until hydration and the
+form's arrival shoved the footer down, which fails the Lighthouse layout-shift
+budget. The cost moves to an empty cart, whose form collapses into the empty
+state. The idempotency key is minted on the first submit and held in a ref,
+never rendered, since markup on a static page is identical for every visitor.
+
 `FormData` becomes the order payload in `src/lib/checkout-payload.ts`, not in the
 action. A `"use server"` module can export only async functions, so a mapper left
 there is unreachable from a unit test, and driving the action over HTTP needs the

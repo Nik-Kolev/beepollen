@@ -38,6 +38,9 @@ docker build --target runner -t beepollen:prod .
 docker run --rm -p 3000:3000 beepollen:prod
 ```
 
+It serves the prerendered pages only: the image sets no `DATABASE_URL` and
+holds no database, so placing an order in it fails.
+
 ## Scripts
 
 | Command                | Does                          |
@@ -59,6 +62,7 @@ docker run --rm -p 3000:3000 beepollen:prod
 | `npm run db:studio`    | Browse the database           |
 | `npm run db:reset`     | Wipe and replay migrations    |
 | `npm run db:fresh`     | Reset, then seed              |
+| `npm run econt:sync`   | Refresh the Econt office list |
 | `npm run test:unit`    | Unit tests, own throwaway DB  |
 | `npm run test:e2e`     | E2E and accessibility tests   |
 | `npm run test:perf`    | Lighthouse, not on Windows    |

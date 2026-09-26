@@ -71,8 +71,8 @@ anything unreadable or of another version is discarded rather than migrated.
 `/cart` is a server component that hands its client half the whole published
 catalogue — at this catalogue size that is cheaper than an API route and it keeps
 the page prerendered, so a fetch added there would cost the prerender for nothing.
-Quantities come from the visitor's own browser and nothing prices an order yet:
-the server-side recalculation is owed by the checkout phase, not skipped.
+Quantities come from the visitor's browser and prices from the catalogue the
+build saw; the order service reprices every line from the database regardless.
 
 The cart glyph is a modified Material Symbols path. Its attribution comment is a
 condition of the Apache 2.0 licence, not a note.
@@ -205,14 +205,13 @@ validation error naming the field would tell a bot which check caught it. The
 rate limiter is in-process and resets on deploy, which suits one Node process on
 one host and would count per instance on any other.
 
-`deliveryCents` is always zero until the courier choice exists; the column is
-there so adding it costs no migration.
+`deliveryCents` is always zero until delivery is priced; the column is there so
+pricing it costs no migration.
 
 ## Checkout
 
 `/checkout` is one page — contact fields, the office picker, consents and the
-line summary. The total is goods only until a tariff exists, so `deliveryCents`
-stays zero.
+line summary.
 
 The form submits from `onSubmit` inside `startTransition`, never through the
 `action` prop. React resets a form once its action returns, wiping the fields a

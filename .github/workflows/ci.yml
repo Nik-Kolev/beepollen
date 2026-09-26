@@ -60,6 +60,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --strict-allow-scripts
+      - run: echo "CHROME_PATH=$(which google-chrome)" >> "$GITHUB_ENV"
       - run: npm run test:perf
       - uses: actions/upload-artifact@v7
         if: failure()

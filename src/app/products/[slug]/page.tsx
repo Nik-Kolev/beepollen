@@ -64,8 +64,6 @@ export default async function ProductPage({
     ["Алергени", product.allergenInfo],
   ];
 
-  // No `offers`: every seeded price is still zero, and a structured €0.00 is a
-  // price search engines will publish.
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",

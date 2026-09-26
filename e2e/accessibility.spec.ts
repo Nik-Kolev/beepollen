@@ -62,8 +62,6 @@ test("the error page a failed order submission falls into has no accessibility v
   ).toEqual([]);
 });
 
-// Chromium keeps the implicit list role after Preflight removes the marker, so
-// axe cannot see a missing one; this guards the markup, not the announcement.
 const LIST_PAGES = ["/", "/products/pchelen-prashets-500g"] as const;
 
 for (const path of LIST_PAGES) {

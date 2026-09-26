@@ -25,7 +25,6 @@ function pointsOf(offices: EcontOffice[]): L.LatLngTuple[] {
   );
 }
 
-// The floor is a hit target, not a look: a smaller dot is one people miss.
 function pinRadius(shown: number): number {
   if (shown <= 8) return 10;
   if (shown <= 30) return 8;
@@ -33,8 +32,6 @@ function pinRadius(shown: number): number {
   return 7;
 }
 
-// A handful of far-flung offices drag a city's bounds out until Sofia is drawn
-// next to Pernik, so the fit covers the bulk and lets the outliers fall off.
 function coreBounds(points: L.LatLngTuple[]): L.LatLngBounds {
   if (points.length < 10) return L.latLngBounds(points);
 
@@ -68,8 +65,6 @@ export default function OfficeMap({
     [visible],
   );
 
-  // Read through refs so the map is built once: listing these as dependencies
-  // would tear down the view the visitor just panned.
   const onSelectRef = useRef(onSelect);
   const visibleCodesRef = useRef(visibleCodes);
 
@@ -81,8 +76,6 @@ export default function OfficeMap({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Canvas keeps all 600-odd pins to a single element; one DOM node each
-    // stalls a phone at the zoom that shows the whole country.
     const map = L.map(containerRef.current, {
       preferCanvas: true,
       scrollWheelZoom: false,
@@ -125,8 +118,6 @@ export default function OfficeMap({
     };
   }, [offices]);
 
-  // A pin outside the shown set is dimmed and does nothing, so the map only
-  // answers clicks the list beside it can also answer.
   useEffect(() => {
     const action = themeColor("--color-action");
     const leaf = themeColor("--color-leaf");

@@ -11,8 +11,6 @@ import { formatPrice } from "@/lib/money";
 import type { ProductListItem } from "@/lib/products";
 import { productPhotoTransitionName } from "@/lib/view-transition";
 
-// The grid repeats this three-card rhythm instead of storing decoration per
-// product: it is styling, and a column would have to be filled for every row.
 const DECOR: readonly { comb: HoneycombVariant; bee: string | null }[] = [
   { comb: "climb", bee: "top-3 right-3 w-10 -rotate-12" },
   { comb: "climbRight", bee: "bottom-3 left-3 w-9 rotate-6" },
@@ -63,8 +61,6 @@ export function ProductCard({
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <h3 className="font-medium">
-            {/* The overlay makes the whole card clickable while the link's
-                accessible name stays just the product. */}
             <Link
               href={`/products/${product.slug}`}
               className="after:absolute after:inset-0"

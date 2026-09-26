@@ -18,7 +18,6 @@ const listeners = new Set<() => void>();
 let cachedRaw: string | null = null;
 let cachedCart: Cart = EMPTY_CART;
 
-// Blocked storage falls back to memory, so the button still does something.
 let storageWorks = true;
 
 function emit() {
@@ -83,7 +82,6 @@ function write(cart: Cart) {
   emit();
 }
 
-// False until hydration finishes, so the cart page cannot flash its empty state.
 function subscribeToNothing() {
   return () => {};
 }

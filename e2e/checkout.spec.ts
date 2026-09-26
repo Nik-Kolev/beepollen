@@ -23,7 +23,6 @@ const OFFICE_CITY = "Попово";
 const OFFICE_STREET = "бул. България №117";
 const OFFICE_HEADING = "Попово, офис Попово";
 
-// Two offices in Попово, so they are listed outright and no search is needed.
 async function chooseOffice(page: Page) {
   await page.getByLabel("Град", { exact: true }).fill(OFFICE_CITY);
   await page.getByRole("option", { name: OFFICE_CITY, exact: true }).click();
@@ -188,8 +187,6 @@ test("a resubmission reuses its page's idempotency key and a new page load mints
   expect(reloaded).not.toBe(first);
 });
 
-// Every submission spends one of five tokens per ten minutes per address, and a
-// retry spends another, so these run in one project rather than both.
 test.describe("placing an order", () => {
   test.skip(
     ({ isMobile }) => !isMobile,
@@ -210,7 +207,6 @@ test.describe("placing an order", () => {
     await expect(page.getByText("Въведете валиден имейл адрес.")).toBeVisible();
     await expect(emailField(page)).toHaveAttribute("aria-invalid", "true");
 
-    // The live region repeats the heading, so this is scoped to the panel.
     await expect(
       page.getByText("Избран офис", { exact: true }).locator("xpath=.."),
     ).toContainText(OFFICE_HEADING);

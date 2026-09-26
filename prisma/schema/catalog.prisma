@@ -16,8 +16,6 @@ model Product {
   sortOrder   Int        @default(0)
   isPublished Boolean    @default(false)
 
-  // Nullable so a product can be drafted, but all six are required before
-  // isPublished — EU 1169/2011 wants them shown before a distance sale closes.
   netWeightGrams Int?
   composition    String?
   origin         String?

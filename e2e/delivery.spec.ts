@@ -4,8 +4,6 @@ import { seedCart } from "./seed-cart";
 
 const SMALL_CITY = "Попово";
 
-// The row shows the office's full label; the chosen-office panel drops the
-// city prefix the label repeats, so the two strings differ on purpose.
 const SMALL_CITY_OFFICE_A = {
   heading: "Попово, офис Попово",
   street: "бул. България №117",
@@ -25,16 +23,12 @@ const BIG_CITY_SEARCH_MATCHES = 3;
 
 const SINGLE_OFFICE_CITY = "Ябланово";
 
-// What the order form says when it is submitted with no office chosen.
 const OFFICE_REQUIRED =
   "Изберете офис на Еконт, до който да получите поръчката.";
 
-// Two of the 590 offices carry no coordinates, so their directions link falls
-// back to the address instead of a lat/lng pair.
 const NO_COORDS_CITY = "Нови Искър";
 const NO_COORDS_OFFICE_STREET = "кв. ЖП гара Курило ул. Търговска №18";
 
-// The picker renders inside the order form, which a filled cart is what opens.
 async function openPicker(page: Page) {
   await seedCart(page, {
     version: 1,
@@ -43,7 +37,6 @@ async function openPicker(page: Page) {
   await page.goto("/checkout");
 }
 
-// Exact, or it also matches the "Промени града …" button's aria-label.
 function cityInput(page: Page) {
   return page.getByLabel("Град", { exact: true });
 }
@@ -69,8 +62,6 @@ function statusLine(page: Page) {
   return page.locator('[aria-live="polite"]');
 }
 
-// The street is printed both in the list row and in the chosen-office panel,
-// so panel assertions have to be scoped to the panel.
 function selectedPanel(page: Page) {
   return page.getByText("Избран офис", { exact: true }).locator("xpath=..");
 }
@@ -384,13 +375,9 @@ test("the arrow keys walk the office list without focus leaving it", async ({
   await expect(radios.first()).toBeChecked();
 });
 
-// The picker sits inside the order form, so an unhandled Enter would submit it
-// and spend one of the five attempts the rate limiter allows.
 test("Enter in a picker field never submits the order", async ({ page }) => {
   await openPicker(page);
 
-  // Counting the requests, because asserting that a message never appeared
-  // passes just as well when the answer has simply not arrived yet.
   const posts: string[] = [];
 
   page.on("request", (request) => {

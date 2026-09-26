@@ -41,7 +41,6 @@ next-env.d.ts
 
 Thumbs.db
 
-# playwright
 test-results/
 playwright-report/
 blob-report/

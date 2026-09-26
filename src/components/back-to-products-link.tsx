@@ -38,8 +38,6 @@ export function BackToProductsLink() {
       return;
     }
 
-    // A fresh navigation to the grid starts at the top; going back lets the
-    // browser restore the scroll position the visitor left it at.
     if (cameFromProducts()) {
       event.preventDefault();
       router.back();

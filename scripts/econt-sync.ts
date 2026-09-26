@@ -37,8 +37,6 @@ function report(previous: EcontOfficeRecord[], next: EcontOfficeRecord[]) {
   );
 }
 
-// A truncated response parses like a good one, so a sudden collapse in the
-// count is refused rather than committed over 590 working offices.
 const MAX_SHRINK = 0.2;
 
 async function main() {

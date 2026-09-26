@@ -32,8 +32,6 @@ export const checkoutInputSchema = z.object({
   acceptsTerms: z.literal(true),
   acceptsOffers: z.boolean(),
   idempotencyKey: z.uuid(),
-  // Honeypot. Any value fails the order, so it is checked after parsing rather
-  // than here, where the error would name the field that caught the bot.
   website: z.string().optional(),
 });
 
@@ -54,12 +52,8 @@ export type PlaceOrderResult =
   | { ok: false; code: "UNKNOWN_OFFICE" }
   | { ok: false; code: "REJECTED" };
 
-// Two orders placed at the same moment compute the same number; the unique
-// index refuses the second, and its retry reads the row that won.
 const REFERENCE_ATTEMPTS = 5;
 
-// The day is the owner's day, not UTC's: an order placed at 02:00 in Sofia
-// belongs to the date he sees on the screen, not to the one before it.
 const sofiaDayMonth = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Sofia",
   day: "2-digit",
@@ -91,8 +85,6 @@ function findByIdempotencyKey(idempotencyKey: string) {
   });
 }
 
-// The libsql adapter reports the violated fields under driverAdapterError, not
-// under the documented `target`, which it leaves undefined.
 function conflictingFields(error: unknown): string[] {
   if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return [];
   if (error.code !== "P2002") return [];
@@ -146,12 +138,8 @@ export async function placeOrder(
     return { ok: true, order: existing, repeated: true };
   }
 
-  // The same slug twice is summed rather than rejected, matching the cart, so a
-  // stale tab cannot turn one basket into two lines of the same product.
   const items = collapseDuplicates(input.items);
 
-  // Nothing the browser sent is priced or named here — only the slug and the
-  // quantity survive validation, and both are re-checked against the database.
   const products = await prisma.product.findMany({
     where: {
       slug: { in: items.map((item) => item.slug) },
@@ -193,8 +181,6 @@ export async function placeOrder(
     return { ok: false, code: "UNAVAILABLE_ITEMS", slugs: unavailable };
   }
 
-  // The page was prerendered against an older snapshot, so the code it sends
-  // is checked here rather than trusted.
   const office = await prisma.deliveryOffice.findUnique({
     where: { carrier_code: { carrier: "ECONT", code: input.officeCode } },
     select: { carrier: true, code: true, name: true, city: true, street: true },
@@ -206,8 +192,6 @@ export async function placeOrder(
     (total, line) => total + line.unitPriceCents * line.quantity,
     0,
   );
-  // The office is chosen but not yet priced: a tariff arrives with B11, and
-  // until then every order is priced as if delivery were free.
   const deliveryCents = 0;
 
   const consents: {
@@ -239,8 +223,6 @@ export async function placeOrder(
           select: { id: true },
         });
 
-        // The day's highest number, read by id rather than by date: the prefix
-        // already narrows it to today, and the newest row holds the last one.
         const last = await tx.order.findFirst({
           where: { reference: { startsWith: prefix } },
           orderBy: { id: "desc" },
@@ -279,8 +261,6 @@ export async function placeOrder(
     } catch (error) {
       const conflicts = conflictingFields(error);
 
-      // The read above is a check-then-act; the unique index is what actually
-      // stops a concurrent submission of the same key from writing twice.
       if (conflicts.includes("idempotencyKey")) {
         const winner = await findByIdempotencyKey(input.idempotencyKey);
 
@@ -289,13 +269,9 @@ export async function placeOrder(
         return { ok: true, order: winner, repeated: true };
       }
 
-      // The order that won the number is committed by now, so the next attempt
-      // reads it and takes the one after.
       if (!conflicts.includes("reference")) throw error;
     }
   }
 
-  // Refused rather than thrown: a throw reaches the error boundary, which takes
-  // the buyer's filled-in form with it.
   return { ok: false, code: "REJECTED" };
 }

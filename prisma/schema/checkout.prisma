@@ -27,13 +27,9 @@ model Order {
   customer   Customer    @relation(fields: [customerId], references: [id])
   status     OrderStatus @default(NEW)
 
-  // Snapshotted for the same reason OrderItem snapshots its product: the
-  // Customer row is the latest known contact, not what this order was placed on.
   contactName  String
   contactPhone String
 
-  // Snapshotted for the same reason the contact is: a refreshed office list
-  // can drop a row, and a past order must keep where it was going.
   officeCarrier Carrier
   officeCode    String
   officeName    String
@@ -44,13 +40,8 @@ model Order {
   deliveryCents Int @default(0)
   totalCents    Int
 
-  // BP, the day and month, then this order's number within that day. Stored
-  // rather than derived from the id, which cannot express a per-day counter,
-  // and unique so two concurrent orders cannot take the same number.
   reference String @unique
 
-  // Unique, so a resubmitted form returns the first order instead of writing a
-  // second one.
   idempotencyKey String @unique
 
   items    OrderItem[]
@@ -68,8 +59,6 @@ model OrderItem {
   orderId Int
   order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  // SetNull, not Cascade: the seed deletes products dropped from the catalogue,
-  // and a past order must survive that. Every field below is a snapshot.
   productId Int?
   product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
 
@@ -88,8 +77,6 @@ model Consent {
   order   Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   kind    ConsentKind
 
-  // The wording as it was shown when ticked: GDPR wants consent demonstrable,
-  // which a boolean cannot do once the page text changes.
   wording   String
   ipAddress String?
   createdAt DateTime @default(now())

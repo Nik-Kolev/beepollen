@@ -53,8 +53,6 @@ test("a checkbox sent with any other value is not accepted as checked", () => {
   assert.equal(payload.acceptsTerms, false);
 });
 
-// A crafted multipart POST can send a File under any name, and calling a string
-// method on one throws instead of validating.
 test("a File under a text field becomes an empty string, not a thrown error", () => {
   const file = new File(["not a name"], "name.txt", { type: "text/plain" });
   const payload = checkoutPayload(

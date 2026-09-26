@@ -27,12 +27,9 @@ export const SOLD_OUT_LINES =
 export const MISSING_PRICE =
   "Продукт в количката все още няма цена, затова поръчката не може да бъде завършена.";
 
-// Deliberately says nothing about which check refused it.
 export const REFUSED =
   "Поръчката не може да бъде приета в момента. Опитайте по-късно.";
 
-// Here rather than in the form, which is a "use client" module a test cannot
-// import — the same reason checkoutPayload left the action.
 export function summaryError(
   result: PlaceOrderResult | null,
   stillUnavailable: boolean,
@@ -47,7 +44,6 @@ export function summaryError(
     return stillUnavailable ? UNAVAILABLE_LINES : null;
   }
 
-  // A field the form cannot mark would otherwise be refused in silence.
   return result.fields.every((field) => field in FIELD_ERROR)
     ? null
     : INCOMPLETE_ORDER;

@@ -35,7 +35,6 @@ async function placeOne() {
 }
 
 test("the prefix is BP plus the day and month, read in Sofia rather than UTC", () => {
-  // 01:30 in Sofia, still the previous day in UTC.
   assert.equal(
     orderReferencePrefix(new Date("2026-09-24T22:30:00Z")),
     "BP2509",
@@ -87,8 +86,6 @@ test("an order from another day does not carry its number into today", async () 
       contactName: "Стара поръчка",
       contactPhone: "0888000000",
       ...TEST_OFFICE_SNAPSHOT,
-      // Day 00 of month 00: a prefix no calendar date can produce, so the run
-      // date cannot turn this row into one of today's.
       reference: "BP000099",
       itemsCents: 1,
       deliveryCents: 0,
@@ -133,8 +130,6 @@ test("a replayed idempotency key returns the reference the first order was given
   assert.equal(second.repeated, true);
 });
 
-// Last in the file: it leaves the day's numbering blocked until its own cleanup
-// restores it, and every test after it would be refused too.
 test("an order is refused rather than thrown when every attempt loses its number", async () => {
   const prefix = orderReferencePrefix(new Date());
   const newest = await prisma.order.findFirst({
@@ -166,8 +161,6 @@ test("an order is refused rather than thrown when every attempt loses its number
     idempotencyKey: randomUUID(),
   });
 
-  // The higher number is written first, so the newest row holds the lower one:
-  // every attempt reads that one, adds one, and lands on a number already taken.
   const blocker = await prisma.order.create({
     data: fixture(`${prefix}${sequence + 1}`),
     select: { id: true },

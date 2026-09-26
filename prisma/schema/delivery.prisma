@@ -3,8 +3,6 @@ enum Carrier {
   SPEEDY
 }
 
-// Filled from prisma/data/econt-offices.json rather than typed into the seed:
-// the rows are a courier's nomenclature, refreshed by npm run econt:sync.
 model DeliveryOffice {
   id      Int     @id @default(autoincrement())
   carrier Carrier
@@ -17,8 +15,6 @@ model DeliveryOffice {
   hours    String
   phone    String?
 
-  // Two offices report a location whose coordinates are both null. They belong
-  // in the list, just not on the map.
   latitude  Float?
   longitude Float?
 

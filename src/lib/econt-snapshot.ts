@@ -5,8 +5,6 @@ import { z } from "zod";
 
 import type { EcontOfficeRecord } from "@/lib/econt";
 
-// Committed so a fresh database — CI, Vercel, a new clone — can be seeded
-// without reaching Econt during a build.
 export const SNAPSHOT_PATH = path.join(
   process.cwd(),
   "prisma",

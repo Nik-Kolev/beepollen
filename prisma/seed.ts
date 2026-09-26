@@ -1,12 +1,8 @@
 import { readOfficeSnapshot } from "@/lib/econt-snapshot";
 import prisma from "@/lib/prisma";
 
-// Lorem ipsum and visible markers only: plausible Bulgarian filler survives to
-// launch unnoticed, where a marker cannot.
 const SUMMARY = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
 
-// Placeholder prices the owner still owes; deleted at launch, never corrected.
-// Distinct on purpose — equal prices hide a quantity or subtotal bug.
 const TODO_PRICE = {
   pollen500: 2450,
   pollen1000: 4590,
@@ -67,8 +63,6 @@ const products = [
       },
     ],
   },
-  // Unpublished with no food information, so the catalog has a row it must
-  // filter and the publish gate has a failing case.
   {
     id: 3,
     slug: "lorem-ipsum",
@@ -89,8 +83,6 @@ const products = [
   },
 ];
 
-// Upserted by code rather than replaced, so a row keeps its id across a
-// refreshed snapshot.
 async function seedOffices() {
   const offices = readOfficeSnapshot();
 
@@ -121,8 +113,6 @@ async function seedOffices() {
 }
 
 async function main() {
-  // Upsert alone leaves a product dropped from this file sitting in an existing
-  // database, still published; images cascade with it.
   await prisma.product.deleteMany({
     where: { id: { notIn: products.map((product) => product.id) } },
   });
@@ -134,8 +124,6 @@ async function main() {
       create: { id, ...product },
     });
 
-    // Image rows have no natural key and the seed is their only writer, so
-    // they are replaced wholesale — atomically, or an interrupt leaves none.
     await prisma.$transaction([
       prisma.productImage.deleteMany({ where: { productId: id } }),
       prisma.productImage.createMany({

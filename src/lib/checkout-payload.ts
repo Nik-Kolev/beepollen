@@ -1,5 +1,3 @@
-// formData.get returns File | string | null and the action reading it is a
-// public endpoint, so nothing here may assume a string arrived.
 function text(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value : "";
 }

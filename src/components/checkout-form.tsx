@@ -55,8 +55,6 @@ const EMPTY_ANSWERS: Answers = {
   acceptsOffers: false,
 };
 
-// Pinned to the result it answers, so a newer refusal makes it stale by
-// identity rather than needing an effect to clear it.
 type Corrected = { of: PlaceOrderResult | null; fields: Set<string> };
 
 const NOTHING_CORRECTED: Corrected = { of: null, fields: new Set() };
@@ -78,7 +76,6 @@ function EmptyCheckout() {
 function OrderPlaced({ order }: { order: PlacedOrder }) {
   const heading = useRef<HTMLHeadingElement>(null);
 
-  // The form it replaced is gone, so focus would otherwise fall to the body.
   useEffect(() => {
     heading.current?.focus();
   }, []);
@@ -215,8 +212,6 @@ function FilledCheckout({
       onSubmit={(event) => {
         event.preventDefault();
 
-        // Submitted by hand rather than through the action prop, because that
-        // resets the form and throws away the fields the buyer got right.
         const submitted = new FormData(event.currentTarget);
         idempotencyKey.current ??= crypto.randomUUID();
         submitted.set("idempotencyKey", idempotencyKey.current);
@@ -371,7 +366,6 @@ function FilledCheckout({
             </div>
           </section>
 
-          {/* Nothing focusable reaches it, so any value came from a bot. */}
           <div className="sr-only" aria-hidden="true">
             <label htmlFor="website">Website</label>
             <input
@@ -451,8 +445,6 @@ function FilledCheckout({
   );
 }
 
-// The answers live here rather than in the form, so emptying the cart -- by
-// removing the last line, or from another tab -- cannot discard what was typed.
 export function CheckoutForm({
   products,
   offices,

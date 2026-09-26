@@ -4,11 +4,14 @@
       "startServerCommand": "npm start",
       "url": [
         "http://localhost:3000/",
-        "http://localhost:3000/products/pchelen-prashets-500g"
+        "http://localhost:3000/products/pchelen-prashets-500g",
+        "http://localhost:3000/checkout"
       ],
+      "puppeteerScript": "scripts/lighthouse-seed-cart.cjs",
       "numberOfRuns": 3,
       "settings": {
-        "throttlingMethod": "devtools"
+        "throttlingMethod": "devtools",
+        "blockedUrlPatterns": ["*tile.openstreetmap.org*"]
       }
     },
     "assert": {

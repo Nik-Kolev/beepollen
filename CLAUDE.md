@@ -365,13 +365,12 @@ violation. It runs inside the existing suite rather than as its own job, because
 the suite already builds the app and drives a browser. Add a scan for every new
 page — the gate only covers routes a spec actually visits.
 
-`error.tsx` and `global-error.tsx` are outside it because nothing currently
-reaches them in a browser: every route is prerendered, so nothing renders at
-request time to fail; the cart discards unreadable stored data rather than
-throwing; a failed RSC payload fetch falls back to a full-page navigation, not
-the error boundary; and the root layout is static. That is today's shape, not a
-permanent exemption — revisit it when a route first renders at request time, as
-the order submission will.
+`error.tsx` is reached by a failed order submission: `useActionState` rethrows
+whatever `placeOrder` throws into the nearest boundary. The spec reaches it by
+answering the action's POST with a 500. `global-error.tsx` stays outside the
+gate because nothing reaches it in a browser — every route is prerendered and
+the root layout is static. Revisit that when a route first renders at request
+time.
 
 Lighthouse CI runs as its own `lighthouse` job and cannot run on Windows.
 Lighthouse's CLI never passes Chrome a profile directory, so `chrome-launcher`

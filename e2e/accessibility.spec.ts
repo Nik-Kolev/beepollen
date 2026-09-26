@@ -33,6 +33,35 @@ for (const [name, path] of PAGES) {
   });
 }
 
+test("the error page a failed order submission falls into has no accessibility violations", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+  });
+  await page.goto("/checkout");
+  await page.route("**/checkout", (route) =>
+    route.request().method() === "POST"
+      ? route.fulfill({ status: 500, body: "" })
+      : route.continue(),
+  );
+
+  await page.getByRole("button", { name: "Завърши поръчката" }).click();
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Възникна грешка" }),
+  ).toBeVisible();
+  await expect(page.getByRole("banner")).toBeVisible();
+
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+
+  expect(
+    violations.map((v) => `${v.id} on ${v.nodes.length}: ${v.help}`),
+  ).toEqual([]);
+});
+
 // Chromium keeps the implicit list role after Preflight removes the marker, so
 // axe cannot see a missing one; this guards the markup, not the announcement.
 const LIST_PAGES = ["/", "/products/pchelen-prashets-500g"] as const;

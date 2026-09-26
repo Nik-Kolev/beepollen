@@ -3,6 +3,11 @@ import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { collapseDuplicates, MAX_LINE_QUANTITY, MAX_LINES } from "@/lib/cart";
 import { CONSENT_WORDING } from "@/lib/consent";
+import {
+  DeliveryMethod,
+  deliveryPrice,
+  LOCAL_DELIVERY_CITY,
+} from "@/lib/delivery";
 import prisma from "@/lib/prisma";
 import { takeToken } from "@/lib/rate-limit";
 
@@ -10,30 +15,37 @@ export const ORDER_RATE_LIMIT = { limit: 5, windowMs: 10 * 60 * 1000 };
 
 const BULGARIAN_PHONE = /^(?:(?:\+|00)3590?|0)([1-9]\d{7,8})$/;
 
-export const checkoutInputSchema = z.object({
-  name: z.string().trim().min(2).max(100),
-  email: z.string().trim().toLowerCase().pipe(z.email().max(200)),
-  phone: z
-    .string()
-    .max(30)
-    .transform((value) => value.replace(/[\s().-]/g, ""))
-    .pipe(z.string().regex(BULGARIAN_PHONE))
-    .transform((value) => value.replace(BULGARIAN_PHONE, "+359$1")),
-  items: z
-    .array(
-      z.object({
-        slug: z.string().min(1).max(200),
-        quantity: z.number().int().min(1).max(MAX_LINE_QUANTITY),
-      }),
-    )
-    .min(1)
-    .max(MAX_LINES),
-  officeCode: z.string().trim().min(1).max(50),
-  acceptsTerms: z.literal(true),
-  acceptsOffers: z.boolean(),
-  idempotencyKey: z.uuid(),
-  website: z.string().optional(),
-});
+export const checkoutInputSchema = z
+  .object({
+    name: z.string().trim().min(2).max(100),
+    email: z.string().trim().toLowerCase().pipe(z.email().max(200)),
+    phone: z
+      .string()
+      .max(30)
+      .transform((value) => value.replace(/[\s().-]/g, ""))
+      .pipe(z.string().regex(BULGARIAN_PHONE))
+      .transform((value) => value.replace(BULGARIAN_PHONE, "+359$1")),
+    items: z
+      .array(
+        z.object({
+          slug: z.string().min(1).max(200),
+          quantity: z.number().int().min(1).max(MAX_LINE_QUANTITY),
+        }),
+      )
+      .min(1)
+      .max(MAX_LINES),
+    deliveryMethod: z.enum(DeliveryMethod),
+    officeCode: z.string().trim().max(50),
+    acceptsTerms: z.literal(true),
+    acceptsOffers: z.boolean(),
+    idempotencyKey: z.uuid(),
+    website: z.string().optional(),
+  })
+  .superRefine((input, ctx) => {
+    if (input.deliveryMethod === "ECONT_OFFICE" && input.officeCode === "") {
+      ctx.addIssue({ code: "custom", path: ["officeCode"], message: "" });
+    }
+  });
 
 export type CheckoutInput = z.infer<typeof checkoutInputSchema>;
 
@@ -181,18 +193,34 @@ export async function placeOrder(
     return { ok: false, code: "UNAVAILABLE_ITEMS", slugs: unavailable };
   }
 
-  const office = await prisma.deliveryOffice.findUnique({
-    where: { carrier_code: { carrier: "ECONT", code: input.officeCode } },
-    select: { carrier: true, code: true, name: true, city: true, street: true },
-  });
+  const office =
+    input.deliveryMethod === "ECONT_OFFICE"
+      ? await prisma.deliveryOffice.findUnique({
+          where: {
+            carrier_code: { carrier: "ECONT", code: input.officeCode },
+          },
+          select: {
+            carrier: true,
+            code: true,
+            name: true,
+            city: true,
+            street: true,
+          },
+        })
+      : null;
 
-  if (!office) return { ok: false, code: "UNKNOWN_OFFICE" };
+  if (
+    input.deliveryMethod === "ECONT_OFFICE" &&
+    (!office || office.city === LOCAL_DELIVERY_CITY)
+  ) {
+    return { ok: false, code: "UNKNOWN_OFFICE" };
+  }
 
   const itemsCents = lines.reduce(
     (total, line) => total + line.unitPriceCents * line.quantity,
     0,
   );
-  const deliveryCents = 0;
+  const deliveryCents = deliveryPrice(input.deliveryMethod);
 
   const consents: {
     kind: "TERMS" | "OFFERS";
@@ -234,11 +262,12 @@ export async function placeOrder(
             customerId: customer.id,
             contactName: input.name,
             contactPhone: input.phone,
-            officeCarrier: office.carrier,
-            officeCode: office.code,
-            officeName: office.name,
-            officeCity: office.city,
-            officeStreet: office.street,
+            deliveryMethod: input.deliveryMethod,
+            officeCarrier: office?.carrier ?? null,
+            officeCode: office?.code ?? null,
+            officeName: office?.name ?? null,
+            officeCity: office?.city ?? null,
+            officeStreet: office?.street ?? null,
             reference: nextOrderReference(prefix, last?.reference ?? null),
             itemsCents,
             deliveryCents,

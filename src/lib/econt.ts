@@ -12,6 +12,8 @@ export type EcontOffice = {
 
 export type EcontOfficeRecord = Omit<EcontOffice, "label">;
 
+export const TODO_ECONT_TARIFF_CENTS = 590;
+
 const collator = new Intl.Collator("bg-BG");
 
 export function officeLabel(name: string, city: string): string {

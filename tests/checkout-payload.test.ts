@@ -22,6 +22,7 @@ test("a missing field reads as an empty string rather than null", () => {
     email: "",
     phone: "",
     items: [],
+    deliveryMethod: "ECONT_OFFICE",
     officeCode: "",
     acceptsTerms: false,
     acceptsOffers: false,
@@ -45,6 +46,25 @@ test("an unchecked box is false and a checked one is true", () => {
 
   assert.equal(unchecked.acceptsTerms, false);
   assert.equal(unchecked.acceptsOffers, false);
+});
+
+test("the local-delivery box picks the delivery method, and anything but a tick means Econt", () => {
+  assert.equal(
+    checkoutPayload(formDataWith([["localDelivery", "on"]])).deliveryMethod,
+    "LOCAL",
+  );
+  assert.equal(
+    checkoutPayload(formDataWith([["localDelivery", "true"]])).deliveryMethod,
+    "ECONT_OFFICE",
+  );
+  assert.equal(checkoutPayload(new FormData()).deliveryMethod, "ECONT_OFFICE");
+});
+
+test("a File under the local-delivery box means Econt, not a thrown error", () => {
+  const file = new File(["on"], "localDelivery.txt", { type: "text/plain" });
+  const payload = checkoutPayload(formDataWith([["localDelivery", file]]));
+
+  assert.equal(payload.deliveryMethod, "ECONT_OFFICE");
 });
 
 test("a checkbox sent with any other value is not accepted as checked", () => {

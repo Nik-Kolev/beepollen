@@ -1,11 +1,12 @@
 import { cache } from "react";
 
+import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import { officeLabel, sortOffices, type EcontOffice } from "@/lib/econt";
 import prisma from "@/lib/prisma";
 
 export const listEcontOffices = cache(async (): Promise<EcontOffice[]> => {
   const rows = await prisma.deliveryOffice.findMany({
-    where: { carrier: "ECONT" },
+    where: { carrier: "ECONT", city: { not: LOCAL_DELIVERY_CITY } },
     select: {
       code: true,
       name: true,

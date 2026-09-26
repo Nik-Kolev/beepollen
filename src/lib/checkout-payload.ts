@@ -18,6 +18,8 @@ export function checkoutPayload(formData: FormData) {
     email: text(formData.get("email")),
     phone: text(formData.get("phone")),
     items: items(formData.get("items")),
+    deliveryMethod:
+      formData.get("localDelivery") === "on" ? "LOCAL" : "ECONT_OFFICE",
     officeCode: text(formData.get("officeCode")),
     acceptsTerms: formData.get("acceptsTerms") === "on",
     acceptsOffers: formData.get("acceptsOffers") === "on",

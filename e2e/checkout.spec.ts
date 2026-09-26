@@ -19,9 +19,9 @@ function emailField(page: Page) {
   return page.getByLabel("Имейл", { exact: true });
 }
 
-const OFFICE_CITY = "Попово";
-const OFFICE_STREET = "бул. България №117";
-const OFFICE_HEADING = "Попово, офис Попово";
+const OFFICE_CITY = "Павликени";
+const OFFICE_STREET = "пл. Стефан Караджа №16 (до Магазин Абсолют плюс)";
+const OFFICE_HEADING = "Павликени, офис Павликени";
 
 async function chooseOffice(page: Page) {
   await page.getByLabel("Град", { exact: true }).fill(OFFICE_CITY);
@@ -36,7 +36,7 @@ async function chooseOffice(page: Page) {
 async function fillContact(page: Page, email: string) {
   await page.getByLabel("Име и фамилия").fill("Мария Иванова");
   await emailField(page).fill(email);
-  await page.getByLabel("Телефон").fill("0899777888");
+  await page.getByLabel("Телефон", { exact: true }).fill("0899777888");
   await page.getByLabel(/Съгласен съм с общите условия/).check();
 }
 
@@ -96,7 +96,32 @@ test("the summary lists a line per product", async ({ page }) => {
   await expect(summaryRows(page).first()).toContainText(POLLEN_NAME);
   await expect(summaryRows(page).first()).toContainText("2 бр.");
   await expect(summaryRows(page).last()).toContainText(SECOND_NAME);
+  await expect(page.getByText("5,90 €", { exact: true })).toBeVisible();
+  await expect(page.getByText("100,80 €")).toBeVisible();
+});
+
+test("local delivery in Popovo drops the office picker and the delivery charge", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 1,
+    items: [
+      { slug: POLLEN_SLUG, quantity: 2 },
+      { slug: SECOND_SLUG, quantity: 1 },
+    ],
+  });
+  await page.goto("/checkout");
+
+  await page.getByLabel(/Поръчката е за гр\. Попово/).check();
+
+  await expect(page.getByLabel("Град", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Безплатна", { exact: true })).toBeVisible();
   await expect(page.getByText("94,90 €")).toBeVisible();
+
+  await page.getByLabel(/Поръчката е за гр\. Попово/).uncheck();
+
+  await expect(page.getByLabel("Град", { exact: true })).toBeVisible();
+  await expect(page.getByText("100,80 €")).toBeVisible();
 });
 
 test("a withdrawn product is named rather than dropped", async ({ page }) => {
@@ -212,7 +237,9 @@ test.describe("placing an order", () => {
     ).toContainText(OFFICE_HEADING);
 
     await expect(page.getByLabel("Име и фамилия")).toHaveValue("Мария Иванова");
-    await expect(page.getByLabel("Телефон")).toHaveValue("0899777888");
+    await expect(page.getByLabel("Телефон", { exact: true })).toHaveValue(
+      "0899777888",
+    );
     await expect(
       page.getByLabel(/Съгласен съм с общите условия/),
     ).toBeChecked();
@@ -234,12 +261,37 @@ test.describe("placing an order", () => {
     await fillContact(page, "maria.ivanova@example.com");
     await page.getByRole("button", { name: "Завърши поръчката" }).click();
 
-    await expect(
-      page.getByText("Изберете офис на Еконт, до който да получите поръчката."),
-    ).toBeVisible();
+    const officeRequired = page.getByText(
+      "Изберете офис на Еконт, до който да получите поръчката.",
+    );
+
+    await expect(officeRequired).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Поръчката е приета" }),
     ).toHaveCount(0);
+
+    await page.getByLabel(/Поръчката е за гр\. Попово/).check();
+
+    await expect(officeRequired).toHaveCount(0);
+  });
+
+  test("a local order is placed with no office and no delivery charge", async ({
+    page,
+  }) => {
+    await seedCart(page, {
+      version: 1,
+      items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    });
+    await page.goto("/checkout");
+
+    await fillContact(page, "maria.ivanova@example.com");
+    await page.getByLabel(/Поръчката е за гр\. Попово/).check();
+    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "Поръчката е приета" }),
+    ).toBeVisible();
+    await expect(page.getByText("Общо: 24,50 €")).toBeVisible();
   });
 
   test("a placed order returns a reference and empties the cart", async ({

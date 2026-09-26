@@ -56,6 +56,21 @@ test("the cart leads to the checkout page", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("the form is prerendered, disabled until the cart has been read", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+  });
+  const response = await page.goto("/checkout");
+  const html = await response?.text();
+
+  expect(html).toMatch(/<fieldset disabled=""[^>]*>/);
+  expect(html).toContain('name="email"');
+  await expect(emailField(page)).toBeEnabled();
+});
+
 test("an empty cart offers the catalogue instead of a form", async ({
   page,
 }) => {
@@ -136,6 +151,41 @@ test("the consent wording is rendered as it will be stored", async ({
   await expect(
     page.getByText("Искам да получавам оферти и напомняния по имейл."),
   ).toBeVisible();
+});
+
+async function submittedIdempotencyKey(page: Page) {
+  const request = page.waitForRequest(
+    (sent) => sent.method() === "POST" && sent.url().endsWith("/checkout"),
+  );
+  await page.getByRole("button", { name: "Завърши поръчката" }).click();
+  const body = (await request).postData() ?? "";
+
+  return body.match(/name="(?:_\d+_)?idempotencyKey"\r\n\r\n([^\r]+)/)?.[1];
+}
+
+test("a resubmission reuses its page's idempotency key and a new page load mints another", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+  });
+  const response = await page.goto("/checkout");
+  expect(await response?.text()).not.toContain("idempotencyKey");
+  await fillContact(page, "not-an-email");
+
+  const first = await submittedIdempotencyKey(page);
+  await expect(page.getByText("Въведете валиден имейл адрес.")).toBeVisible();
+  const resubmitted = await submittedIdempotencyKey(page);
+
+  await page.reload();
+  await fillContact(page, "not-an-email");
+  const reloaded = await submittedIdempotencyKey(page);
+
+  expect(first).toMatch(/^[0-9a-f-]{36}$/);
+  expect(resubmitted).toBe(first);
+  expect(reloaded).toMatch(/^[0-9a-f-]{36}$/);
+  expect(reloaded).not.toBe(first);
 });
 
 // Every submission spends one of five tokens per ten minutes per address, and a

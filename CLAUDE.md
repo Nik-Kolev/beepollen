@@ -385,6 +385,14 @@ estimated the home page's LCP unchanged when its first photo started loading
 eagerly, while a real throttled load fell from 3.8 s to 2.7 s — a limit on
 simulated LCP cannot see that kind of regression.
 
+`/checkout` is measured with a filled cart: `scripts/lighthouse-seed-cart.cjs`
+writes one into `localStorage` first and throws if the form never renders, so a
+changed cart format fails the job instead of quietly measuring the empty page.
+OpenStreetMap tiles are blocked in every run, so the gate measures this app and
+not a best-effort third-party server. `puppeteer-core` is a direct devDependency
+because lhci resolves it from the project root, which a transitive copy reaches
+only by chance.
+
 ## Database
 
 SQLite through Prisma 7 and `@prisma/adapter-libsql`. `DATABASE_URL` is the only

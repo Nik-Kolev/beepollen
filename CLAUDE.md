@@ -36,8 +36,10 @@ a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,
 never inline, so every one is deletable in a single edit, and they are deleted at
 launch rather than corrected into real ones. They differ from one another on
 purpose, since equal prices hide a quantity or subtotal bug. The unpublished draft row keeps a
-zero price so the `TODO: цена` branch still has a row that reaches it. Ask before
-inventing a number anywhere else.
+zero price so the `TODO: цена` branch still has a row that reaches it. The Econt
+tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is the one other invented
+number, for the same reason; it is replaced by calculated Econt prices rather than
+corrected. Ask before inventing a number anywhere else.
 
 The catalogue is pollen only. Honey and comb were seeded early against borrowed
 free-licensed photographs and removed once the catalogue settled on pollen alone
@@ -213,8 +215,8 @@ validation error naming the field would tell a bot which check caught it. The
 rate limiter is in-process and resets on deploy, which suits one Node process on
 one host and would count per instance on any other.
 
-`deliveryCents` is always zero until delivery is priced; the column is there so
-pricing it costs no migration.
+`deliveryCents` is priced by `placeOrder` from the delivery method alone and never
+read from the caller — the tariff for an Econt office, zero for `LOCAL`.
 
 ## Checkout
 
@@ -261,6 +263,12 @@ The office picker is a section of `/checkout`, between the contact fields and
 the consents. Its choice reaches the action as a hidden `officeCode` and is held
 in `CheckoutForm`, which never unmounts, so a refused submission keeps it like
 every other answer.
+
+An order for Попово is delivered by hand and arranged by phone: its checkbox
+drops the picker and the order is stored as `LOCAL` with every office column null.
+Попово's own Econt offices are left out of the list and refused by `placeOrder`,
+since a parcel cannot be sent from the town to itself. The match is the exact
+city string, so the villages around it, each under its own name, stay listed.
 
 City then office: a city with three or fewer offices lists them outright, and
 from four up a search narrows the list instead. The map draws pins for whatever

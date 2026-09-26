@@ -2,15 +2,15 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { seedCart } from "./seed-cart";
 
-const SMALL_CITY = "Попово";
+const SMALL_CITY = "Павликени";
 
 const SMALL_CITY_OFFICE_A = {
-  heading: "Попово, офис Попово",
-  street: "бул. България №117",
+  heading: "Павликени, офис Павликени",
+  street: "пл. Стефан Караджа №16 (до Магазин Абсолют плюс)",
 };
 const SMALL_CITY_OFFICE_B = {
-  heading: "Попово, офис Фотинова",
-  street: "ул. Фотинова №2",
+  heading: "Павликени, офис Цар Иван Асен",
+  street: "ул. Атанас Хаджиславчев №17",
 };
 
 const LARGE_CITY = "Габрово";
@@ -71,12 +71,23 @@ test("typing in the city field lists matching Bulgarian cities, and reports when
 }) => {
   await openPicker(page);
 
-  await cityInput(page).fill("поп");
+  await cityInput(page).fill("павл");
   await expect(
     page.getByRole("option", { name: SMALL_CITY, exact: true }),
   ).toBeVisible();
 
   await cityInput(page).fill("не съществува такъв град");
+  await expect(
+    page.getByText("Няма град с това име в списъка на Еконт."),
+  ).toBeVisible();
+});
+
+test("Popovo is not offered as an Econt city, since its orders are delivered in person", async ({
+  page,
+}) => {
+  await openPicker(page);
+
+  await cityInput(page).fill("Попово");
   await expect(
     page.getByText("Няма град с това име в списъка на Еконт."),
   ).toBeVisible();
@@ -296,7 +307,7 @@ test("the city field reports itself as a combobox and closes on Escape", async (
 
   await expect(cityInput(page)).toHaveAttribute("aria-expanded", "false");
 
-  await cityInput(page).fill("поп");
+  await cityInput(page).fill("павл");
   await expect(cityInput(page)).toHaveAttribute("aria-expanded", "true");
 
   await cityInput(page).press("Escape");
@@ -310,7 +321,7 @@ test("the city field reports itself as a combobox and closes on Escape", async (
 test("a city can be chosen with the arrow keys and Enter", async ({ page }) => {
   await openPicker(page);
 
-  await cityInput(page).fill("поп");
+  await cityInput(page).fill("павл");
   await cityInput(page).press("ArrowDown");
 
   await expect(

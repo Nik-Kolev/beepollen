@@ -22,6 +22,7 @@ import {
   summaryError,
 } from "@/lib/checkout-messages";
 import { CONSENT_WORDING } from "@/lib/consent";
+import { deliveryPrice, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import type { EcontOffice } from "@/lib/econt";
 import { formatPrice } from "@/lib/money";
 import type { PlaceOrderResult, PlacedOrder } from "@/lib/orders";
@@ -37,12 +38,15 @@ const FIELD_INVALID =
 
 const CHECKBOX = "border-line mt-1 size-5 shrink-0 rounded-sm border";
 
+const CHECKBOX_LABEL = "flex min-h-11 items-start gap-3 text-sm";
+
 const ERROR_TEXT = "text-ink mt-2 text-sm font-medium";
 
 type Answers = {
   name: string;
   email: string;
   phone: string;
+  localDelivery: boolean;
   acceptsTerms: boolean;
   acceptsOffers: boolean;
 };
@@ -51,6 +55,7 @@ const EMPTY_ANSWERS: Answers = {
   name: "",
   email: "",
   phone: "",
+  localDelivery: false,
   acceptsTerms: false,
   acceptsOffers: false,
 };
@@ -145,9 +150,12 @@ function FilledCheckout({
     quantity,
     product: catalogue.get(slug),
   }));
-  const totalCents = lines.reduce(
+  const itemsCents = lines.reduce(
     (total, line) => total + (line.product?.priceCents ?? 0) * line.quantity,
     0,
+  );
+  const deliveryCents = deliveryPrice(
+    answers.localDelivery ? "LOCAL" : "ECONT_OFFICE",
   );
   const everyPriceKnown = lines.every(
     (line) => (line.product?.priceCents ?? 0) > 0,
@@ -204,6 +212,14 @@ function FilledCheckout({
         [field]: type === "checkbox" ? checked : value,
       }));
     };
+  }
+
+  function onLocalDeliveryChange(event: ChangeEvent<HTMLInputElement>) {
+    const { checked } = event.target;
+
+    markCorrected("officeCode");
+    setOffice(null);
+    setAnswers((current) => ({ ...current, localDelivery: checked }));
   }
 
   return (
@@ -310,17 +326,33 @@ function FilledCheckout({
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold">Доставка до офис</h2>
+            <h2 className="text-lg font-semibold">Доставка</h2>
 
-            <div className="mt-4">
-              <OfficeCityPicker
-                offices={offices}
-                onSelect={(chosen) => {
-                  markCorrected("officeCode");
-                  setOffice(chosen);
-                }}
+            <label className={`mt-4 ${CHECKBOX_LABEL}`}>
+              <input
+                type="checkbox"
+                name="localDelivery"
+                checked={answers.localDelivery}
+                onChange={onLocalDeliveryChange}
+                className={CHECKBOX}
               />
-            </div>
+              <span>
+                Поръчката е за гр. {LOCAL_DELIVERY_CITY}. Доставяме лично и
+                безплатно, а за уговорка ще се свържем с вас по телефона.
+              </span>
+            </label>
+
+            {!answers.localDelivery && (
+              <div className="mt-6">
+                <OfficeCityPicker
+                  offices={offices}
+                  onSelect={(chosen) => {
+                    markCorrected("officeCode");
+                    setOffice(chosen);
+                  }}
+                />
+              </div>
+            )}
 
             {invalid.has("officeCode") && (
               <p id="officeCode-error" className={ERROR_TEXT}>
@@ -334,7 +366,7 @@ function FilledCheckout({
 
             <div className="mt-4 flex flex-col gap-4">
               <div>
-                <label className="flex items-start gap-3 text-sm">
+                <label className={CHECKBOX_LABEL}>
                   <input
                     type="checkbox"
                     name="acceptsTerms"
@@ -353,7 +385,7 @@ function FilledCheckout({
                 )}
               </div>
 
-              <label className="flex items-start gap-3 text-sm">
+              <label className={CHECKBOX_LABEL}>
                 <input
                   type="checkbox"
                   name="acceptsOffers"
@@ -419,13 +451,20 @@ function FilledCheckout({
             ))}
           </ul>
 
-          <p className="mt-6 flex items-center justify-between text-lg font-semibold">
+          <p className="mt-4 flex items-center justify-between">
+            <span>Доставка</span>
+            <span className="font-semibold tabular-nums">
+              {deliveryCents === 0 ? "Безплатна" : formatPrice(deliveryCents)}
+            </span>
+          </p>
+
+          <p className="mt-4 flex items-center justify-between text-lg font-semibold">
             <span>Общо</span>
             <span className="text-brand-deep">
               {!ready
                 ? null
                 : everyPriceKnown
-                  ? formatPrice(totalCents)
+                  ? formatPrice(itemsCents + deliveryCents)
                   : "TODO: цена"}
             </span>
           </p>

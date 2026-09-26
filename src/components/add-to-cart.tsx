@@ -25,8 +25,6 @@ export function AddToCart({
         {soldOut ? "Изчерпан" : "Добави в количката"}
       </button>
 
-      {/* Mounted even when empty: a live region and its text arriving together
-          is not reliably announced. */}
       <p role="status" className="text-ink-soft mt-2 text-sm">
         {quantity > 0 ? `${quantity} бр. в количката` : ""}
       </p>

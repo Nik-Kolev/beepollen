@@ -25,7 +25,6 @@ export type CartItem = Cart["items"][number];
 
 export const EMPTY_CART: Cart = { version: CART_VERSION, items: [] };
 
-// A repeated slug is summed rather than rejected: rejecting empties the cart.
 export function collapseDuplicates(items: CartItem[]): CartItem[] {
   const quantities = new Map<string, number>();
 

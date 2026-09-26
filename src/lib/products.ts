@@ -54,7 +54,6 @@ export function listPublishedProductSlugs() {
   });
 }
 
-// Cached because generateMetadata and the page body both ask for the same row.
 export const getPublishedProductBySlug = cache((slug: string) =>
   prisma.product.findUnique({
     where: { slug, isPublished: true },

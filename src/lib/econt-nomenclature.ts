@@ -2,13 +2,9 @@ import { z } from "zod";
 
 import { sortOffices, type EcontOfficeRecord } from "@/lib/econt";
 
-// Reached only by npm run econt:sync, never by the running app. The endpoint
-// takes no credentials; sending the demo account's is what makes it fail.
 const OFFICES_URL =
   "https://ee.econt.com/services/Nomenclatures/NomenclaturesService.getOffices.json";
 
-// Unauthenticated but not anonymous: a caller that names itself can be
-// contacted rather than blocked.
 const USER_AGENT =
   "beepollen-shop/1.0 (+https://github.com/Nik-Kolev/beepollen)";
 
@@ -42,8 +38,6 @@ const hourFormatter = new Intl.DateTimeFormat("bg-BG", {
   minute: "2-digit",
 });
 
-// Econt composes fullAddress as "<city> <street> №<num> <other>", and the
-// city already has its own line in the list.
 export function streetLine(fullAddress: string, city: string): string {
   const trimmed = fullAddress.trim();
 
@@ -52,7 +46,6 @@ export function streetLine(fullAddress: string, city: string): string {
     : trimmed;
 }
 
-// Econtomats report their hours as 00:00–23:59 rather than a flag.
 export function businessHours(from: number, to: number): string {
   const opens = hourFormatter.format(from);
   const closes = hourFormatter.format(to);
@@ -94,8 +87,6 @@ export function parseEcontOffices(payload: unknown): EcontOfficeRecord[] {
     throw new Error("Econt getOffices returned an unrecognised payload");
   }
 
-  // A malformed record drops itself rather than emptying the picker; an
-  // automated station drops because an order is paid at a counter.
   const offices = parsed.data.offices.flatMap((entry) => {
     const office = officeSchema.safeParse(entry);
 

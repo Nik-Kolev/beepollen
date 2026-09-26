@@ -25,7 +25,6 @@ test("the catalogue renders published products from the database", async ({
   await expect(cards.first().getByRole("heading", { level: 3 })).toBeVisible();
   await expect(cards.first().getByRole("img")).toBeVisible();
 
-  // The seed keeps one unpublished row, so the query's filter has a case to fail.
   await expect(
     page.getByRole("heading", { level: 3, name: "Lorem ipsum", exact: true }),
   ).toHaveCount(0);

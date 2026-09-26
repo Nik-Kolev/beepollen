@@ -5,8 +5,6 @@ import { headers } from "next/headers";
 import { checkoutPayload } from "@/lib/checkout-payload";
 import { placeOrder, type PlaceOrderResult } from "@/lib/orders";
 
-// A caller sets the front of x-forwarded-for itself, so only the proxy's own
-// header and the hop it appended are worth rate limiting on.
 async function clientIp() {
   const requestHeaders = await headers();
   const real = requestHeaders.get("x-real-ip")?.trim();

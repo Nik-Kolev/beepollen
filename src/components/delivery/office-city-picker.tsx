@@ -13,7 +13,6 @@ import {
 import { OfficeOption } from "@/components/delivery/office-option";
 import { listEcontCities, officeCount, type EcontOffice } from "@/lib/econt";
 
-// Leaflet touches window as it loads, so it may not render on the server.
 const OfficeMap = dynamic(() => import("./office-map"), {
   ssr: false,
   loading: () => (
@@ -21,8 +20,6 @@ const OfficeMap = dynamic(() => import("./office-map"), {
   ),
 });
 
-// Up to three offices fit on screen and are listed outright. From four the
-// list is replaced by a search, rather than something to scroll.
 const OFFICE_SEARCH_FROM = 4;
 
 const PANEL_CLASS =
@@ -38,13 +35,10 @@ function shortOfficeName(office: EcontOffice): string {
     : office.name;
 }
 
-// Econt reports no settlement type, so neither "гр." nor "с." can be written:
-// its list holds villages, and Айдемир is one.
 function officeHeading(office: EcontOffice): string {
   return `${office.city}, офис ${shortOfficeName(office)}`;
 }
 
-// Omitting origin lets Google Maps start from the device's own location.
 function directionsUrl(office: EcontOffice): string {
   const destination = office.location
     ? `${office.location.lat},${office.location.lng}`
@@ -53,8 +47,6 @@ function directionsUrl(office: EcontOffice): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
 }
 
-// Each step replaces the control that opened it, so focus is moved by hand
-// rather than left on an element React has just unmounted.
 type FocusTarget = "city" | "offices" | null;
 
 function ChangeButton({
@@ -156,8 +148,6 @@ export function OfficeCityPicker({
     onSelect?.(null);
   }
 
-  // Focus stays where it is: the radio that chose is still mounted, so arrow
-  // keys keep browsing the list, and the live region announces the choice.
   function chooseOffice(code: string) {
     setSelectedCode(code);
     onSelect?.(offices.find((office) => office.code === code) ?? null);
@@ -169,8 +159,6 @@ export function OfficeCityPicker({
     onSelect?.(null);
   }
 
-  // The picker sits inside the order form, where an unhandled Enter in a text
-  // field submits it and spends one of the buyer's five attempts.
   function onSearchKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Enter") event.preventDefault();
   }
@@ -197,7 +185,6 @@ export function OfficeCityPicker({
     }
 
     if (event.key === "Enter") {
-      // One match needs no arrow key first: it is the only thing Enter can mean.
       const name =
         matchingCities[activeCity] ??
         (matchingCities.length === 1 ? matchingCities[0] : null);
@@ -206,8 +193,6 @@ export function OfficeCityPicker({
     }
   }
 
-  // Runs on the renders that swap the controls around, which is exactly when
-  // a target was set.
   useEffect(() => {
     const target = focusTargetRef.current;
 
@@ -325,8 +310,6 @@ export function OfficeCityPicker({
                   id={`${cityListId}-${index}`}
                   role="option"
                   aria-selected={index === activeCity}
-                  // The input keeps focus, so the list is not dismissed
-                  // before the click that chose an option lands.
                   onMouseDown={(event) => event.preventDefault()}
                   onClick={() => chooseCity(name)}
                   className={`flex min-h-11 cursor-pointer items-center border-b border-line px-4 text-ink last:border-0 hover:bg-ground ${
@@ -391,8 +374,6 @@ export function OfficeCityPicker({
           </div>
         )}
 
-        {/* Always rendered: a live region added at the same time as its text
-            is not announced. */}
         <p className="pl-4 text-base text-ink" aria-live="polite">
           {status}
         </p>

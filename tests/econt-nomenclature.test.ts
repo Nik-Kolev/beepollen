@@ -7,8 +7,6 @@ import {
   streetLine,
 } from "@/lib/econt-nomenclature";
 
-// Econt reports opening times as timestamps, so these are Sofia hours written
-// in UTC: September is UTC+3 there.
 const OPENS_AT_NINE = Date.UTC(2026, 8, 24, 6, 0);
 const CLOSES_AT_SIX = Date.UTC(2026, 8, 24, 15, 0);
 

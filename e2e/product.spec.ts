@@ -48,8 +48,6 @@ test("the whole card is clickable, not just the name", async ({ page }) => {
   const card = page.getByRole("main").getByRole("listitem").first();
   const href = await card.getByRole("link").getAttribute("href");
 
-  // Over the image, well clear of the link text — this fails if the stretched
-  // overlay is gone, which clicking the link itself would not catch.
   await card.click({ position: { x: 20, y: 20 } });
 
   await expect(page).toHaveURL(new RegExp(`${href}$`));
@@ -96,8 +94,6 @@ test("the gallery swaps the main image", async ({ page }) => {
   await expect(bagThumbnail).toHaveAttribute("aria-pressed", "false");
 });
 
-// Skipped, not deleted: both pollen products carry two photographs, so the
-// gallery's no-thumbnail branch has no fixture until a one-photo product exists.
 test.skip("a single-image product renders no thumbnail strip", async ({
   page,
 }) => {
@@ -120,7 +116,6 @@ test("the product page carries valid Product structured data", async ({
   expect(jsonLd.name).toBe("Пчелен прашец 500 г");
   expect(jsonLd.image).toHaveLength(2);
   expect(jsonLd.weight).toMatchObject({ value: 500, unitCode: "GRM" });
-  // No price is real yet, so a structured Offer would publish a false one.
   expect(jsonLd.offers).toBeUndefined();
 });
 

@@ -11,6 +11,10 @@ Next.js App Router, TypeScript, Tailwind v4.
 comments, documentation, commit messages, PR descriptions. A Bulgarian string in
 the codebase should be user-facing copy and nothing else.
 
+Code carries no comments. The exceptions are the cart glyph's licence
+attribution and an `eslint-disable` line's stated reason; a reason worth keeping
+goes in this file instead.
+
 Route segments follow that rule — `/products`, not `/produkti`. A product slug is
 the exception: it is the Bulgarian name transliterated into latin letters
 (`pchelen-prashets-500g`), because the slug is the keyword a Bulgarian buyer
@@ -30,7 +34,8 @@ unnoticed, and Lorem ipsum and `TODO:` cannot.
 Prices are the single exception, added because checkout cannot be tested against
 a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,
 never inline, so every one is deletable in a single edit, and they are deleted at
-launch rather than corrected into real ones. The unpublished draft row keeps a
+launch rather than corrected into real ones. They differ from one another on
+purpose, since equal prices hide a quantity or subtotal bug. The unpublished draft row keeps a
 zero price so the `TODO: цена` branch still has a row that reaches it. Ask before
 inventing a number anywhere else.
 
@@ -166,7 +171,10 @@ and is worse now that the numbers look real.
 quantity survive validation; the name, price and availability of every line are
 read back from the database, and Zod strips anything else the caller sends. A
 product that is unpublished, out of stock or priced at zero is refused rather
-than sold.
+than sold. A slug sent twice is summed, as the cart does, rather than refused.
+
+`OrderItem`'s product relation is `SetNull`, not `Cascade`: the seed deletes a
+product dropped from its list, and a past order has to survive that.
 
 The idempotency key is a check-then-act: the pre-read cannot stop a concurrent
 submission, so the unique index is what does, and the P2002 it raises is caught
@@ -270,7 +278,10 @@ field when it is cleared — through a ref read in an effect keyed on the choice
 because setting state in an effect is what `react-hooks/set-state-in-effect`
 refuses. Choosing an office moves nothing: that radio stays mounted, and taking
 focus off it would break the arrow keys that walk the list. The `aria-live` line
-names the chosen office instead of emptying.
+names the chosen office instead of emptying. That line and the add-to-cart
+status are rendered while still empty, because a polite region mounted together
+with its text is not reliably announced; the checkout's `role="alert"` summary
+mounts with its text, which an alert is announced on.
 
 The picker sits inside the order form, so every one of its text fields swallows
 Enter. Without that, a search term and a press of Enter submit the order and
@@ -282,7 +293,8 @@ An office's `name` is not its heading. 159 of the 590 are named after their own
 city, so the heading strips a repeated city prefix, and Econt reports no
 settlement type — there is no way to write `гр.` or `с.` correctly, and the list
 holds villages. The directions link omits `origin` so Google Maps starts from the
-visitor's own location.
+visitor's own location. Two offices have no coordinates: they are listed but not
+mapped, and their directions link uses the address.
 
 `preferCanvas` is deliberate: 590 SVG nodes stall a phone at country zoom. Its
 cost is that Leaflet throws `clearRect` on teardown under React Strict Mode —
@@ -306,12 +318,16 @@ committed snapshot of 590 offices, the seed fills `DeliveryOffice` from it, and
 `listEcontOffices` reads that table. `npm run econt:sync` is the only caller of
 `src/lib/econt-nomenclature.ts`: it refetches, rewrites the snapshot and reports
 what was added, removed and changed, so a refresh arrives as a reviewable diff.
+A malformed record is dropped rather than failing the list, and a sudden
+collapse in the count is refused, since a truncated response parses like a good
+one.
 Running it on a schedule waits for a host with cron. The 2.45 MB response is
 over Next's 2 MB data-cache limit, which is why fetching it during a build was
 never cached and made every build depend on Econt being up.
 
 `src/lib/econt.ts` is client-safe — the type, the label and the sort, nothing
-more — because the picker's client components import from it. The remote call,
+more — because the picker's client components import from it. The sort is there
+because SQLite orders Cyrillic by code point. The remote call,
 its Zod schema and its mapping live in `econt-nomenclature.ts`, and the Prisma
 read in `delivery-offices.ts`.
 
@@ -347,7 +363,10 @@ rules being tested are the ones that stop a crafted request. It has no mocking
 library on purpose: `scripts/test-unit.mjs` points `DATABASE_URL` at its own
 `data/test.db`, deletes it, migrates and seeds it on every run, so the real
 constraints fire and nothing can touch `data/dev.db`. Files run one at a time,
-since they share that database.
+since they share that database. It runs npm through a fixed shell string because
+Node 24 will not spawn Windows' `npm.cmd` without a shell. The last test in
+`tests/orders/reference.test.ts` blocks the day's numbering until its own
+cleanup, so it stays last.
 
 Playwright is the other layer. It starts the app with
 `npm run build:demo && npm start`, not `next dev` — but `reuseExistingServer` is
@@ -404,6 +423,10 @@ its SQL to a filesystem that dies with the container and never reaches git. Run
 `docker compose exec web npx prisma migrate deploy`. The two dev databases are
 separate — host `data/dev.db`, container `/app/data/dev.db` on a named volume that
 `docker compose down` keeps and `down -v` destroys.
+
+The seed deletes a product dropped from its list rather than leaving it
+published in an existing database, and replaces image rows inside one
+transaction, since they have no natural key and it is their only writer.
 
 The home page queries the catalogue during `next build`, so every path that
 builds the app seeds first — CI as its own step, Playwright's `webServer`, the

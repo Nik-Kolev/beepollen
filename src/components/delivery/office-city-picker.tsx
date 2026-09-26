@@ -10,9 +10,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
-import { CarrierToggle } from "@/components/delivery/carrier-toggle";
 import { OfficeOption } from "@/components/delivery/office-option";
-import { DEFAULT_CARRIER, type CarrierId } from "@/lib/carriers";
 import { listEcontCities, officeCount, type EcontOffice } from "@/lib/econt";
 
 // Leaflet touches window as it loads, so it may not render on the server.
@@ -87,7 +85,6 @@ export function OfficeCityPicker({
   offices: EcontOffice[];
   onSelect?: (office: EcontOffice | null) => void;
 }) {
-  const [carrier, setCarrier] = useState<CarrierId>(DEFAULT_CARRIER);
   const [cityQuery, setCityQuery] = useState("");
   const [officeQuery, setOfficeQuery] = useState("");
   const [city, setCity] = useState<string | null>(null);
@@ -254,183 +251,179 @@ export function OfficeCityPicker({
       : "Натиснете точка на картата или изберете офис от списъка.";
 
   return (
-    <div className="flex flex-col gap-6">
-      <CarrierToggle carrier={carrier} onChange={setCarrier} />
-
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-8">
-        <div className="flex flex-col gap-6">
-          {city ? (
-            <div className={PANEL_CLASS}>
-              <span className="min-w-0 flex-1 self-center text-ink">
-                <span className="text-sm text-ink-soft">Град: </span>
-                <span className="text-base font-medium">{city}</span>
-              </span>
-              <ChangeButton
-                label={`Промени града ${city}`}
-                text="Промени"
-                onClick={clearCity}
-              />
-            </div>
-          ) : (
-            <div
-              className="relative flex flex-col gap-2"
-              onBlur={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget)) {
-                  setCityOpen(false);
-                  setActiveCity(-1);
-                }
+    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-8">
+      <div className="flex flex-col gap-6">
+        {city ? (
+          <div className={PANEL_CLASS}>
+            <span className="min-w-0 flex-1 self-center text-ink">
+              <span className="text-sm text-ink-soft">Град: </span>
+              <span className="text-base font-medium">{city}</span>
+            </span>
+            <ChangeButton
+              label={`Промени града ${city}`}
+              text="Промени"
+              onClick={clearCity}
+            />
+          </div>
+        ) : (
+          <div
+            className="relative flex flex-col gap-2"
+            onBlur={(event) => {
+              if (!event.currentTarget.contains(event.relatedTarget)) {
+                setCityOpen(false);
+                setActiveCity(-1);
+              }
+            }}
+          >
+            <label
+              htmlFor={cityId}
+              className="pl-4 text-sm font-medium text-ink-soft"
+            >
+              Град
+            </label>
+            <input
+              id={cityId}
+              ref={cityInputRef}
+              type="search"
+              role="combobox"
+              aria-expanded={listOpen}
+              aria-controls={cityListId}
+              aria-autocomplete="list"
+              aria-activedescendant={
+                listOpen && activeCity >= 0
+                  ? `${cityListId}-${activeCity}`
+                  : undefined
+              }
+              value={cityQuery}
+              onChange={(event) => {
+                setCityQuery(event.target.value);
+                setCityOpen(true);
+                setActiveCity(-1);
               }}
+              onKeyDown={onCityKeyDown}
+              placeholder="Например София"
+              autoComplete="off"
+              className="min-h-11 rounded-lg border border-line bg-surface px-4 text-base text-ink outline-none placeholder:text-ink-soft focus-visible:border-action focus-visible:ring-2 focus-visible:ring-action/30"
+            />
+
+            {cityOpen && cityQuery.trim() && matchingCities.length === 0 && (
+              <p className="pl-4 text-sm text-ink-soft">
+                Няма град с това име в списъка на Еконт.
+              </p>
+            )}
+
+            <ul
+              id={cityListId}
+              role="listbox"
+              aria-label="Градове"
+              hidden={!listOpen}
+              className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-surface shadow-lg"
             >
-              <label
-                htmlFor={cityId}
-                className="pl-4 text-sm font-medium text-ink-soft"
-              >
-                Град
-              </label>
-              <input
-                id={cityId}
-                ref={cityInputRef}
-                type="search"
-                role="combobox"
-                aria-expanded={listOpen}
-                aria-controls={cityListId}
-                aria-autocomplete="list"
-                aria-activedescendant={
-                  listOpen && activeCity >= 0
-                    ? `${cityListId}-${activeCity}`
-                    : undefined
-                }
-                value={cityQuery}
-                onChange={(event) => {
-                  setCityQuery(event.target.value);
-                  setCityOpen(true);
-                  setActiveCity(-1);
-                }}
-                onKeyDown={onCityKeyDown}
-                placeholder="Например София"
-                autoComplete="off"
-                className="min-h-11 rounded-lg border border-line bg-surface px-4 text-base text-ink outline-none placeholder:text-ink-soft focus-visible:border-action focus-visible:ring-2 focus-visible:ring-action/30"
-              />
-
-              {cityOpen && cityQuery.trim() && matchingCities.length === 0 && (
-                <p className="pl-4 text-sm text-ink-soft">
-                  Няма град с това име в списъка на Еконт.
-                </p>
-              )}
-
-              <ul
-                id={cityListId}
-                role="listbox"
-                aria-label="Градове"
-                hidden={!listOpen}
-                className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-surface shadow-lg"
-              >
-                {matchingCities.map((name, index) => (
-                  <li
-                    key={name}
-                    id={`${cityListId}-${index}`}
-                    role="option"
-                    aria-selected={index === activeCity}
-                    // The input keeps focus, so the list is not dismissed
-                    // before the click that chose an option lands.
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => chooseCity(name)}
-                    className={`flex min-h-11 cursor-pointer items-center border-b border-line px-4 text-ink last:border-0 hover:bg-ground ${
-                      index === activeCity ? "bg-ground" : ""
-                    }`}
-                  >
-                    {name}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {selected && (
-            <div className={PANEL_CLASS}>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-ink-soft">Избран офис</p>
-                <p className="mt-1 text-lg leading-snug font-semibold text-ink">
-                  {officeHeading(selected)}
-                </p>
-                <p className="text-base text-ink">{selected.street}</p>
-                <p className="mt-1 text-sm text-ink-soft">
-                  {selected.hours}
-                  {selected.phone && ` · ${selected.phone}`}
-                </p>
-                <a
-                  href={directionsUrl(selected)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-action bg-surface px-4 text-base font-medium text-action transition-colors hover:bg-ground focus-visible:ring-2 focus-visible:ring-action/30 focus-visible:outline-none"
+              {matchingCities.map((name, index) => (
+                <li
+                  key={name}
+                  id={`${cityListId}-${index}`}
+                  role="option"
+                  aria-selected={index === activeCity}
+                  // The input keeps focus, so the list is not dismissed
+                  // before the click that chose an option lands.
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => chooseCity(name)}
+                  className={`flex min-h-11 cursor-pointer items-center border-b border-line px-4 text-ink last:border-0 hover:bg-ground ${
+                    index === activeCity ? "bg-ground" : ""
+                  }`}
                 >
-                  Упътване до офиса
-                </a>
-              </div>
-              <ChangeButton
-                label="Изчисти избрания офис"
-                text="Изчисти"
-                onClick={clearOffice}
-              />
-            </div>
-          )}
-
-          {city && needsSearch && !selected && (
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor={officeId}
-                className="pl-4 text-sm font-medium text-ink-soft"
-              >
-                Офис — улица, квартал или име
-              </label>
-              <input
-                id={officeId}
-                ref={officeSearchRef}
-                type="search"
-                value={officeQuery}
-                onChange={(event) => setOfficeQuery(event.target.value)}
-                onKeyDown={onSearchKeyDown}
-                placeholder="Например Център"
-                autoComplete="off"
-                className="min-h-11 rounded-lg border border-line bg-surface px-4 text-base text-ink outline-none placeholder:text-ink-soft focus-visible:border-action focus-visible:ring-2 focus-visible:ring-action/30"
-              />
-            </div>
-          )}
-
-          {/* Always rendered: a live region added at the same time as its text
-            is not announced. */}
-          <p className="pl-4 text-base text-ink" aria-live="polite">
-            {status}
-          </p>
-
-          {city && (
-            <div
-              ref={officeGroupRef}
-              role="radiogroup"
-              aria-label="Офиси на Еконт"
-              className="flex flex-col gap-3"
-            >
-              {shownOffices.map((office) => (
-                <OfficeOption
-                  key={office.code}
-                  office={office}
-                  selected={office.code === selectedCode}
-                  onSelect={chooseOffice}
-                />
+                  {name}
+                </li>
               ))}
-            </div>
-          )}
-        </div>
+            </ul>
+          </div>
+        )}
 
-        <div className="lg:sticky lg:top-4">
-          <OfficeMap
-            offices={offices}
-            visible={mapOffices}
-            selectedCode={selectedCode}
-            onSelect={chooseOffice}
-          />
-          <p className="mt-3 text-base text-ink">{mapHint}</p>
-        </div>
+        {selected && (
+          <div className={PANEL_CLASS}>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-ink-soft">Избран офис</p>
+              <p className="mt-1 text-lg leading-snug font-semibold text-ink">
+                {officeHeading(selected)}
+              </p>
+              <p className="text-base text-ink">{selected.street}</p>
+              <p className="mt-1 text-sm text-ink-soft">
+                {selected.hours}
+                {selected.phone && ` · ${selected.phone}`}
+              </p>
+              <a
+                href={directionsUrl(selected)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-action bg-surface px-4 text-base font-medium text-action transition-colors hover:bg-ground focus-visible:ring-2 focus-visible:ring-action/30 focus-visible:outline-none"
+              >
+                Упътване до офиса
+              </a>
+            </div>
+            <ChangeButton
+              label="Изчисти избрания офис"
+              text="Изчисти"
+              onClick={clearOffice}
+            />
+          </div>
+        )}
+
+        {city && needsSearch && !selected && (
+          <div className="flex flex-col gap-2">
+            <label
+              htmlFor={officeId}
+              className="pl-4 text-sm font-medium text-ink-soft"
+            >
+              Офис — улица, квартал или име
+            </label>
+            <input
+              id={officeId}
+              ref={officeSearchRef}
+              type="search"
+              value={officeQuery}
+              onChange={(event) => setOfficeQuery(event.target.value)}
+              onKeyDown={onSearchKeyDown}
+              placeholder="Например Център"
+              autoComplete="off"
+              className="min-h-11 rounded-lg border border-line bg-surface px-4 text-base text-ink outline-none placeholder:text-ink-soft focus-visible:border-action focus-visible:ring-2 focus-visible:ring-action/30"
+            />
+          </div>
+        )}
+
+        {/* Always rendered: a live region added at the same time as its text
+            is not announced. */}
+        <p className="pl-4 text-base text-ink" aria-live="polite">
+          {status}
+        </p>
+
+        {city && (
+          <div
+            ref={officeGroupRef}
+            role="radiogroup"
+            aria-label="Офиси на Еконт"
+            className="flex flex-col gap-3"
+          >
+            {shownOffices.map((office) => (
+              <OfficeOption
+                key={office.code}
+                office={office}
+                selected={office.code === selectedCode}
+                onSelect={chooseOffice}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="lg:sticky lg:top-4">
+        <OfficeMap
+          offices={offices}
+          visible={mapOffices}
+          selectedCode={selectedCode}
+          onSelect={chooseOffice}
+        />
+        <p className="mt-3 text-base text-ink">{mapHint}</p>
       </div>
     </div>
   );

@@ -391,7 +391,8 @@ changed cart format fails the job instead of quietly measuring the empty page.
 OpenStreetMap tiles are blocked in every run, so the gate measures this app and
 not a best-effort third-party server. `puppeteer-core` is a direct devDependency
 because lhci resolves it from the project root, which a transitive copy reaches
-only by chance.
+only by chance. The job sets `CHROME_PATH` because, with a script configured,
+lhci asks `puppeteer-core` for a browser it never downloaded, and that throws.
 
 ## Database
 

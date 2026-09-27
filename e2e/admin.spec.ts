@@ -42,6 +42,24 @@ test("an allowed admin sees the admin page", async ({ page, context }) => {
   ).toBeVisible();
 });
 
+test("the admin pages render without the shop's header and footer", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/admin/login");
+  await expect(page.getByRole("main")).toHaveCount(1);
+  await expect(page.getByRole("banner")).toHaveCount(0);
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
+
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin");
+  await expect(
+    page.getByRole("heading", { level: 1, name: "Администрация" }),
+  ).toBeVisible();
+  await expect(page.getByRole("banner")).toHaveCount(0);
+  await expect(page.getByRole("contentinfo")).toHaveCount(0);
+});
+
 test("the allowlist match ignores the address's case", async ({
   page,
   context,

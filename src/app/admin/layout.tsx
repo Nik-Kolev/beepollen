@@ -8,8 +8,10 @@ export const metadata: Metadata = {
 
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
-    <Container>
-      <div className="flex flex-col items-start gap-4 py-24">{children}</div>
-    </Container>
+    <main className="flex-1">
+      <Container>
+        <div className="flex flex-col items-start gap-4 py-12">{children}</div>
+      </Container>
+    </main>
   );
 }

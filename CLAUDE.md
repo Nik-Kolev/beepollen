@@ -48,8 +48,16 @@ two carried. Every photograph now in `public/` is the owner's own, so a new
 product needs a real photograph before it can be seeded, not a stand-in.
 
 Error boundaries take `retry`, not the `reset` most training data reaches for.
-Anything the root layout renders — the header included — fails past `error.tsx`
-into `global-error.tsx`.
+An `error.tsx` never covers the layout of its own segment, so a throw in the
+header — rendered by `(shop)/layout.tsx` — fails past `(shop)/error.tsx` into
+`global-error.tsx`.
+
+The root layout renders no chrome: the header, `<main>` and footer are
+`ShopFrame`, rendered by `(shop)/layout.tsx`, and the admin has its own bare
+layout. `not-found.tsx` stays at the root as the one 404 for every unknown URL,
+`/admin/*` included, and draws `ShopFrame` itself, because it renders under the
+root layout alone. Two root layouts would need the experimental `globalNotFound`
+flag for that 404.
 
 `--color-wood` is the hive's timber and stays its own token, apart from the
 `--color-nav*` header and `--color-footer*` footer surfaces — while one token
@@ -373,9 +381,6 @@ The e2e suite signs in by minting the session cookie with `next-auth/jwt`'s
 `encode`, salted with the cookie's own name — Playwright cannot click through
 Google. Its secret reaches the server through `webServer.env`, so a reused local
 server started without it fails every admin spec.
-
-`/admin` renders inside the shop's header and footer until the shop routes move
-into a route group with their own root layout.
 
 ## Docker
 

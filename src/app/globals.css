@@ -35,6 +35,36 @@
   --color-wing: oklch(0.88 0.022 240);
   --color-leaf: oklch(0.5 0.075 135);
   --color-slate: oklch(0.45 0.03 250);
+
+  --animate-buzz: buzz 1.5s ease-in-out;
+
+  @keyframes buzz {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    12% {
+      transform: translate(3px, -1px);
+    }
+    25% {
+      transform: translate(-3px, 1px);
+    }
+    37% {
+      transform: translate(4px, 0);
+    }
+    50% {
+      transform: translate(-3px, -1px);
+    }
+    62% {
+      transform: translate(3px, 1px);
+    }
+    75% {
+      transform: translate(-2px, 0);
+    }
+    87% {
+      transform: translate(1px, -1px);
+    }
+  }
 }
 
 main :is(h1, h2, h3),

@@ -8,7 +8,13 @@ const BODY =
 const WHEEL_STROKE = 44;
 const WHEEL_OUTER = 82;
 
-export function CartMark({ className }: { className?: string }) {
+export function CartMark({
+  className,
+  buzz = 0,
+}: {
+  className?: string;
+  buzz?: number;
+}) {
   return (
     <span className={`relative block ${className ?? ""}`}>
       <svg
@@ -26,7 +32,10 @@ export function CartMark({ className }: { className?: string }) {
         </g>
       </svg>
 
-      <Bee className="absolute top-[1px] -left-[25px] w-[62%] -rotate-12" />
+      <Bee
+        key={buzz}
+        className={`absolute top-[1px] -left-[25px] w-[62%] -rotate-12 ${buzz > 0 ? "motion-safe:animate-buzz" : ""}`}
+      />
     </span>
   );
 }

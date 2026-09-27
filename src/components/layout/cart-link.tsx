@@ -3,13 +3,13 @@
 import Link from "next/link";
 
 import { CartMark } from "@/components/art/cart-mark";
-import { useCart } from "@/hooks/use-cart";
+import { useCart, useCartAdds } from "@/hooks/use-cart";
 import { totalQuantity } from "@/lib/cart";
 
-function CartIcon({ total }: { total: number }) {
+function CartIcon({ total, buzz }: { total: number; buzz: number }) {
   return (
     <span className="relative block">
-      <CartMark className="size-9 sm:size-12" />
+      <CartMark className="size-9 sm:size-12" buzz={buzz} />
 
       <span
         aria-hidden="true"
@@ -24,10 +24,11 @@ function CartIcon({ total }: { total: number }) {
 export function CartLink() {
   const { cart } = useCart();
   const total = totalQuantity(cart);
+  const buzz = useCartAdds();
 
   return (
     <Link href="/cart" className="text-bee-dark relative ml-auto sm:ml-8">
-      <CartIcon total={total} />
+      <CartIcon total={total} buzz={buzz} />
 
       <span className="sr-only">
         Количка{total > 0 ? `, ${total} бр.` : ", празна"}

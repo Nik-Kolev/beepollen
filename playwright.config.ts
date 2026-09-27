@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { TEST_ADMIN_EMAIL, TEST_AUTH_SECRET } from "./e2e/admin-env";
+
 const baseURL = "http://localhost:3000";
 
 export default defineConfig({
@@ -19,6 +21,11 @@ export default defineConfig({
   webServer: {
     command: "npm run build:demo && npm start",
     url: baseURL,
+    env: {
+      AUTH_SECRET: TEST_AUTH_SECRET,
+      AUTH_TRUST_HOST: "true",
+      ADMIN_EMAILS: TEST_ADMIN_EMAIL,
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
   },

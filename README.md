@@ -18,6 +18,10 @@ Open [http://localhost:3000](http://localhost:3000).
 The home page reads the catalogue from the database, so `db:setup` has to run
 before the app does.
 
+`/admin` signs in with Google and admits only the addresses in `ADMIN_EMAILS`.
+It needs `AUTH_SECRET` and a Google OAuth client's `AUTH_GOOGLE_ID` and
+`AUTH_GOOGLE_SECRET` in `.env`; without them the shop still runs.
+
 ### With Docker
 
 ```bash

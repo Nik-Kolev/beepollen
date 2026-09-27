@@ -30,10 +30,24 @@ test("the catalogue renders published products from the database", async ({
   ).toHaveCount(0);
 });
 
-test("an unknown path renders the not-found page", async ({ page }) => {
-  const response = await page.goto("/no-such-page");
+const NOT_FOUND_PATHS = [
+  ["an unknown path", "/no-such-page"],
+  ["an unknown path under /admin", "/admin/no-such-page"],
+  ["an unknown product slug", "/products/no-such-product"],
+] as const;
 
-  expect(response?.status()).toBe(404);
-  await expect(page.getByRole("banner")).toBeVisible();
-  await expect(page.getByRole("contentinfo")).toBeVisible();
-});
+for (const [name, path] of NOT_FOUND_PATHS) {
+  test(`${name} renders the not-found page inside the shop frame, once`, async ({
+    page,
+  }) => {
+    const response = await page.goto(path);
+
+    expect(response?.status()).toBe(404);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Страницата не е намерена" }),
+    ).toBeVisible();
+    await expect(page.getByRole("banner")).toHaveCount(1);
+    await expect(page.getByRole("main")).toHaveCount(1);
+    await expect(page.getByRole("contentinfo")).toHaveCount(1);
+  });
+}

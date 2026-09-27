@@ -13,12 +13,12 @@ const PAGES = [
   ["the not-found page", "/no-such-page"],
   ["an unknown product slug", "/products/no-such-product"],
   ["the admin login page", "/admin/login"],
-  ["the admin page", "/admin"],
+  ["the admin order list", "/admin/orders"],
 ] as const;
 
 for (const [name, path] of PAGES) {
   test(`${name} has no accessibility violations`, async ({ page, context }) => {
-    if (path === "/admin") {
+    if (path === "/admin/orders") {
       await signInAs(context, TEST_ADMIN_EMAIL);
     }
     if (path === "/cart" || path === "/checkout") {

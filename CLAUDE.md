@@ -377,6 +377,12 @@ unless `AUTH_URL` or `AUTH_TRUST_HOST` is set (Vercel sets its own). With none o
 them, `auth()` logs and returns no session, so `/admin` falls back to the login
 page instead of failing.
 
+An unknown `/admin/orders/[reference]` returns `not-found.tsx`'s exported
+`metadata` from `generateMetadata`: a title built from the param would name the
+missing order on the 404, and `{}` falls back to the root title. The 404 body
+itself renders only after hydration, as `notFound()` does on any request-time
+route.
+
 The e2e suite signs in by minting the session cookie with `next-auth/jwt`'s
 `encode`, salted with the cookie's own name — Playwright cannot click through
 Google. Its secret reaches the server through `webServer.env`, so a reused local

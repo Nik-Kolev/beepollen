@@ -15,6 +15,14 @@ test("an anonymous visitor to /admin is sent to the login page", async ({
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
 });
 
+test("an anonymous visitor to the order list is sent to the login page", async ({
+  page,
+}) => {
+  await page.goto("/admin/orders");
+
+  await expect(page).toHaveURL("/admin/login");
+});
+
 test("a session cookie signed with another secret is treated as no session", async ({
   page,
   context,
@@ -29,17 +37,19 @@ test("a session cookie signed with another secret is treated as no session", asy
   ).toBeVisible();
 });
 
-test("an allowed admin sees the admin page", async ({ page, context }) => {
+test("an allowed admin opening /admin lands on the order list", async ({
+  page,
+  context,
+}) => {
   await signInAs(context, TEST_ADMIN_EMAIL);
 
   await page.goto("/admin");
 
+  await expect(page).toHaveURL("/admin/orders");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Администрация" }),
+    page.getByRole("heading", { level: 1, name: "Поръчки" }),
   ).toBeVisible();
-  await expect(
-    page.getByText(`Влезли сте като ${TEST_ADMIN_EMAIL}.`),
-  ).toBeVisible();
+  await expect(page.getByText(TEST_ADMIN_EMAIL)).toBeVisible();
 });
 
 test("the admin pages render without the shop's header and footer", async ({
@@ -52,9 +62,9 @@ test("the admin pages render without the shop's header and footer", async ({
   await expect(page.getByRole("contentinfo")).toHaveCount(0);
 
   await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin");
+  await page.goto("/admin/orders");
   await expect(
-    page.getByRole("heading", { level: 1, name: "Администрация" }),
+    page.getByRole("heading", { level: 1, name: "Поръчки" }),
   ).toBeVisible();
   await expect(page.getByRole("banner")).toHaveCount(0);
   await expect(page.getByRole("contentinfo")).toHaveCount(0);
@@ -66,14 +76,14 @@ test("the allowlist match ignores the address's case", async ({
 }) => {
   await signInAs(context, TEST_ADMIN_EMAIL.toUpperCase());
 
-  await page.goto("/admin");
+  await page.goto("/admin/orders");
 
   await expect(
-    page.getByRole("heading", { level: 1, name: "Администрация" }),
+    page.getByRole("heading", { level: 1, name: "Поръчки" }),
   ).toBeVisible();
 });
 
-test("an allowed admin opening the login page is sent on to /admin", async ({
+test("an allowed admin opening the login page is sent on to the order list", async ({
   page,
   context,
 }) => {
@@ -81,7 +91,7 @@ test("an allowed admin opening the login page is sent on to /admin", async ({
 
   await page.goto("/admin/login");
 
-  await expect(page).toHaveURL("/admin");
+  await expect(page).toHaveURL("/admin/orders");
 });
 
 test("a valid session for an address no longer on the list is refused", async ({
@@ -128,7 +138,7 @@ test("any other sign-in error asks to try again", async ({ page }) => {
 
 test("signing out ends the session", async ({ page, context }) => {
   await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin");
+  await page.goto("/admin/orders");
 
   await page.getByRole("button", { name: "Изход" }).click();
 
@@ -147,7 +157,7 @@ test("both admin pages ask search engines not to index them", async ({
   await expect(robots).toHaveAttribute("content", "noindex, nofollow");
 
   await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin");
-  await expect(page).toHaveURL("/admin");
+  await page.goto("/admin/orders");
+  await expect(page).toHaveURL("/admin/orders");
   await expect(robots).toHaveAttribute("content", "noindex, nofollow");
 });

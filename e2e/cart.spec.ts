@@ -29,6 +29,100 @@ test("adding a product counts it in the header", async ({ page }) => {
   await expect(cartLink(page)).toHaveAccessibleName("Количка, 2 бр.");
 });
 
+function buzzingBees(page: Page) {
+  return page.evaluate(
+    () =>
+      document
+        .getAnimations()
+        .filter(
+          (animation) =>
+            animation instanceof CSSAnimation &&
+            animation.animationName === "buzz",
+        ).length,
+  );
+}
+
+test("the button confirms an add and ignores clicks until it lets go", async ({
+  page,
+}) => {
+  await page.goto(`/products/${POLLEN_SLUG}`);
+
+  const add = page.getByRole("button", { name: "Добави в количката" });
+  const cue = page.getByText("Добавено ✓");
+
+  await expect(cue).toBeHidden();
+
+  await add.click();
+  await expect(cue).toBeVisible();
+  await expect(add).toHaveAccessibleName("Добави в количката");
+
+  await add.click({ force: true });
+
+  await expect(cue).toBeHidden({ timeout: 3000 });
+  await expect(page.getByRole("status")).toHaveText("1 бр. в количката");
+  await expect(add).toBeEnabled();
+});
+
+test("clicks landing in the same tick add only one", async ({ page }) => {
+  await page.goto(`/products/${POLLEN_SLUG}`);
+
+  const add = page.getByRole("button", { name: "Добави в количката" });
+
+  await expect(add).toBeEnabled();
+  await add.evaluate((button: HTMLButtonElement) => {
+    button.click();
+    button.click();
+    button.click();
+  });
+
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 1 бр.");
+  await expect(page.getByRole("status")).toHaveText("1 бр. в количката");
+});
+
+test("adding a product sets the header bee buzzing", async ({ page }) => {
+  await page.goto(`/products/${POLLEN_SLUG}`);
+  await expect(
+    page.getByRole("button", { name: "Добави в количката" }),
+  ).toBeEnabled();
+
+  expect(await buzzingBees(page)).toBe(0);
+
+  await page.getByRole("button", { name: "Добави в количката" }).click();
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 1 бр.");
+
+  expect(await buzzingBees(page)).toBe(1);
+});
+
+test("changing a quantity in the cart leaves the bee still", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+  });
+  await page.goto("/cart");
+
+  await page
+    .getByRole("button", { name: `Увеличи количеството на ${POLLEN_NAME}` })
+    .click();
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 2 бр.");
+
+  expect(await buzzingBees(page)).toBe(0);
+});
+
+test("reduced motion keeps the button cue and drops the buzz", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto(`/products/${POLLEN_SLUG}`);
+
+  await page.getByRole("button", { name: "Добави в количката" }).click();
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 1 бр.");
+  await expect(page.getByText("Добавено ✓")).toBeVisible();
+
+  expect(await buzzingBees(page)).toBe(0);
+});
+
 test("the cart survives a reload", async ({ page }) => {
   await page.goto(`/products/${POLLEN_SLUG}`);
   await page.getByRole("button", { name: "Добави в количката" }).click();

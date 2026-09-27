@@ -86,6 +86,31 @@ function subscribeToNothing() {
   return () => {};
 }
 
+const addListeners = new Set<() => void>();
+
+let addCount = 0;
+
+function emitAdd() {
+  addCount += 1;
+  for (const listener of addListeners) listener();
+}
+
+function subscribeToAdds(listener: () => void) {
+  addListeners.add(listener);
+
+  return () => {
+    addListeners.delete(listener);
+  };
+}
+
+export function useCartAdds() {
+  return useSyncExternalStore(
+    subscribeToAdds,
+    () => addCount,
+    () => 0,
+  );
+}
+
 export function useCart() {
   const cart = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const ready = useSyncExternalStore(
@@ -96,6 +121,7 @@ export function useCart() {
 
   const add = useCallback((slug: string) => {
     write(addItem(getSnapshot(), slug));
+    emitAdd();
   }, []);
 
   const setQuantity = useCallback((slug: string, quantity: number) => {

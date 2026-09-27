@@ -81,6 +81,12 @@ the page prerendered, so a fetch added there would cost the prerender for nothin
 Quantities come from the visitor's browser and prices from the catalogue the
 build saw; the order service reprices every line from the database regardless.
 
+The header bee buzzes on a counter only `add` bumps, so a stepper change or
+another tab's write never sets it off. The add button's green window is locked by
+its timer ref rather than its state, which clicks landing in one tick read stale,
+and marked `aria-disabled` rather than `disabled`, which would grey it and drop
+focus.
+
 The cart glyph is a modified Material Symbols path. Its attribution comment is a
 condition of the Apache 2.0 licence, not a note.
 

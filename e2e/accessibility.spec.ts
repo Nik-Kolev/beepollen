@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { TEST_ADMIN_EMAIL } from "./admin-env";
+import { signInAs } from "./admin-session";
 import { seedCart } from "./seed-cart";
 
 const PAGES = [
@@ -10,10 +12,15 @@ const PAGES = [
   ["the checkout page", "/checkout"],
   ["the not-found page", "/no-such-page"],
   ["an unknown product slug", "/products/no-such-product"],
+  ["the admin login page", "/admin/login"],
+  ["the admin page", "/admin"],
 ] as const;
 
 for (const [name, path] of PAGES) {
-  test(`${name} has no accessibility violations`, async ({ page }) => {
+  test(`${name} has no accessibility violations`, async ({ page, context }) => {
+    if (path === "/admin") {
+      await signInAs(context, TEST_ADMIN_EMAIL);
+    }
     if (path === "/cart" || path === "/checkout") {
       await seedCart(page, {
         version: 1,

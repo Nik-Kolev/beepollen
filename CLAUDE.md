@@ -352,6 +352,31 @@ preloading of regions or zoom stacks. The tile layer carries the attribution and
 the sync script sets the User-Agent; a browser sends its own. The service is
 best-effort and can be withdrawn without notice.
 
+## Admin
+
+Auth.js v5 with Google as the only provider. `next-auth` is a beta pinned to an
+exact version, since betas break their API between releases.
+
+`ADMIN_EMAILS` is re-read on every admin request by `requireAdmin()`, not only at
+sign-in, so removing an address revokes a session that is still valid. Every
+admin page and every admin server action calls it itself — a layout does not
+re-render on client navigation, and there is no `proxy.ts` to lean on. The
+sign-in callback also requires Google's `email_verified`.
+
+Auth.js reads `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` by name,
+which is why `Google()` takes no keys. A production server refuses its own host
+unless `AUTH_URL` or `AUTH_TRUST_HOST` is set (Vercel sets its own). With none of
+them, `auth()` logs and returns no session, so `/admin` falls back to the login
+page instead of failing.
+
+The e2e suite signs in by minting the session cookie with `next-auth/jwt`'s
+`encode`, salted with the cookie's own name — Playwright cannot click through
+Google. Its secret reaches the server through `webServer.env`, so a reused local
+server started without it fails every admin spec.
+
+`/admin` renders inside the shop's header and footer until the shop routes move
+into a route group with their own root layout.
+
 ## Docker
 
 `compose.yaml` syncs source into the container rather than bind-mounting it. A
@@ -400,9 +425,8 @@ page — the gate only covers routes a spec actually visits.
 `error.tsx` is reached by a failed order submission: `useActionState` rethrows
 whatever `placeOrder` throws into the nearest boundary. The spec reaches it by
 answering the action's POST with a 500. `global-error.tsx` stays outside the
-gate because nothing reaches it in a browser — every route is prerendered and
-the root layout is static. Revisit that when a route first renders at request
-time.
+gate because nothing reaches it in a browser: it catches only a throw in the root
+layout, which is static. `/admin` renders at request time, but below that layout.
 
 Lighthouse CI runs as its own `lighthouse` job and cannot run on Windows.
 Lighthouse's CLI never passes Chrome a profile directory, so `chrome-launcher`
@@ -427,8 +451,8 @@ lhci asks `puppeteer-core` for a browser it never downloaded, and that throws.
 
 ## Database
 
-SQLite through Prisma 7 and `@prisma/adapter-libsql`. `DATABASE_URL` is the only
-environment variable.
+SQLite through Prisma 7 and `@prisma/adapter-libsql`, reached through
+`DATABASE_URL`.
 
 **Migrations are authored on the host and applied in the container.** Compose
 syncs one way, host→container, so a migration created inside the container writes

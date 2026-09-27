@@ -12,7 +12,7 @@ import {
   type SetStateAction,
 } from "react";
 
-import { submitOrder } from "@/app/checkout/actions";
+import { submitOrder } from "@/app/(shop)/checkout/actions";
 import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
 import { useCart } from "@/hooks/use-cart";
 import type { CartItem } from "@/lib/cart";

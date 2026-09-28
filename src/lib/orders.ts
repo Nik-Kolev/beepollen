@@ -11,7 +11,7 @@ import {
 import prisma from "@/lib/prisma";
 import { takeToken } from "@/lib/rate-limit";
 
-export const ORDER_RATE_LIMIT = { limit: 5, windowMs: 10 * 60 * 1000 };
+export const ORDER_RATE_LIMIT = { limit: 10, windowMs: 5 * 60 * 1000 };
 
 const BULGARIAN_PHONE = /^(?:(?:\+|00)3590?|0)([1-9]\d{7,8})$/;
 

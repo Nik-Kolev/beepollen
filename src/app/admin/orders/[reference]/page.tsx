@@ -3,13 +3,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { metadata as notFoundMetadata } from "@/app/not-found";
+import { OrderMarkToggle } from "@/components/admin/order-mark-toggle";
 import {
   CARRIER_LABEL,
   CONSENT_LABEL,
   deliveryLabel,
   formatOrderTime,
   getOrderByReference,
-  ORDER_STATUS_LABEL,
+  ORDER_MARK_FIELD,
+  ORDER_MARK_LABEL,
+  ORDER_MARKS,
 } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
 import { DeliveryMethod } from "@/lib/delivery";
@@ -54,12 +57,34 @@ export default async function AdminOrder({
         <h1 className="mt-4 text-2xl font-semibold tabular-nums">
           Поръчка {order.reference}
         </h1>
-        <p className="text-ink-soft mt-1 text-sm">
-          {ORDER_STATUS_LABEL[order.status]} ·{" "}
+        <p className="text-ink-soft mt-1 text-sm tabular-nums">
           <time dateTime={order.createdAt.toISOString()}>
             {formatOrderTime(order.createdAt)}
           </time>
         </p>
+        <ul role="list" className="mt-4 flex flex-col gap-2">
+          {ORDER_MARKS.map((mark) => {
+            const markedAt = order[ORDER_MARK_FIELD[mark]];
+            return (
+              <li key={mark} className="flex flex-wrap items-center gap-3">
+                <OrderMarkToggle
+                  reference={order.reference}
+                  mark={mark}
+                  label={ORDER_MARK_LABEL[mark]}
+                  on={markedAt !== null}
+                />
+                {markedAt && (
+                  <time
+                    dateTime={markedAt.toISOString()}
+                    className="text-ink-soft text-sm tabular-nums"
+                  >
+                    {formatOrderTime(markedAt)}
+                  </time>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
       <section aria-labelledby="order-items">

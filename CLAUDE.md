@@ -383,6 +383,11 @@ missing order on the 404, and `{}` falls back to the root title. The 404 body
 itself renders only after hydration, as `notFound()` does on any request-time
 route.
 
+An order's state is three nullable timestamps — `sentAt`, `paidAt`,
+`cancelledAt` — set by hand, not a status enum: with cash on delivery an order
+is sent and later paid, so the marks are independent. The action sends the
+target value rather than a flip, and a mark already set keeps its first time.
+
 The e2e suite signs in by minting the session cookie with `next-auth/jwt`'s
 `encode`, salted with the cookie's own name — Playwright cannot click through
 Google. Its secret reaches the server through `webServer.env`, so a reused local

@@ -2,10 +2,15 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
 import {
+  countOrdersByFilter,
   deliveryLabel,
   formatOrderTime,
   getOrderByReference,
   listOrders,
+  ORDER_FILTERS,
+  orderMarkInput,
+  parseOrderFilter,
+  setOrderMark,
 } from "@/lib/admin-orders";
 import { CONSENT_WORDING } from "@/lib/consent";
 import { placeOrder } from "@/lib/orders";
@@ -109,6 +114,132 @@ test("labels a Popovo order as hand delivery and an Econt order by its office ci
   assert.ok(localListed && econtListed);
   assert.equal(deliveryLabel(localListed), "Попово — на ръка");
   assert.equal(deliveryLabel(econtListed), TEST_OFFICE_SNAPSHOT.officeCity);
+});
+
+test("a new order carries no marks", async () => {
+  const placed = await place();
+
+  const order = await getOrderByReference(placed.reference);
+
+  assert.ok(order);
+  assert.equal(order.sentAt, null);
+  assert.equal(order.paidAt, null);
+  assert.equal(order.cancelledAt, null);
+});
+
+test("marking an order stamps only that mark, and unmarking clears it", async () => {
+  const placed = await place();
+
+  await setOrderMark(placed.reference, "sent", true);
+  const fresh = await prisma.order.findUniqueOrThrow({
+    where: { reference: placed.reference },
+  });
+
+  assert.ok(fresh.sentAt instanceof Date);
+  assert.equal(fresh.paidAt, null);
+  assert.equal(fresh.cancelledAt, null);
+
+  await setOrderMark(placed.reference, "sent", false);
+  const cleared = await prisma.order.findUniqueOrThrow({
+    where: { reference: placed.reference },
+  });
+
+  assert.equal(cleared.sentAt, null);
+});
+
+test("marking an already marked order keeps the time it was first marked", async () => {
+  const placed = await place();
+
+  await setOrderMark(placed.reference, "paid", true);
+  const first = await prisma.order.findUniqueOrThrow({
+    where: { reference: placed.reference },
+  });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  await setOrderMark(placed.reference, "paid", true);
+  const second = await prisma.order.findUniqueOrThrow({
+    where: { reference: placed.reference },
+  });
+
+  assert.ok(first.paidAt);
+  assert.equal(second.paidAt?.getTime(), first.paidAt.getTime());
+});
+
+test("marking an unknown reference changes nothing and does not throw", async () => {
+  await setOrderMark("BP000000", "sent", true);
+
+  assert.equal(await getOrderByReference("BP000000"), null);
+});
+
+test("filters list what is still to send, still to collect, and what was cancelled", async () => {
+  const fresh = await place();
+  const sent = await place();
+  const paid = await place();
+  const cancelled = await place();
+  await setOrderMark(sent.reference, "sent", true);
+  await setOrderMark(paid.reference, "sent", true);
+  await setOrderMark(paid.reference, "paid", true);
+  await setOrderMark(cancelled.reference, "cancelled", true);
+
+  const listed = async (filter: (typeof ORDER_FILTERS)[number]) =>
+    new Set((await listOrders(filter)).map((order) => order.reference));
+  const unsent = await listed("unsent");
+  const unpaid = await listed("unpaid");
+  const cancelledOnly = await listed("cancelled");
+  const all = await listed("all");
+
+  assert.ok(unsent.has(fresh.reference));
+  assert.ok(!unsent.has(sent.reference));
+  assert.ok(!unsent.has(cancelled.reference));
+
+  assert.ok(unpaid.has(fresh.reference));
+  assert.ok(unpaid.has(sent.reference));
+  assert.ok(!unpaid.has(paid.reference));
+  assert.ok(!unpaid.has(cancelled.reference));
+
+  assert.ok(cancelledOnly.has(cancelled.reference));
+  assert.ok(!cancelledOnly.has(fresh.reference));
+
+  for (const order of [fresh, sent, paid, cancelled]) {
+    assert.ok(all.has(order.reference));
+  }
+});
+
+test("each filter's count matches the orders it lists", async () => {
+  const counts = await countOrdersByFilter();
+
+  for (const filter of ORDER_FILTERS) {
+    assert.equal(counts[filter], (await listOrders(filter)).length, filter);
+  }
+});
+
+test("a mark request is accepted only with a known mark, a strict boolean and a bounded reference", () => {
+  const valid = { reference: "BP28091", mark: "paid", on: true };
+
+  assert.equal(orderMarkInput.safeParse(valid).success, true);
+  for (const crafted of [
+    { ...valid, mark: "shipped" },
+    { ...valid, mark: "sentAt" },
+    { ...valid, on: "true" },
+    { ...valid, on: 1 },
+    { ...valid, reference: "" },
+    { ...valid, reference: "B".repeat(33) },
+    { ...valid, reference: { not: null } },
+    { mark: "paid", on: true },
+    null,
+  ]) {
+    assert.equal(
+      orderMarkInput.safeParse(crafted).success,
+      false,
+      JSON.stringify(crafted),
+    );
+  }
+});
+
+test("an unknown or missing filter falls back to all orders", () => {
+  assert.equal(parseOrderFilter("unsent"), "unsent");
+  assert.equal(parseOrderFilter("shipped"), "all");
+  assert.equal(parseOrderFilter(undefined), "all");
+  assert.equal(parseOrderFilter(["unsent"]), "all");
 });
 
 test("shows an order's time in Sofia, across both sides of daylight saving", () => {

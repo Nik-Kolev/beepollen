@@ -45,7 +45,9 @@ CREATE TABLE "Customer" (
 CREATE TABLE "Order" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "customerId" INTEGER NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'NEW',
+    "sentAt" DATETIME,
+    "paidAt" DATETIME,
+    "cancelledAt" DATETIME,
     "contactName" TEXT NOT NULL,
     "contactPhone" TEXT NOT NULL,
     "deliveryMethod" TEXT NOT NULL,

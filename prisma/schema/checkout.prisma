@@ -1,9 +1,3 @@
-enum OrderStatus {
-  NEW
-  SHIPPED
-  CANCELLED
-}
-
 enum ConsentKind {
   TERMS
   OFFERS
@@ -22,10 +16,13 @@ model Customer {
 }
 
 model Order {
-  id         Int         @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   customerId Int
-  customer   Customer    @relation(fields: [customerId], references: [id])
-  status     OrderStatus @default(NEW)
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  sentAt      DateTime?
+  paidAt      DateTime?
+  cancelledAt DateTime?
 
   contactName  String
   contactPhone String

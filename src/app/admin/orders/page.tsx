@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { AdminHeader } from "@/components/admin/admin-header";
 import { OrderMarkToggle } from "@/components/admin/order-mark-toggle";
 import {
   countOrdersByFilter,
@@ -16,8 +17,6 @@ import {
 } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
 import { formatPrice } from "@/lib/money";
-
-import { signOutOfAdmin } from "../actions";
 
 export const metadata: Metadata = {
   title: "Поръчки",
@@ -35,20 +34,7 @@ export default async function AdminOrders({
 
   return (
     <div className="w-full">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">Поръчки</h1>
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-ink-soft text-sm">{email}</p>
-          <form action={signOutOfAdmin}>
-            <button
-              type="submit"
-              className="bg-action text-action-ink hover:bg-action-hover rounded-md px-4 py-2 text-sm transition-colors"
-            >
-              Изход
-            </button>
-          </form>
-        </div>
-      </div>
+      <AdminHeader title="Поръчки" email={email} />
 
       <nav aria-label="Филтър на поръчките" className="mt-6">
         <ul role="list" className="flex flex-wrap gap-2">

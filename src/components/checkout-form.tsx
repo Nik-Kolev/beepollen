@@ -15,6 +15,7 @@ import {
 import { submitOrder } from "@/app/(shop)/checkout/actions";
 import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
 import { EmptyCart } from "@/components/empty-cart";
+import { FIELD, FIELD_INVALID, LABEL } from "@/components/form-styles";
 import { useCart } from "@/hooks/use-cart";
 import type { CartItem } from "@/lib/cart";
 import {
@@ -28,14 +29,6 @@ import type { EcontOffice } from "@/lib/econt";
 import { formatPrice } from "@/lib/money";
 import type { PlaceOrderResult, PlacedOrder } from "@/lib/orders";
 import type { CartProduct } from "@/lib/products";
-
-const LABEL = "text-ink block text-sm font-medium";
-
-const FIELD =
-  "border-line focus:border-brand-deep mt-2 block min-h-11 w-full rounded-md border px-3 py-2 outline-none";
-
-const FIELD_INVALID =
-  "border-ink focus:border-brand-deep mt-2 block min-h-11 w-full rounded-md border-2 px-3 py-2 outline-none";
 
 const CHECKBOX = "border-line mt-1 size-5 shrink-0 rounded-sm border";
 

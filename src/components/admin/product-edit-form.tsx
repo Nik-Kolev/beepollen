@@ -3,15 +3,8 @@
 import { type FormEvent, useRef, useState, useTransition } from "react";
 
 import { saveProduct } from "@/app/admin/products/actions";
+import { FIELD, FIELD_INVALID, LABEL } from "@/components/form-styles";
 import type { ProductEditResult } from "@/lib/admin-products";
-
-const LABEL = "text-ink block text-sm font-medium";
-
-const FIELD =
-  "border-line focus:border-brand-deep mt-2 block min-h-11 w-full rounded-md border px-3 py-2 outline-none";
-
-const FIELD_INVALID =
-  "border-ink focus:border-brand-deep mt-2 block min-h-11 w-full rounded-md border-2 px-3 py-2 outline-none";
 
 type Refusal = Extract<ProductEditResult, { ok: false }>["code"];
 

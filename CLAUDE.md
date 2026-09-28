@@ -311,7 +311,7 @@ mounts with its text, which an alert is announced on.
 
 The picker sits inside the order form, so every one of its text fields swallows
 Enter. Without that, a search term and a press of Enter submit the order and
-spend one of the five attempts the rate limiter allows. Asserting that the
+spend one of the attempts the rate limiter allows. Asserting that the
 refusal never appeared does not catch it — the assertion passes while the answer
 is still in flight, so `e2e/delivery.spec.ts` counts the page's POSTs instead.
 

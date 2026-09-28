@@ -34,7 +34,8 @@ unnoticed, and Lorem ipsum and `TODO:` cannot.
 Prices are the single exception, added because checkout cannot be tested against
 a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,
 never inline, so every one is deletable in a single edit, and they are deleted at
-launch rather than corrected into real ones. They differ from one another on
+launch rather than corrected into real ones. Deleting them changes only a database
+seeded afterwards, since the seed never updates an existing row's price. They differ from one another on
 purpose, since equal prices hide a quantity or subtotal bug. The unpublished draft row keeps a
 zero price so the `TODO: цена` branch still has a row that reaches it. The Econt
 tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is the one other invented
@@ -57,7 +58,9 @@ The root layout renders no chrome: the header, `<main>` and footer are
 layout. `not-found.tsx` stays at the root as the one 404 for every unknown URL,
 `/admin/*` included, and draws `ShopFrame` itself, because it renders under the
 root layout alone. Two root layouts would need the experimental `globalNotFound`
-flag for that 404.
+flag for that 404. A `notFound()` thrown inside a `(shop)` page renders
+`(shop)/not-found.tsx` instead, which is bare: resolving to the root one there
+drew the frame a second time inside the group's own.
 
 `--color-wood` is the hive's timber and stays its own token, apart from the
 `--color-nav*` header and `--color-footer*` footer surfaces — while one token
@@ -377,8 +380,8 @@ unless `AUTH_URL` or `AUTH_TRUST_HOST` is set (Vercel sets its own). With none o
 them, `auth()` logs and returns no session, so `/admin` falls back to the login
 page instead of failing.
 
-An unknown `/admin/orders/[reference]` returns `not-found.tsx`'s exported
-`metadata` from `generateMetadata`: a title built from the param would name the
+An unknown `/admin/orders/[reference]` or `/products/[slug]` returns
+`notFoundMetadata` from `generateMetadata`: a title built from the param would name the
 missing order on the 404, and `{}` falls back to the root title. The 404 body
 itself renders only after hydration, as `notFound()` does on any request-time
 route.
@@ -387,6 +390,11 @@ An order's state is three nullable timestamps — `sentAt`, `paidAt`,
 `cancelledAt` — set by hand, not a status enum: with cash on delivery an order
 is sent and later paid, so the marks are independent. The action sends the
 target value rather than a flip, and a mark already set keeps its first time.
+
+`/admin/products` edits price and stock only. A save revalidates `/`, `/cart`,
+`/checkout` and that product's page, since all four are prerendered with the
+catalogue. The product route must not set `dynamicParams = false`: with it, a
+revalidated page answers 404 with `NoFallbackError` in a production build.
 
 The e2e suite signs in by minting the session cookie with `next-auth/jwt`'s
 `encode`, salted with the cookie's own name — Playwright cannot click through
@@ -432,6 +440,11 @@ server before a local suite run, or read the result as provisional.
 Dev runs Turbopack and is not what ships, so a smoke test against it proves less
 than the seconds it saves. The suite runs twice, mobile project first, because
 mobile is the priority everything else here is built around.
+
+The server Playwright starts reads `data/e2e.db`, deleted before every build,
+because re-seeding no longer resets an edited price. Checkout specs assert
+seeded totals, so the one spec that edits a published product is its own
+`catalogue-edit` project, run after both others and restoring the seeded values.
 
 `@axe-core/playwright` scans each page against WCAG A and AA and fails on any
 violation. It runs inside the existing suite rather than as its own job, because
@@ -480,7 +493,9 @@ separate — host `data/dev.db`, container `/app/data/dev.db` on a named volume 
 
 The seed deletes a product dropped from its list rather than leaving it
 published in an existing database, and replaces image rows inside one
-transaction, since they have no natural key and it is their only writer.
+transaction, since they have no natural key and it is their only writer. It
+owns a product's content but sets the price only on create and never the stock:
+those belong to the admin, and every build re-seeds.
 
 The home page queries the catalogue during `next build`, so every path that
 builds the app seeds first — CI as its own step, Playwright's `webServer`, the

@@ -211,4 +211,5 @@ test("an unknown slug renders the not-found page", async ({ page }) => {
 
   expect(response?.status()).toBe(404);
   await expect(page.getByRole("banner")).toBeVisible();
+  await expect(page).toHaveTitle(/^Страницата не е намерена/);
 });

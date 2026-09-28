@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { metadata as notFoundMetadata } from "@/app/not-found";
 import { OrderMarkToggle } from "@/components/admin/order-mark-toggle";
+import { notFoundMetadata } from "@/components/not-found-content";
 import {
   CARRIER_LABEL,
   CONSENT_LABEL,

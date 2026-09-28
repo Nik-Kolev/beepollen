@@ -1,30 +1,15 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-
-import { Container } from "@/components/container";
 import { ShopFrame } from "@/components/layout/shop-frame";
+import {
+  NotFoundContent,
+  notFoundMetadata,
+} from "@/components/not-found-content";
 
-export const metadata: Metadata = {
-  title: "Страницата не е намерена",
-};
+export const metadata = notFoundMetadata;
 
 export default function NotFound() {
   return (
     <ShopFrame>
-      <Container>
-        <div className="flex flex-col items-start gap-4 py-24">
-          <h1 className="text-2xl font-semibold">Страницата не е намерена</h1>
-          <p className="text-ink-soft">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-          </p>
-          <Link
-            href="/"
-            className="bg-action text-action-ink hover:bg-action-hover rounded-md px-4 py-2 text-sm transition-colors"
-          >
-            Към началната страница
-          </Link>
-        </div>
-      </Container>
+      <NotFoundContent />
     </ShopFrame>
   );
 }

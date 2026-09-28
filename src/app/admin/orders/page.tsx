@@ -34,7 +34,7 @@ export default async function AdminOrders({
 
   return (
     <div className="w-full">
-      <AdminHeader title="Поръчки" email={email} />
+      <AdminHeader title="Поръчки" email={email} current="/admin/orders" />
 
       <nav aria-label="Филтър на поръчките" className="mt-6">
         <ul role="list" className="flex flex-wrap gap-2">

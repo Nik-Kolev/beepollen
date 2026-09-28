@@ -57,13 +57,35 @@ test("an order placed through checkout appears in the order list and opens in fu
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/orders");
 
-  const card = page.getByRole("link", { name: new RegExp(orderReference) });
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: orderReference }) });
   await expect(card).toContainText("Админ Тестов");
   await expect(card).toContainText("Павликени");
-  await expect(card).toContainText("Нова");
+  const sent = card.getByRole("button", { name: "Изпратена" });
+  await expect(sent).toHaveAttribute("aria-pressed", "false");
   await expectNoAxeViolations(page);
 
-  await card.click();
+  await sent.click();
+  await expect(sent).toHaveAttribute("aria-pressed", "true");
+  await page.reload();
+  await expect(sent).toHaveAttribute("aria-pressed", "true");
+  await expect(card.getByRole("button", { name: "Платена" })).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+
+  const filters = page.getByRole("navigation", {
+    name: "Филтър на поръчките",
+  });
+  await filters.getByRole("link", { name: /^Неизпратени/ }).click();
+  await expect(page).toHaveURL("/admin/orders?filter=unsent");
+  await expect(card).toHaveCount(0);
+  await filters.getByRole("link", { name: /^Неплатени/ }).click();
+  await expect(page).toHaveURL("/admin/orders?filter=unpaid");
+  await expect(card).toBeVisible();
+
+  await card.click({ position: { x: 20, y: 60 } });
 
   await expect(page).toHaveURL(`/admin/orders/${orderReference}`);
   await expect(
@@ -72,6 +94,10 @@ test("an order placed through checkout appears in the order list and opens in fu
       name: `Поръчка ${orderReference}`,
     }),
   ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Изпратена" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
 
   const items = page.getByRole("region", { name: "Продукти" });
   await expect(items.getByRole("listitem")).toHaveCount(2);

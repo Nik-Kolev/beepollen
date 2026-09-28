@@ -118,10 +118,11 @@ async function main() {
   });
 
   for (const { id, images, ...product } of products) {
+    const { priceCents, ...content } = product;
     await prisma.product.upsert({
       where: { id },
-      update: product,
-      create: { id, ...product },
+      update: content,
+      create: { id, priceCents, ...content },
     });
 
     await prisma.$transaction([

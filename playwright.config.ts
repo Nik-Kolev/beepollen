@@ -15,13 +15,28 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   projects: [
-    { name: "mobile", use: { ...devices["Pixel 7"] } },
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "mobile",
+      use: { ...devices["Pixel 7"] },
+      testIgnore: "catalogue-edit.spec.ts",
+    },
+    {
+      name: "desktop",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: "catalogue-edit.spec.ts",
+    },
+    {
+      name: "catalogue-edit",
+      use: { ...devices["Pixel 7"] },
+      testMatch: "catalogue-edit.spec.ts",
+      dependencies: ["mobile", "desktop"],
+    },
   ],
   webServer: {
-    command: "npm run build:demo && npm start",
+    command: "node scripts/reset-e2e-db.mjs && npm run build:demo && npm start",
     url: baseURL,
     env: {
+      DATABASE_URL: "file:./data/e2e.db",
       AUTH_SECRET: TEST_AUTH_SECRET,
       AUTH_TRUST_HOST: "true",
       ADMIN_EMAILS: TEST_ADMIN_EMAIL,

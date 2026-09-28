@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
+import { notFoundMetadata } from "@/components/not-found-content";
 import { AddToCart } from "@/components/add-to-cart";
 import { BackToProductsLink } from "@/components/back-to-products-link";
 import { Container } from "@/components/container";
@@ -11,8 +12,6 @@ import {
   listPublishedProductSlugs,
 } from "@/lib/products";
 import { SITE_URL } from "@/lib/site";
-
-export const dynamicParams = false;
 
 export async function generateStaticParams() {
   const products = await listPublishedProductSlugs();
@@ -26,7 +25,7 @@ export async function generateMetadata({
   const { slug } = await params;
   const product = await getPublishedProductBySlug(slug);
 
-  if (!product) return {};
+  if (!product) return notFoundMetadata;
 
   const [image] = product.images;
   const path = `/products/${product.slug}`;

@@ -66,14 +66,15 @@ export type PlaceOrderResult =
 
 const REFERENCE_ATTEMPTS = 5;
 
-const sofiaDayMonth = new Intl.DateTimeFormat("en-GB", {
+const sofiaDate = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Europe/Sofia",
   day: "2-digit",
   month: "2-digit",
+  year: "2-digit",
 });
 
 export function orderReferencePrefix(now: Date) {
-  return `BP${sofiaDayMonth.format(now).replace(/\D/g, "")}`;
+  return `BP${sofiaDate.format(now).replace(/\D/g, "")}`;
 }
 
 export function nextOrderReference(prefix: string, last: string | null) {

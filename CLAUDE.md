@@ -202,11 +202,12 @@ leaves the documented `meta.target` undefined and reports the violated fields at
 `meta.driverAdapterError.cause.constraint.fields` — code matching only on
 `target` silently treats the conflict as an unrelated failure and rethrows.
 
-An order's `reference` is `BP`, the day and month in `Europe/Sofia`, then its
-number within that day — `BP24091`. It is stored rather than derived, because a
-per-day counter cannot be recomputed from a row id, and the lookup that finds
-the day's last one orders by `id`, never by `reference`: `BP240910` sorts before
-`BP24099`. A number lost to a concurrent order is retried five times and then
+An order's `reference` is `BP`, the day, month and two-digit year in
+`Europe/Sofia`, then its number within that day — `BP2409261`. The year is what
+keeps the prefix lookup from continuing the same day's numbering a year later.
+It is stored rather than derived, because a per-day counter cannot be recomputed
+from a row id, and the lookup that finds the day's last one orders by `id`, never
+by `reference`: `BP24092610` sorts before `BP2409269`. A number lost to a concurrent order is retried five times and then
 refused, since a throw would reach the error boundary and take the buyer's
 filled-in form with it.
 

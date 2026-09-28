@@ -50,7 +50,7 @@ test("an order placed through checkout appears in the order list and opens in fu
     .click();
   await page.getByRole("button", { name: "Завърши поръчката" }).click();
 
-  const reference = page.getByText(/^BP\d{5,}$/);
+  const reference = page.getByText(/^BP\d{7,}$/);
   await expect(reference).toBeVisible();
   const orderReference = (await reference.textContent())!;
 

@@ -213,7 +213,7 @@ test("each filter's count matches the orders it lists", async () => {
 });
 
 test("a mark request is accepted only with a known mark, a strict boolean and a bounded reference", () => {
-  const valid = { reference: "BP28091", mark: "paid", on: true };
+  const valid = { reference: "BP2809261", mark: "paid", on: true };
 
   assert.equal(orderMarkInput.safeParse(valid).success, true);
   for (const crafted of [

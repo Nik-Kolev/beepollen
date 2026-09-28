@@ -34,26 +34,30 @@ async function placeOne() {
   return result.order;
 }
 
-test("the prefix is BP plus the day and month, read in Sofia rather than UTC", () => {
+test("the prefix is BP plus the day, month and two-digit year, read in Sofia rather than UTC", () => {
   assert.equal(
     orderReferencePrefix(new Date("2026-09-24T22:30:00Z")),
-    "BP2509",
+    "BP250926",
   );
   assert.equal(
     orderReferencePrefix(new Date("2026-09-24T09:00:00Z")),
-    "BP2409",
+    "BP240926",
+  );
+  assert.equal(
+    orderReferencePrefix(new Date("2026-12-31T22:30:00Z")),
+    "BP010127",
   );
 });
 
 test("the first order of a day is number 1 and every later one takes the next", () => {
-  assert.equal(nextOrderReference("BP2409", null), "BP24091");
-  assert.equal(nextOrderReference("BP2409", "BP24091"), "BP24092");
-  assert.equal(nextOrderReference("BP2409", "BP24099"), "BP240910");
+  assert.equal(nextOrderReference("BP240926", null), "BP2409261");
+  assert.equal(nextOrderReference("BP240926", "BP2409261"), "BP2409262");
+  assert.equal(nextOrderReference("BP240926", "BP2409269"), "BP24092610");
 });
 
 test("a stored reference that cannot be read as a number restarts the day at 1", () => {
-  assert.equal(nextOrderReference("BP2409", "BP2409"), "BP24091");
-  assert.equal(nextOrderReference("BP2409", "BP2409x"), "BP24091");
+  assert.equal(nextOrderReference("BP240926", "BP240926"), "BP2409261");
+  assert.equal(nextOrderReference("BP240926", "BP240926x"), "BP2409261");
 });
 
 test("two orders placed one after the other take consecutive numbers", async () => {
@@ -86,7 +90,7 @@ test("an order from another day does not carry its number into today", async () 
       contactName: "Стара поръчка",
       contactPhone: "0888000000",
       ...TEST_OFFICE_SNAPSHOT,
-      reference: "BP000099",
+      reference: "BP00000099",
       itemsCents: 1,
       deliveryCents: 0,
       totalCents: 1,
@@ -95,6 +99,42 @@ test("an order from another day does not carry its number into today", async () 
   });
 
   const prefix = orderReferencePrefix(new Date());
+  const placed = await placeOne();
+
+  assert.ok(placed.reference.startsWith(prefix));
+  assert.ok(sequenceOf(placed.reference, prefix) < 99);
+});
+
+test("an order from the same day a year earlier does not carry its number into this year", async () => {
+  const customer = await prisma.customer.create({
+    data: {
+      name: "Миналогодишна поръчка",
+      email: `last-year-${randomUUID()}@example.com`,
+      phone: "0888000000",
+    },
+    select: { id: true },
+  });
+
+  const prefix = orderReferencePrefix(new Date());
+  const lastYear = String((Number(prefix.slice(6)) + 99) % 100).padStart(
+    2,
+    "0",
+  );
+
+  await prisma.order.create({
+    data: {
+      customerId: customer.id,
+      contactName: "Миналогодишна поръчка",
+      contactPhone: "0888000000",
+      ...TEST_OFFICE_SNAPSHOT,
+      reference: `${prefix.slice(0, 6)}${lastYear}99`,
+      itemsCents: 1,
+      deliveryCents: 0,
+      totalCents: 1,
+      idempotencyKey: randomUUID(),
+    },
+  });
+
   const placed = await placeOne();
 
   assert.ok(placed.reference.startsWith(prefix));

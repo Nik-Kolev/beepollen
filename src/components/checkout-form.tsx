@@ -14,6 +14,7 @@ import {
 
 import { submitOrder } from "@/app/(shop)/checkout/actions";
 import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
+import { EmptyCart } from "@/components/empty-cart";
 import { useCart } from "@/hooks/use-cart";
 import type { CartItem } from "@/lib/cart";
 import {
@@ -63,20 +64,6 @@ const EMPTY_ANSWERS: Answers = {
 type Corrected = { of: PlaceOrderResult | null; fields: Set<string> };
 
 const NOTHING_CORRECTED: Corrected = { of: null, fields: new Set() };
-
-function EmptyCheckout() {
-  return (
-    <div className="py-10">
-      <p className="text-ink-soft">Количката е празна.</p>
-      <Link
-        href="/"
-        className="text-brand-deep mt-4 inline-block font-medium underline underline-offset-4"
-      >
-        Към продуктите
-      </Link>
-    </div>
-  );
-}
 
 function OrderPlaced({ order }: { order: PlacedOrder }) {
   const heading = useRef<HTMLHeadingElement>(null);
@@ -503,7 +490,7 @@ export function CheckoutForm({
   }, [placed, clear]);
 
   if (placed) return <OrderPlaced order={placed} />;
-  if (ready && cart.items.length === 0) return <EmptyCheckout />;
+  if (ready && cart.items.length === 0) return <EmptyCart />;
 
   return (
     <FilledCheckout

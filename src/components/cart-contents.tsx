@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 
+import { EmptyCart } from "@/components/empty-cart";
 import { useCart } from "@/hooks/use-cart";
 import { MAX_LINE_QUANTITY } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
@@ -13,20 +14,6 @@ const STEP_BUTTON =
 
 const REMOVE_BUTTON =
   "text-ink-soft hover:text-brand-deep inline-flex min-h-11 items-center px-2 text-sm underline underline-offset-4 sm:min-h-0 sm:px-0";
-
-function EmptyCart() {
-  return (
-    <div className="py-10">
-      <p className="text-ink-soft">Количката е празна.</p>
-      <Link
-        href="/"
-        className="text-brand-deep mt-4 inline-block font-medium underline underline-offset-4"
-      >
-        Към продуктите
-      </Link>
-    </div>
-  );
-}
 
 export function CartContents({ products }: { products: CartProduct[] }) {
   const { cart, ready, setQuantity, remove } = useCart();

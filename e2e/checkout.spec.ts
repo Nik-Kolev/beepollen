@@ -270,9 +270,52 @@ test.describe("placing an order", () => {
       page.getByRole("heading", { name: "Поръчката е приета" }),
     ).toHaveCount(0);
 
+    const cityField = page.getByLabel("Град", { exact: true });
+    await expect(cityField).toHaveAttribute("aria-invalid", "true");
+    await expect(cityField).toHaveAccessibleDescription(
+      "Изберете офис на Еконт, до който да получите поръчката.",
+    );
+
     await page.getByLabel(/Поръчката е за гр\. Попово/).check();
 
     await expect(officeRequired).toHaveCount(0);
+  });
+
+  test("a missing office is described on the office list or search still waiting for a choice", async ({
+    page,
+  }) => {
+    const officeRequired =
+      "Изберете офис на Еконт, до който да получите поръчката.";
+    const offices = page.getByRole("radiogroup", { name: "Офиси на Еконт" });
+    const search = page.getByLabel("Офис — улица, квартал или име");
+
+    await seedCart(page, {
+      version: 1,
+      items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    });
+    await page.goto("/checkout");
+    await fillContact(page, "maria.ivanova@example.com");
+
+    await page.getByLabel("Град", { exact: true }).fill(OFFICE_CITY);
+    await page.getByRole("option", { name: OFFICE_CITY, exact: true }).click();
+    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+
+    await expect(offices).toHaveAttribute("aria-invalid", "true");
+    await expect(offices).toHaveAccessibleDescription(officeRequired);
+
+    await offices.locator("label").filter({ hasText: OFFICE_STREET }).click();
+    await expect(offices).not.toHaveAttribute("aria-invalid");
+    await expect(page.getByText(officeRequired)).toHaveCount(0);
+
+    await page.getByRole("button", { name: /Промени града/ }).click();
+    await page.getByLabel("Град", { exact: true }).fill("Габрово");
+    await page.getByRole("option", { name: "Габрово", exact: true }).click();
+    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+
+    await expect(search).toHaveAttribute("aria-invalid", "true");
+    await expect(search).toHaveAccessibleDescription(officeRequired);
+    await expect(offices).not.toHaveAttribute("aria-invalid");
+    await expect(page.getByText(officeRequired)).toHaveCount(1);
   });
 
   test("a local order is placed with no office and no delivery charge", async ({

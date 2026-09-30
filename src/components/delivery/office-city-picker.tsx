@@ -227,7 +227,7 @@ export function OfficeCityPicker({
     : !city
       ? ""
       : needsSearch && !officeQuery.trim()
-        ? `${officeCount(cityOffices.length)} в ${city} — въведете улица, квартал или име, или натиснете на картата избрания от вас офис.`
+        ? `${officeCount(cityOffices.length)} в ${city} — въведете улица, квартал, име или изберете офис на картата.`
         : shownOffices.length === 0
           ? "Няма офис с това име."
           : `${officeCount(shownOffices.length)} в ${city}`;

@@ -6,3 +6,7 @@ const FIELD_BASE =
 export const FIELD = `border-line focus-visible:border-action border ${FIELD_BASE}`;
 
 export const FIELD_INVALID = `border-error border-2 ${FIELD_BASE}`;
+
+export const ERROR_TEXT = "text-error mt-2 text-sm font-medium";
+
+export const INPUT_ERROR_TEXT = `${ERROR_TEXT} pl-4`;

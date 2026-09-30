@@ -15,7 +15,13 @@ import {
 import { submitOrder } from "@/app/(shop)/checkout/actions";
 import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
 import { EmptyCart } from "@/components/empty-cart";
-import { FIELD, FIELD_INVALID, LABEL } from "@/components/form-styles";
+import {
+  ERROR_TEXT,
+  FIELD,
+  FIELD_INVALID,
+  INPUT_ERROR_TEXT,
+  LABEL,
+} from "@/components/form-styles";
 import { useCart } from "@/hooks/use-cart";
 import type { CartItem } from "@/lib/cart";
 import {
@@ -33,9 +39,6 @@ import type { CartProduct } from "@/lib/products";
 const CHECKBOX = "border-line mt-1 size-5 shrink-0 rounded-sm border";
 
 const CHECKBOX_LABEL = "flex min-h-11 items-start gap-3 text-sm";
-
-const ERROR_TEXT = "text-error mt-2 text-sm font-medium";
-const INPUT_ERROR_TEXT = `${ERROR_TEXT} pl-4`;
 
 type Answers = {
   name: string;
@@ -327,18 +330,20 @@ function FilledCheckout({
               <div className="mt-6">
                 <OfficeCityPicker
                   offices={offices}
+                  error={
+                    invalid.has("officeCode")
+                      ? {
+                          id: "officeCode-error",
+                          message: FIELD_ERROR.officeCode,
+                        }
+                      : null
+                  }
                   onSelect={(chosen) => {
                     markCorrected("officeCode");
                     setOffice(chosen);
                   }}
                 />
               </div>
-            )}
-
-            {invalid.has("officeCode") && (
-              <p id="officeCode-error" className={INPUT_ERROR_TEXT}>
-                {FIELD_ERROR.officeCode}
-              </p>
             )}
           </section>
 

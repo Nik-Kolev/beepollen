@@ -11,7 +11,12 @@ import {
 } from "react";
 
 import { OfficeOption } from "@/components/delivery/office-option";
-import { FIELD, LABEL } from "@/components/form-styles";
+import {
+  FIELD,
+  FIELD_INVALID,
+  INPUT_ERROR_TEXT,
+  LABEL,
+} from "@/components/form-styles";
 import { listEcontCities, officeCount, type EcontOffice } from "@/lib/econt";
 
 const OfficeMap = dynamic(() => import("./office-map"), {
@@ -50,6 +55,8 @@ function directionsUrl(office: EcontOffice): string {
 
 type FocusTarget = "city" | "offices" | null;
 
+type ErrorTarget = "city" | "search" | "offices";
+
 function ChangeButton({
   label,
   text,
@@ -73,9 +80,11 @@ function ChangeButton({
 
 export function OfficeCityPicker({
   offices,
+  error = null,
   onSelect,
 }: {
   offices: EcontOffice[];
+  error?: { id: string; message: string } | null;
   onSelect?: (office: EcontOffice | null) => void;
 }) {
   const [cityQuery, setCityQuery] = useState("");
@@ -230,6 +239,30 @@ export function OfficeCityPicker({
     return shownOffices.length > 0 ? shownOffices : cityOffices;
   }, [city, selected, shownOffices, cityOffices]);
 
+  const errorOn: ErrorTarget | null = !error
+    ? null
+    : !city
+      ? "city"
+      : selected
+        ? null
+        : needsSearch
+          ? "search"
+          : "offices";
+
+  function errorProps(target: ErrorTarget) {
+    return error && errorOn === target
+      ? { "aria-invalid": true as const, "aria-describedby": error.id }
+      : {};
+  }
+
+  function errorLine(target: ErrorTarget) {
+    return error && errorOn === target ? (
+      <p id={error.id} className={INPUT_ERROR_TEXT}>
+        {error.message}
+      </p>
+    ) : null;
+  }
+
   const mapHint = !city
     ? "Изберете град, за да избирате офис от картата."
     : selected
@@ -253,7 +286,6 @@ export function OfficeCityPicker({
           </div>
         ) : (
           <div
-            className="relative"
             onBlur={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget)) {
                 setCityOpen(false);
@@ -264,30 +296,57 @@ export function OfficeCityPicker({
             <label htmlFor={cityId} className={LABEL}>
               Град
             </label>
-            <input
-              id={cityId}
-              ref={cityInputRef}
-              type="search"
-              role="combobox"
-              aria-expanded={listOpen}
-              aria-controls={cityListId}
-              aria-autocomplete="list"
-              aria-activedescendant={
-                listOpen && activeCity >= 0
-                  ? `${cityListId}-${activeCity}`
-                  : undefined
-              }
-              value={cityQuery}
-              onChange={(event) => {
-                setCityQuery(event.target.value);
-                setCityOpen(true);
-                setActiveCity(-1);
-              }}
-              onKeyDown={onCityKeyDown}
-              placeholder="Например София"
-              autoComplete="off"
-              className={FIELD}
-            />
+            <div className="relative">
+              <input
+                id={cityId}
+                ref={cityInputRef}
+                type="search"
+                role="combobox"
+                aria-expanded={listOpen}
+                aria-controls={cityListId}
+                aria-autocomplete="list"
+                aria-activedescendant={
+                  listOpen && activeCity >= 0
+                    ? `${cityListId}-${activeCity}`
+                    : undefined
+                }
+                value={cityQuery}
+                onChange={(event) => {
+                  setCityQuery(event.target.value);
+                  setCityOpen(true);
+                  setActiveCity(-1);
+                }}
+                onKeyDown={onCityKeyDown}
+                placeholder="Например София"
+                autoComplete="off"
+                className={errorOn === "city" ? FIELD_INVALID : FIELD}
+                {...errorProps("city")}
+              />
+
+              <ul
+                id={cityListId}
+                role="listbox"
+                aria-label="Градове"
+                hidden={!listOpen}
+                className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-surface shadow-lg"
+              >
+                {matchingCities.map((name, index) => (
+                  <li
+                    key={name}
+                    id={`${cityListId}-${index}`}
+                    role="option"
+                    aria-selected={index === activeCity}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => chooseCity(name)}
+                    className={`flex min-h-11 cursor-pointer items-center border-b border-line px-4 text-ink last:border-0 hover:bg-ground ${
+                      index === activeCity ? "bg-ground" : ""
+                    }`}
+                  >
+                    {name}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             {cityOpen && cityQuery.trim() && matchingCities.length === 0 && (
               <p className="mt-2 pl-4 text-sm text-ink-soft">
@@ -295,29 +354,7 @@ export function OfficeCityPicker({
               </p>
             )}
 
-            <ul
-              id={cityListId}
-              role="listbox"
-              aria-label="Градове"
-              hidden={!listOpen}
-              className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-surface shadow-lg"
-            >
-              {matchingCities.map((name, index) => (
-                <li
-                  key={name}
-                  id={`${cityListId}-${index}`}
-                  role="option"
-                  aria-selected={index === activeCity}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => chooseCity(name)}
-                  className={`flex min-h-11 cursor-pointer items-center border-b border-line px-4 text-ink last:border-0 hover:bg-ground ${
-                    index === activeCity ? "bg-ground" : ""
-                  }`}
-                >
-                  {name}
-                </li>
-              ))}
-            </ul>
+            {errorLine("city")}
           </div>
         )}
 
@@ -364,8 +401,10 @@ export function OfficeCityPicker({
               onKeyDown={onSearchKeyDown}
               placeholder="Например Център"
               autoComplete="off"
-              className={FIELD}
+              className={errorOn === "search" ? FIELD_INVALID : FIELD}
+              {...errorProps("search")}
             />
+            {errorLine("search")}
           </div>
         )}
 
@@ -374,20 +413,24 @@ export function OfficeCityPicker({
         </p>
 
         {city && (
-          <div
-            ref={officeGroupRef}
-            role="radiogroup"
-            aria-label="Офиси на Еконт"
-            className="flex flex-col gap-3"
-          >
-            {shownOffices.map((office) => (
-              <OfficeOption
-                key={office.code}
-                office={office}
-                selected={office.code === selectedCode}
-                onSelect={chooseOffice}
-              />
-            ))}
+          <div>
+            <div
+              ref={officeGroupRef}
+              role="radiogroup"
+              aria-label="Офиси на Еконт"
+              className="flex flex-col gap-3"
+              {...errorProps("offices")}
+            >
+              {shownOffices.map((office) => (
+                <OfficeOption
+                  key={office.code}
+                  office={office}
+                  selected={office.code === selectedCode}
+                  onSelect={chooseOffice}
+                />
+              ))}
+            </div>
+            {errorLine("offices")}
           </div>
         )}
       </div>

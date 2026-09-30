@@ -21,6 +21,8 @@ before the app does.
 `/admin` signs in with Google and admits only the addresses in `ADMIN_EMAILS`.
 It needs `AUTH_SECRET` and a Google OAuth client's `AUTH_GOOGLE_ID` and
 `AUTH_GOOGLE_SECRET` in `.env`; without them the shop still runs.
+`AUTH_TRUST_HOST` lets `npm start` accept sign-ins on localhost; a public host
+drops it and sets `AUTH_URL` to its own origin.
 
 ### With Docker
 

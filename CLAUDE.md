@@ -379,7 +379,12 @@ Auth.js reads `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` by name,
 which is why `Google()` takes no keys. A production server refuses its own host
 unless `AUTH_URL` or `AUTH_TRUST_HOST` is set (Vercel sets its own). With none of
 them, `auth()` logs and returns no session, so `/admin` falls back to the login
-page instead of failing.
+page instead of failing. Outside production the host is trusted by default, but
+Auth.js takes the first of `AUTH_URL`, `AUTH_TRUST_HOST` and the platform
+variables that is not nullish and then applies `!!`, so an empty
+`AUTH_TRUST_HOST=""` or `AUTH_URL=""` switches that default off —
+`.env.example` sets `AUTH_TRUST_HOST` to `"true"` rather than leaving it blank
+like its neighbours.
 
 An unknown `/admin/orders/[reference]` or `/products/[slug]` returns
 `notFoundMetadata` from `generateMetadata`: a title built from the param would name the

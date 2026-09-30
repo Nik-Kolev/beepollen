@@ -34,7 +34,7 @@ const CHECKBOX = "border-line mt-1 size-5 shrink-0 rounded-sm border";
 
 const CHECKBOX_LABEL = "flex min-h-11 items-start gap-3 text-sm";
 
-const ERROR_TEXT = "text-ink mt-2 text-sm font-medium";
+const ERROR_TEXT = "text-error mt-2 text-sm font-medium";
 const INPUT_ERROR_TEXT = `${ERROR_TEXT} pl-4`;
 
 type Answers = {

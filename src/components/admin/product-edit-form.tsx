@@ -108,7 +108,7 @@ export function ProductEditForm({
       <p
         id={`${slug}-status`}
         aria-live="polite"
-        className="text-ink min-h-5 text-sm font-medium sm:self-center"
+        className={`${status === "idle" || status === "saved" ? "text-ink" : "text-error"} min-h-5 text-sm font-medium sm:self-center`}
       >
         {status === "idle"
           ? ""

@@ -25,6 +25,8 @@
   --color-action-hover: oklch(0.505 0.16 50);
   --color-action-ink: oklch(1 0 0);
 
+  --color-error: oklch(0.53 0.2 27);
+
   --color-wood: oklch(0.31 0.045 50);
   --color-brand: oklch(0.58 0.165 50);
   --color-brand-deep: oklch(0.54 0.16 50);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { useCart } from "@/hooks/use-cart";
 import { lineQuantity, MAX_LINE_QUANTITY } from "@/lib/cart";
@@ -17,6 +17,8 @@ export function AddToCart({
   const { cart, add } = useCart();
   const quantity = lineQuantity(cart, slug);
   const full = quantity >= MAX_LINE_QUANTITY;
+  const atLimit = full && !soldOut;
+  const statusId = useId();
 
   const [added, setAdded] = useState(false);
   const timer = useRef<number | undefined>(undefined);
@@ -46,6 +48,7 @@ export function AddToCart({
         onClick={handleAdd}
         disabled={soldOut || full}
         aria-disabled={added}
+        aria-describedby={atLimit ? statusId : undefined}
         className={`${added ? "bg-leaf hover:bg-leaf" : "bg-action hover:bg-action-hover"} text-action-ink disabled:bg-placeholder disabled:text-ink-soft grid w-full rounded-md px-6 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed sm:w-auto sm:self-start`}
       >
         <span className={`col-start-1 row-start-1 ${added ? "opacity-0" : ""}`}>
@@ -60,8 +63,12 @@ export function AddToCart({
         </span>
       </button>
 
-      <p role="status" className="text-ink-soft mt-2 text-sm">
-        {quantity > 0 ? `${quantity} бр. в количката` : ""}
+      <p id={statusId} role="status" className="text-ink-soft mt-2 text-sm">
+        {atLimit
+          ? `${quantity} бр. в количката — това е максимумът за един продукт.`
+          : quantity > 0
+            ? `${quantity} бр. в количката`
+            : ""}
       </p>
     </div>
   );

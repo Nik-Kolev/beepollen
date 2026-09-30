@@ -8,8 +8,12 @@ import {
   getOrderByReference,
   listOrders,
   ORDER_FILTERS,
+  orderListHref,
   orderMarkInput,
+  orderPageCount,
+  ORDERS_PER_PAGE,
   parseOrderFilter,
+  parseOrderPage,
   setOrderMark,
 } from "@/lib/admin-orders";
 import { CONSENT_WORDING } from "@/lib/consent";
@@ -204,12 +208,79 @@ test("filters list what is still to send, still to collect, and what was cancell
   }
 });
 
-test("each filter's count matches the orders it lists", async () => {
+async function listEveryPage(filter: (typeof ORDER_FILTERS)[number]) {
+  const counts = await countOrdersByFilter();
+  const pages = orderPageCount(counts[filter]);
+  const orders = [];
+  for (let page = 1; page <= pages; page++) {
+    orders.push(...(await listOrders(filter, page)));
+  }
+  return orders;
+}
+
+test("each filter's count matches the orders it lists across its pages", async () => {
   const counts = await countOrdersByFilter();
 
   for (const filter of ORDER_FILTERS) {
-    assert.equal(counts[filter], (await listOrders(filter)).length, filter);
+    assert.equal(counts[filter], (await listEveryPage(filter)).length, filter);
   }
+});
+
+test("a page holds at most its share of orders and the next page carries on without overlap", async () => {
+  const { all } = await countOrdersByFilter();
+  for (let i = all; i <= ORDERS_PER_PAGE; i++) await place();
+
+  const first = await listOrders("all", 1);
+  const second = await listOrders("all", 2);
+  const every = await listEveryPage("all");
+
+  assert.equal(first.length, ORDERS_PER_PAGE);
+  assert.ok(second.length >= 1);
+  assert.deepEqual(
+    [...first, ...second].map((order) => order.reference),
+    every.slice(0, first.length + second.length).map((o) => o.reference),
+  );
+  assert.equal(
+    new Set(every.map((order) => order.reference)).size,
+    every.length,
+  );
+});
+
+test("the page count rounds up and never falls below one", () => {
+  assert.equal(orderPageCount(0), 1);
+  assert.equal(orderPageCount(1), 1);
+  assert.equal(orderPageCount(ORDERS_PER_PAGE), 1);
+  assert.equal(orderPageCount(ORDERS_PER_PAGE + 1), 2);
+  assert.equal(orderPageCount(ORDERS_PER_PAGE * 3), 3);
+});
+
+test("an unknown, malformed or out-of-range page falls back to the first", () => {
+  assert.equal(parseOrderPage("2", 3), 2);
+  assert.equal(parseOrderPage("3", 3), 3);
+  for (const crafted of [
+    "4",
+    "0",
+    "-1",
+    "1.5",
+    "02",
+    "2abc",
+    " 2",
+    "",
+    undefined,
+    ["2"],
+  ]) {
+    assert.equal(parseOrderPage(crafted, 3), 1, JSON.stringify(crafted));
+  }
+});
+
+test("a list link keeps the filter and leaves page one and all orders out of the address", () => {
+  assert.equal(orderListHref("all", 1), "/admin/orders");
+  assert.equal(orderListHref("all", 2), "/admin/orders?page=2");
+  assert.equal(orderListHref("unpaid", 1), "/admin/orders?filter=unpaid");
+  assert.equal(
+    orderListHref("unpaid", 3),
+    "/admin/orders?filter=unpaid&page=3",
+  );
 });
 
 test("a mark request is accepted only with a known mark, a strict boolean and a bounded reference", () => {

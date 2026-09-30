@@ -188,6 +188,52 @@ test("a mark the server fails to save reverts and says so, a cancellation shows 
   await expect(page).toHaveURL("/admin/login");
 });
 
+test("a page number past the last page shows the first, and filters always start at page one", async ({
+  page,
+  context,
+  isMobile,
+}) => {
+  test.skip(
+    !isMobile,
+    "Ordering is rate limited, so it is exercised in the mobile project only.",
+  );
+
+  await placeOrder(page, "admin.pages@example.com");
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  const references = () =>
+    page.getByRole("article").getByRole("heading").allTextContents();
+  const filters = page.getByRole("navigation", {
+    name: "Филтър на поръчките",
+  });
+  const pages = page.getByRole("navigation", {
+    name: "Страници на поръчките",
+  });
+
+  await page.goto("/admin/orders?page=99");
+  const total = Number(
+    (await filters
+      .getByRole("link", { name: /^Всички/ })
+      .textContent())!.replace(/\D/g, ""),
+  );
+  const listed = await references();
+
+  expect(listed).toHaveLength(Math.min(total, 20));
+  if (total > 20) {
+    await expect(pages).toContainText(`Страница 1 от ${Math.ceil(total / 20)}`);
+  } else {
+    await expect(pages).toHaveCount(0);
+  }
+
+  await page.goto("/admin/orders");
+  expect(await references()).toContain(listed[0]);
+
+  for (const href of await filters
+    .getByRole("link")
+    .evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
+    expect(href).not.toContain("page=");
+  }
+});
+
 test("an unknown order reference is the 404 page", async ({
   page,
   context,

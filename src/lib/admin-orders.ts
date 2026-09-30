@@ -81,10 +81,32 @@ export const CONSENT_LABEL: Record<ConsentKind, string> = {
   OFFERS: "Оферти по имейл",
 };
 
-export function listOrders(filter: OrderFilter = "all") {
+export const ORDERS_PER_PAGE = 20;
+
+export function orderPageCount(total: number) {
+  return Math.max(1, Math.ceil(total / ORDERS_PER_PAGE));
+}
+
+export function parseOrderPage(value: unknown, pageCount: number) {
+  if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) return 1;
+  const page = Number(value);
+  return page <= pageCount ? page : 1;
+}
+
+export function orderListHref(filter: OrderFilter, page: number) {
+  const params = new URLSearchParams();
+  if (filter !== "all") params.set("filter", filter);
+  if (page > 1) params.set("page", String(page));
+  const query = params.toString();
+  return query ? `/admin/orders?${query}` : "/admin/orders";
+}
+
+export function listOrders(filter: OrderFilter = "all", page = 1) {
   return prisma.order.findMany({
     where: ORDER_FILTER_WHERE[filter],
     orderBy: { id: "desc" },
+    skip: (page - 1) * ORDERS_PER_PAGE,
+    take: ORDERS_PER_PAGE,
     select: {
       reference: true,
       createdAt: true,

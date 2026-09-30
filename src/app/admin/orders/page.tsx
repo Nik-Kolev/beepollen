@@ -13,7 +13,10 @@ import {
   ORDER_MARK_FIELD,
   ORDER_MARK_LABEL,
   ORDER_MARKS,
+  orderListHref,
+  orderPageCount,
   parseOrderFilter,
+  parseOrderPage,
 } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
 import { formatPrice } from "@/lib/money";
@@ -22,15 +25,19 @@ export const metadata: Metadata = {
   title: "Поръчки",
 };
 
+const PAGE_LINK =
+  "bg-surface border-line hover:border-brand-deep inline-flex min-h-11 items-center rounded-md border px-4 text-sm font-medium transition-colors";
+
 export default async function AdminOrders({
   searchParams,
 }: PageProps<"/admin/orders">) {
   const { email } = await requireAdmin();
-  const filter = parseOrderFilter((await searchParams).filter);
-  const [orders, counts] = await Promise.all([
-    listOrders(filter),
-    countOrdersByFilter(),
-  ]);
+  const params = await searchParams;
+  const filter = parseOrderFilter(params.filter);
+  const counts = await countOrdersByFilter();
+  const pageCount = orderPageCount(counts[filter]);
+  const page = parseOrderPage(params.page, pageCount);
+  const orders = await listOrders(filter, page);
 
   return (
     <div className="w-full">
@@ -41,11 +48,7 @@ export default async function AdminOrders({
           {ORDER_FILTERS.map((option) => (
             <li key={option}>
               <Link
-                href={
-                  option === "all"
-                    ? "/admin/orders"
-                    : `/admin/orders?filter=${option}`
-                }
+                href={orderListHref(option, 1)}
                 aria-current={option === filter ? "page" : undefined}
                 className={`${option === filter ? "bg-brand-deep border-brand-deep text-action-ink" : "bg-surface border-line hover:border-brand-deep"} inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors`}
               >
@@ -106,6 +109,31 @@ export default async function AdminOrders({
             </li>
           ))}
         </ul>
+      )}
+
+      {pageCount > 1 && (
+        <nav
+          aria-label="Страници на поръчките"
+          className="mt-6 flex flex-wrap items-center justify-between gap-3"
+        >
+          {page > 1 ? (
+            <Link href={orderListHref(filter, page - 1)} className={PAGE_LINK}>
+              Предишна
+            </Link>
+          ) : (
+            <span />
+          )}
+          <p className="text-ink-soft text-sm tabular-nums">
+            Страница {page} от {pageCount}
+          </p>
+          {page < pageCount ? (
+            <Link href={orderListHref(filter, page + 1)} className={PAGE_LINK}>
+              Следваща
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
       )}
     </div>
   );

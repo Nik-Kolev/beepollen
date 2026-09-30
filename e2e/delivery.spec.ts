@@ -127,7 +127,7 @@ test("a large city needs a search before any office is listed", async ({
   await expect(officeSearchInput(page)).toBeVisible();
   await expect(officeGroup(page).getByRole("radio")).toHaveCount(0);
   await expect(statusLine(page)).toHaveText(
-    `${LARGE_CITY_TOTAL} в ${LARGE_CITY} — въведете улица, квартал или име, или натиснете на картата избрания от вас офис.`,
+    `${LARGE_CITY_TOTAL} в ${LARGE_CITY} — въведете улица, квартал, име или изберете офис на картата.`,
   );
 });
 
@@ -296,7 +296,7 @@ test("Промени clears the city, the office and both queries", async ({
 
   await expect(officeSearchInput(page)).toHaveValue("");
   await expect(statusLine(page)).toHaveText(
-    `${BIG_CITY_TOTAL} в ${BIG_CITY} — въведете улица, квартал или име, или натиснете на картата избрания от вас офис.`,
+    `${BIG_CITY_TOTAL} в ${BIG_CITY} — въведете улица, квартал, име или изберете офис на картата.`,
   );
 });
 

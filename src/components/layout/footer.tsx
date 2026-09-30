@@ -1,6 +1,7 @@
 import { Bee } from "@/components/art/bee";
 import { HiveBox } from "@/components/art/hive-box";
 import { Container } from "@/components/container";
+import { CurrentYear } from "@/components/layout/current-year";
 
 const footerColumns = [
   {
@@ -72,7 +73,8 @@ export function Footer() {
         </div>
 
         <p className="border-footer-ink-soft/20 text-footer-ink-soft relative border-t py-6 text-center text-xs tracking-wide sm:text-left">
-          © {new Date().getFullYear()} Пчелни продукти Д &amp; Н Димитрови
+          © <CurrentYear builtIn={new Date().getFullYear()} /> Пчелни продукти Д
+          &amp; Н Димитрови
         </p>
       </Container>
     </footer>

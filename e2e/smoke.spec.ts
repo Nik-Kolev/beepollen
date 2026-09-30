@@ -13,6 +13,24 @@ test("the homepage serves its shell", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
+test("the footer shows the visitor's year rather than the one the page was built in", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") errors.push(message.text());
+  });
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.clock.setFixedTime(new Date("2031-06-15T12:00:00"));
+
+  await page.goto("/");
+
+  await expect(page.getByRole("contentinfo")).toContainText(
+    "© 2031 Пчелни продукти",
+  );
+  expect(errors).toEqual([]);
+});
+
 test("the catalogue renders published products from the database", async ({
   page,
 }) => {

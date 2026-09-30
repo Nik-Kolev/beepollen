@@ -1,7 +1,8 @@
-export const LABEL = "text-ink block text-sm font-medium";
+export const LABEL = "text-ink-soft block pl-4 text-sm font-medium";
 
-export const FIELD =
-  "border-line focus:border-brand-deep mt-2 block min-h-11 w-full rounded-md border px-3 py-2 outline-none";
+const FIELD_BASE =
+  "bg-surface text-ink placeholder:text-ink-soft focus-visible:border-action focus-visible:ring-action/30 mt-2 block min-h-11 w-full rounded-lg px-4 text-base outline-hidden focus-visible:ring-2";
 
-export const FIELD_INVALID =
-  "border-ink focus:border-brand-deep mt-2 block min-h-11 w-full rounded-md border-2 px-3 py-2 outline-none";
+export const FIELD = `border-line border ${FIELD_BASE}`;
+
+export const FIELD_INVALID = `border-ink border-2 ${FIELD_BASE}`;

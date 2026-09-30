@@ -89,7 +89,7 @@ export function ProductEditForm({
             setStock(event.target.value);
             setStatus("idle");
           }}
-          className={`${FIELD} bg-surface`}
+          className={FIELD}
         >
           {stockOptions.map((option) => (
             <option key={option.value} value={option.value}>

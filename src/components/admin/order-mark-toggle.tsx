@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useRef, useTransition } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 
 import { markOrder } from "@/app/admin/orders/actions";
 import type { OrderMark } from "@/lib/admin-orders";
@@ -17,18 +17,23 @@ export function OrderMarkToggle({
   on: boolean;
 }) {
   const [shown, setShown] = useOptimistic(on);
+  const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
   const saving = useRef(false);
 
   function handleClick() {
     if (saving.current) return;
     saving.current = true;
+    setFailed(false);
 
     const next = !shown;
     startTransition(async () => {
       setShown(next);
       try {
-        await markOrder({ reference, mark, on: next });
+        const result = await markOrder({ reference, mark, on: next });
+        if (!result.ok) setFailed(true);
+      } catch {
+        setFailed(true);
       } finally {
         saving.current = false;
       }
@@ -36,17 +41,25 @@ export function OrderMarkToggle({
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleClick}
-      aria-pressed={shown}
-      aria-disabled={pending}
-      className={`${shown ? "bg-leaf border-leaf text-action-ink" : "bg-surface border-line text-ink hover:border-brand-deep"} relative inline-flex min-h-11 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors`}
-    >
-      <span aria-hidden="true" className={shown ? "" : "invisible"}>
-        ✓
+    <div className="flex flex-col items-start">
+      <button
+        type="button"
+        onClick={handleClick}
+        aria-pressed={shown}
+        aria-disabled={pending}
+        className={`${shown ? "bg-leaf border-leaf text-action-ink" : "bg-surface border-line text-ink hover:border-brand-deep"} relative inline-flex min-h-11 items-center gap-1.5 rounded-md border px-3 text-sm font-medium transition-colors`}
+      >
+        <span aria-hidden="true" className={shown ? "" : "invisible"}>
+          ✓
+        </span>
+        {label}
+      </button>
+      <span
+        role="status"
+        className="text-error w-0 min-w-full text-sm font-medium"
+      >
+        {failed ? "Не е запазено. Опитайте отново." : ""}
       </span>
-      {label}
-    </button>
+    </div>
   );
 }

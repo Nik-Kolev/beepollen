@@ -35,6 +35,7 @@ const CHECKBOX = "border-line mt-1 size-5 shrink-0 rounded-sm border";
 const CHECKBOX_LABEL = "flex min-h-11 items-start gap-3 text-sm";
 
 const ERROR_TEXT = "text-ink mt-2 text-sm font-medium";
+const INPUT_ERROR_TEXT = `${ERROR_TEXT} pl-4`;
 
 type Answers = {
   name: string;
@@ -253,7 +254,7 @@ function FilledCheckout({
                   {...fieldProps("name")}
                 />
                 {invalid.has("name") && (
-                  <p id="name-error" className={ERROR_TEXT}>
+                  <p id="name-error" className={INPUT_ERROR_TEXT}>
                     {FIELD_ERROR.name}
                   </p>
                 )}
@@ -275,7 +276,7 @@ function FilledCheckout({
                   {...fieldProps("email")}
                 />
                 {invalid.has("email") && (
-                  <p id="email-error" className={ERROR_TEXT}>
+                  <p id="email-error" className={INPUT_ERROR_TEXT}>
                     {FIELD_ERROR.email}
                   </p>
                 )}
@@ -297,7 +298,7 @@ function FilledCheckout({
                   {...fieldProps("phone")}
                 />
                 {invalid.has("phone") && (
-                  <p id="phone-error" className={ERROR_TEXT}>
+                  <p id="phone-error" className={INPUT_ERROR_TEXT}>
                     {FIELD_ERROR.phone}
                   </p>
                 )}
@@ -335,7 +336,7 @@ function FilledCheckout({
             )}
 
             {invalid.has("officeCode") && (
-              <p id="officeCode-error" className={ERROR_TEXT}>
+              <p id="officeCode-error" className={INPUT_ERROR_TEXT}>
                 {FIELD_ERROR.officeCode}
               </p>
             )}

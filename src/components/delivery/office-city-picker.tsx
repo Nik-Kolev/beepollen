@@ -11,6 +11,7 @@ import {
 } from "react";
 
 import { OfficeOption } from "@/components/delivery/office-option";
+import { FIELD, LABEL } from "@/components/form-styles";
 import { listEcontCities, officeCount, type EcontOffice } from "@/lib/econt";
 
 const OfficeMap = dynamic(() => import("./office-map"), {
@@ -252,7 +253,7 @@ export function OfficeCityPicker({
           </div>
         ) : (
           <div
-            className="relative flex flex-col gap-2"
+            className="relative"
             onBlur={(event) => {
               if (!event.currentTarget.contains(event.relatedTarget)) {
                 setCityOpen(false);
@@ -260,10 +261,7 @@ export function OfficeCityPicker({
               }
             }}
           >
-            <label
-              htmlFor={cityId}
-              className="pl-4 text-sm font-medium text-ink-soft"
-            >
+            <label htmlFor={cityId} className={LABEL}>
               Град
             </label>
             <input
@@ -288,11 +286,11 @@ export function OfficeCityPicker({
               onKeyDown={onCityKeyDown}
               placeholder="Например София"
               autoComplete="off"
-              className="min-h-11 rounded-lg border border-line bg-surface px-4 text-base text-ink outline-none placeholder:text-ink-soft focus-visible:border-action focus-visible:ring-2 focus-visible:ring-action/30"
+              className={FIELD}
             />
 
             {cityOpen && cityQuery.trim() && matchingCities.length === 0 && (
-              <p className="pl-4 text-sm text-ink-soft">
+              <p className="mt-2 pl-4 text-sm text-ink-soft">
                 Няма град с това име в списъка на Еконт.
               </p>
             )}
@@ -353,11 +351,8 @@ export function OfficeCityPicker({
         )}
 
         {city && needsSearch && !selected && (
-          <div className="flex flex-col gap-2">
-            <label
-              htmlFor={officeId}
-              className="pl-4 text-sm font-medium text-ink-soft"
-            >
+          <div>
+            <label htmlFor={officeId} className={LABEL}>
               Офис — улица, квартал или име
             </label>
             <input
@@ -369,7 +364,7 @@ export function OfficeCityPicker({
               onKeyDown={onSearchKeyDown}
               placeholder="Например Център"
               autoComplete="off"
-              className="min-h-11 rounded-lg border border-line bg-surface px-4 text-base text-ink outline-none placeholder:text-ink-soft focus-visible:border-action focus-visible:ring-2 focus-visible:ring-action/30"
+              className={FIELD}
             />
           </div>
         )}

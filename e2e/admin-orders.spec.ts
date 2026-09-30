@@ -129,7 +129,7 @@ test("an order placed through checkout appears in the order list and opens in fu
   await expect(page).toHaveURL("/admin/orders");
 });
 
-test("a mark the server fails to save reverts and says so, and a lost session goes to the login page", async ({
+test("a mark the server fails to save reverts and says so, a cancellation shows in the error colour, and a lost session goes to the login page", async ({
   page,
   context,
   isMobile,
@@ -165,6 +165,22 @@ test("a mark the server fails to save reverts and says so, and a lost session go
   await expect(notSaved).toHaveCount(0);
   await page.reload();
   await expect(sent).toHaveAttribute("aria-pressed", "true");
+
+  const cancelled = page.getByRole("button", { name: "Отказана" });
+  await cancelled.click();
+  await expect(cancelled).toHaveAttribute("aria-pressed", "true");
+  await expect
+    .poll(() =>
+      cancelled.evaluate((button) => {
+        const probe = document.createElement("span");
+        probe.style.color = "var(--color-error)";
+        document.body.append(probe);
+        const error = getComputedStyle(probe).color;
+        probe.remove();
+        return getComputedStyle(button).backgroundColor === error;
+      }),
+    )
+    .toBe(true);
 
   await context.clearCookies();
   await page.getByRole("button", { name: "Платена" }).click();

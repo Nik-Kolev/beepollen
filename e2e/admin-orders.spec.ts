@@ -17,16 +17,7 @@ async function expectNoAxeViolations(page: Page) {
   ).toEqual([]);
 }
 
-test("an order placed through checkout appears in the order list and opens in full", async ({
-  page,
-  context,
-  isMobile,
-}) => {
-  test.skip(
-    !isMobile,
-    "Ordering is rate limited, so it is exercised in the mobile project only.",
-  );
-
+async function placeOrder(page: Page, email: string) {
   await seedCart(page, {
     version: 1,
     items: [
@@ -36,9 +27,7 @@ test("an order placed through checkout appears in the order list and opens in fu
   });
   await page.goto("/checkout");
   await page.getByLabel("Име и фамилия").fill("Админ Тестов");
-  await page
-    .getByLabel("Имейл", { exact: true })
-    .fill("admin.list@example.com");
+  await page.getByLabel("Имейл", { exact: true }).fill(email);
   await page.getByLabel("Телефон", { exact: true }).fill("0899555444");
   await page.getByLabel(/Съгласен съм с общите условия/).check();
   await page.getByLabel("Град", { exact: true }).fill("Павликени");
@@ -52,7 +41,20 @@ test("an order placed through checkout appears in the order list and opens in fu
 
   const reference = page.getByText(/^BP\d{7,}$/);
   await expect(reference).toBeVisible();
-  const orderReference = (await reference.textContent())!;
+  return (await reference.textContent())!;
+}
+
+test("an order placed through checkout appears in the order list and opens in full", async ({
+  page,
+  context,
+  isMobile,
+}) => {
+  test.skip(
+    !isMobile,
+    "Ordering is rate limited, so it is exercised in the mobile project only.",
+  );
+
+  const orderReference = await placeOrder(page, "admin.list@example.com");
 
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/orders");
@@ -125,6 +127,49 @@ test("an order placed through checkout appears in the order list and opens in fu
 
   await page.getByRole("link", { name: "Всички поръчки" }).click();
   await expect(page).toHaveURL("/admin/orders");
+});
+
+test("a mark the server fails to save reverts and says so, and a lost session goes to the login page", async ({
+  page,
+  context,
+  isMobile,
+}) => {
+  test.skip(
+    !isMobile,
+    "Ordering is rate limited, so it is exercised in the mobile project only.",
+  );
+
+  const orderReference = await placeOrder(page, "admin.mark@example.com");
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto(`/admin/orders/${orderReference}`);
+
+  const sent = page.getByRole("button", { name: "Изпратена" });
+  const notSaved = page
+    .getByRole("status")
+    .filter({ hasText: "Не е запазено. Опитайте отново." });
+
+  await page.route(`**/admin/orders/${orderReference}`, (route) =>
+    route.request().method() === "POST"
+      ? route.fulfill({ status: 500 })
+      : route.continue(),
+  );
+  await sent.click();
+
+  await expect(notSaved).toBeVisible();
+  await expect(sent).toHaveAttribute("aria-pressed", "false");
+
+  await page.unrouteAll();
+  await sent.click();
+
+  await expect(sent).toHaveAttribute("aria-pressed", "true");
+  await expect(notSaved).toHaveCount(0);
+  await page.reload();
+  await expect(sent).toHaveAttribute("aria-pressed", "true");
+
+  await context.clearCookies();
+  await page.getByRole("button", { name: "Платена" }).click();
+
+  await expect(page).toHaveURL("/admin/login");
 });
 
 test("an unknown order reference is the 404 page", async ({

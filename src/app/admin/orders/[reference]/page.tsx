@@ -66,7 +66,7 @@ export default async function AdminOrder({
           {ORDER_MARKS.map((mark) => {
             const markedAt = order[ORDER_MARK_FIELD[mark]];
             return (
-              <li key={mark} className="flex flex-wrap items-center gap-3">
+              <li key={mark} className="flex flex-wrap items-start gap-3">
                 <OrderMarkToggle
                   reference={order.reference}
                   mark={mark}
@@ -76,7 +76,7 @@ export default async function AdminOrder({
                 {markedAt && (
                   <time
                     dateTime={markedAt.toISOString()}
-                    className="text-ink-soft text-sm tabular-nums"
+                    className="text-ink-soft text-sm leading-11 tabular-nums"
                   >
                     {formatOrderTime(markedAt)}
                   </time>

@@ -274,9 +274,11 @@ test("a line cannot be raised past the maximum", async ({ page }) => {
 
   await page.goto(`/products/${POLLEN_SLUG}`);
 
-  await expect(
-    page.getByRole("button", { name: "Добави в количката" }),
-  ).toBeDisabled();
+  const add = page.getByRole("button", { name: "Добави в количката" });
+  await expect(add).toBeDisabled();
+  await expect(add).toHaveAccessibleDescription(
+    "99 бр. в количката — това е максимумът за един продукт.",
+  );
 });
 
 for (const quantity of [0, -1, 1.5, 100]) {

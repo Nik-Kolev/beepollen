@@ -82,6 +82,22 @@ test("typing in the city field lists matching Bulgarian cities, and reports when
   ).toBeVisible();
 });
 
+test("the city suggestions stay above the map and can be clicked", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "the map sits beside the list from lg up");
+  await openPicker(page);
+  await expect(page.locator(".leaflet-pane").first()).toBeAttached();
+
+  await cityInput(page).fill("Ва");
+  const option = page.getByRole("option").nth(3);
+  const name = await option.innerText();
+  await option.click();
+
+  await expect(page.getByText(`Град: ${name}`)).toBeVisible();
+});
+
 test("Popovo is not offered as an Econt city, since its orders are delivered in person", async ({
   page,
 }) => {

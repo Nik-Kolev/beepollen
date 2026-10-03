@@ -435,7 +435,7 @@ export function OfficeCityPicker({
         )}
       </div>
 
-      <div className="lg:sticky lg:top-4">
+      <div className="isolate lg:sticky lg:top-4">
         <OfficeMap
           offices={offices}
           visible={mapOffices}

@@ -259,26 +259,59 @@ test("a cart stored by a later version is discarded", async ({ page }) => {
   await expect(cartLink(page)).toHaveAccessibleName("Количка, празна");
 });
 
-test("a line cannot be raised past the maximum", async ({ page }) => {
+test("a cart line stops at the maximum, says why and keeps focus", async ({
+  page,
+}) => {
   await seedCart(page, {
     version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 99 }],
+    items: [{ slug: POLLEN_SLUG, quantity: 98 }],
   });
   await page.goto("/cart");
 
-  await expect(
-    page.getByRole("button", {
-      name: `Увеличи количеството на ${POLLEN_NAME}`,
-    }),
-  ).toBeDisabled();
+  const increase = page.getByRole("button", {
+    name: `Увеличи количеството на ${POLLEN_NAME}`,
+  });
+  await increase.click();
 
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 99 бр.");
+  await expect(increase).toBeDisabled();
+  await expect(increase).toBeFocused();
+  await expect(increase).toHaveAccessibleDescription(
+    "Това е максимумът за един продукт.",
+  );
+});
+
+test("the add button stops at the maximum, says why and keeps focus", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: POLLEN_SLUG, quantity: 98 }],
+  });
   await page.goto(`/products/${POLLEN_SLUG}`);
 
   const add = page.getByRole("button", { name: "Добави в количката" });
-  await expect(add).toBeDisabled();
+  await add.click();
+
+  const cue = page.getByText("Добавено ✓");
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 99 бр.");
+  await expect(cue).toBeHidden({ timeout: 3000 });
+
   await expect(add).toHaveAccessibleDescription(
     "99 бр. в количката — това е максимумът за един продукт.",
   );
+  await expect(add).toBeDisabled();
+  await expect(add).toBeFocused();
+
+  await add.click({ force: true });
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  expect(await cue.isVisible()).toBe(false);
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 99 бр.");
 });
 
 for (const quantity of [0, -1, 1.5, 100]) {

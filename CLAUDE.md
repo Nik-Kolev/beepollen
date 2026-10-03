@@ -96,7 +96,7 @@ The header bee buzzes on a counter only `add` bumps, so a stepper change or
 another tab's write never sets it off. The add button's green window is locked by
 its timer ref rather than its state, which clicks landing in one tick read stale,
 and marked `aria-disabled` rather than `disabled`, which would grey it and drop
-focus.
+focus. The same holds at the 99 limit, for that button and the cart's „+“.
 
 The cart glyph is a modified Material Symbols path. Its attribution comment is a
 condition of the Apache 2.0 licence, not a note.

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useId } from "react";
 
 import { EmptyCart } from "@/components/empty-cart";
 import { useCart } from "@/hooks/use-cart";
@@ -10,13 +11,14 @@ import { formatPrice } from "@/lib/money";
 import type { CartProduct } from "@/lib/products";
 
 const STEP_BUTTON =
-  "border-line text-ink hover:border-brand-deep grid size-11 place-items-center rounded-md border text-lg leading-none transition-colors disabled:cursor-not-allowed disabled:opacity-40 sm:size-9";
+  "border-line text-ink hover:border-brand-deep grid size-11 place-items-center rounded-md border text-lg leading-none transition-colors disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 sm:size-9";
 
 const REMOVE_BUTTON =
   "text-ink-soft hover:text-brand-deep inline-flex min-h-11 items-center px-2 text-sm underline underline-offset-4 sm:min-h-0 sm:px-0";
 
 export function CartContents({ products }: { products: CartProduct[] }) {
   const { cart, ready, setQuantity, remove } = useCart();
+  const limitId = useId();
   const catalogue = new Map(products.map((product) => [product.slug, product]));
 
   if (!ready) return <div className="py-10" aria-hidden="true" />;
@@ -60,6 +62,9 @@ export function CartContents({ products }: { products: CartProduct[] }) {
           }
 
           const [image] = product.images;
+          const atLimit =
+            quantity >= MAX_LINE_QUANTITY && product.stock !== "NONE";
+          const limitLineId = `${limitId}-${slug}`;
 
           return (
             <li
@@ -97,6 +102,13 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                 {product.stock === "NONE" && (
                   <p className="text-ink-soft mt-1 text-sm">Изчерпан</p>
                 )}
+                <p
+                  id={limitLineId}
+                  role="status"
+                  className={`text-ink-soft text-sm ${atLimit ? "mt-1" : ""}`}
+                >
+                  {atLimit ? "Това е максимумът за един продукт." : ""}
+                </p>
               </div>
 
               <div className="flex w-full items-center justify-between gap-6 sm:w-auto">
@@ -117,9 +129,9 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                     type="button"
                     aria-label={`Увеличи количеството на ${product.name}`}
                     onClick={() => setQuantity(slug, quantity + 1)}
-                    disabled={
-                      quantity >= MAX_LINE_QUANTITY || product.stock === "NONE"
-                    }
+                    disabled={product.stock === "NONE"}
+                    aria-disabled={atLimit}
+                    aria-describedby={atLimit ? limitLineId : undefined}
                     className={STEP_BUTTON}
                   >
                     +

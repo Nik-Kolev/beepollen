@@ -1,5 +1,7 @@
 "use client";
 
+import { RetryButton } from "@/components/retry-button";
+
 export default function AdminError({
   error,
   retry,
@@ -21,13 +23,7 @@ export default function AdminError({
         Страницата не можа да се зареди.
         {digest && <> Код за проверка в лога: {digest}</>}
       </p>
-      <button
-        type="button"
-        onClick={retry}
-        className="bg-action text-action-ink hover:bg-action-hover rounded-md px-4 py-2 text-sm transition-colors"
-      >
-        Опитайте отново
-      </button>
+      <RetryButton onClick={retry} />
     </>
   );
 }

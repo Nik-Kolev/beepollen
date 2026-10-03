@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { Container } from "@/components/container";
+import { RetryButton } from "@/components/retry-button";
 
 export default function Error({ retry }: { retry: () => void }) {
   return (
@@ -13,13 +14,7 @@ export default function Error({ retry }: { retry: () => void }) {
           Lorem ipsum dolor sit amet, consectetur adipiscing elit.
         </p>
         <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={retry}
-            className="bg-action text-action-ink hover:bg-action-hover rounded-md px-4 py-2 text-sm transition-colors"
-          >
-            Опитайте отново
-          </button>
+          <RetryButton onClick={retry} />
           <Link
             href="/"
             className="border-line hover:bg-halo rounded-md border px-4 py-2 text-sm transition-colors"

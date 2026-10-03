@@ -1,5 +1,7 @@
 "use client";
 
+import { RetryButton } from "@/components/retry-button";
+
 import "./globals.css";
 
 export default function GlobalError({ retry }: { retry: () => void }) {
@@ -11,13 +13,7 @@ export default function GlobalError({ retry }: { retry: () => void }) {
           Lorem ipsum dolor sit amet, consectetur adipiscing elit.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
-          <button
-            type="button"
-            onClick={retry}
-            className="bg-action text-action-ink hover:bg-action-hover rounded-md px-4 py-2 text-sm transition-colors"
-          >
-            Опитайте отново
-          </button>
+          <RetryButton onClick={retry} />
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- a full document request is what recovers a failed root layout; Link would re-render it client-side */}
           <a
             href="/"

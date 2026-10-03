@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useRef, useState, useTransition } from "react";
+import { type SubmitEvent, useRef, useState, useTransition } from "react";
 
 import { saveProduct } from "@/app/admin/products/actions";
 import { FIELD, FIELD_INVALID, LABEL } from "@/components/form-styles";
@@ -37,7 +37,7 @@ export function ProductEditForm({
 
   const priceInvalid = status === "INVALID_PRICE";
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving.current) return;
     saving.current = true;

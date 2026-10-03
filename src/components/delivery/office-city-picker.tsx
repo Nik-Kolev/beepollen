@@ -230,7 +230,7 @@ export function OfficeCityPicker({
         ? `${officeCount(cityOffices.length)} в ${city} — въведете улица, квартал, име или изберете офис на картата.`
         : shownOffices.length === 0
           ? "Няма офис с това име."
-          : `${officeCount(shownOffices.length)} в ${city}`;
+          : `${officeCount(shownOffices.length)} в ${city}.`;
 
   const mapOffices = useMemo(() => {
     if (!city) return [];

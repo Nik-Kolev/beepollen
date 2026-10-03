@@ -2,7 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 import { TEST_ADMIN_EMAIL, TEST_AUTH_SECRET } from "./e2e/admin-env";
 
-const baseURL = "http://localhost:3000";
+const port = process.env.E2E_PORT ?? "3000";
+const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "e2e",
@@ -36,6 +37,7 @@ export default defineConfig({
     command: "node scripts/reset-e2e-db.mjs && npm run build:demo && npm start",
     url: baseURL,
     env: {
+      PORT: port,
       DATABASE_URL: "file:./data/e2e.db",
       AUTH_SECRET: TEST_AUTH_SECRET,
       AUTH_TRUST_HOST: "true",

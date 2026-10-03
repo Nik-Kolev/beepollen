@@ -31,14 +31,16 @@ export function Header() {
             </span>
           </Link>
 
-          <ul
-            role="list"
-            className="order-last flex w-full justify-center gap-6 text-sm sm:order-none sm:ml-auto sm:w-auto"
+          <nav
+            aria-label="Основно меню"
+            className="order-last w-full sm:order-none sm:ml-auto sm:w-auto"
           >
-            {navPlaceholders.map((label) => (
-              <li key={label}>{label}</li>
-            ))}
-          </ul>
+            <ul role="list" className="flex justify-center gap-6 text-sm">
+              {navPlaceholders.map((label) => (
+                <li key={label}>{label}</li>
+              ))}
+            </ul>
+          </nav>
 
           <CartLink />
         </div>

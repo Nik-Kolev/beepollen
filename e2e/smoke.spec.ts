@@ -8,6 +8,9 @@ test("the homepage serves its shell", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("lang", "bg");
 
   await expect(page.getByRole("banner")).toBeVisible();
+  await expect(
+    page.getByRole("banner").getByRole("navigation", { name: "Основно меню" }),
+  ).toBeVisible();
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.getByRole("contentinfo")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();

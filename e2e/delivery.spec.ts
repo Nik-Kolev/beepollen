@@ -115,7 +115,7 @@ test("a small city lists its offices outright, with no search field", async ({
   await expect(officeSearchInput(page)).toHaveCount(0);
   await expect(officeRow(page, SMALL_CITY_OFFICE_A.street)).toBeVisible();
   await expect(officeRow(page, SMALL_CITY_OFFICE_B.street)).toBeVisible();
-  await expect(statusLine(page)).toHaveText(`2 офиса в ${SMALL_CITY}`);
+  await expect(statusLine(page)).toHaveText(`2 офиса в ${SMALL_CITY}.`);
 });
 
 test("a large city needs a search before any office is listed", async ({
@@ -140,7 +140,7 @@ test("typing in the office search filters the list", async ({ page }) => {
     BIG_CITY_SEARCH_MATCHES,
   );
   await expect(statusLine(page)).toHaveText(
-    `${BIG_CITY_SEARCH_MATCHES} офиса в ${BIG_CITY}`,
+    `${BIG_CITY_SEARCH_MATCHES} офиса в ${BIG_CITY}.`,
   );
 });
 
@@ -197,7 +197,7 @@ test("Изчисти clears only the office, leaving the city selected", async (
   await expect(page.getByText(`Град: ${SMALL_CITY}`)).toBeVisible();
   await expect(officeRow(page, SMALL_CITY_OFFICE_A.street)).toBeVisible();
   await expect(officeRow(page, SMALL_CITY_OFFICE_B.street)).toBeVisible();
-  await expect(statusLine(page)).toHaveText(`2 офиса в ${SMALL_CITY}`);
+  await expect(statusLine(page)).toHaveText(`2 офиса в ${SMALL_CITY}.`);
 });
 
 test("clearing a chosen office in a large city brings back the search that found it", async ({
@@ -212,7 +212,7 @@ test("clearing a chosen office in a large city brings back the search that found
 
   await expect(officeSearchInput(page)).toHaveValue(BIG_CITY_SEARCH_TERM);
   await expect(statusLine(page)).toHaveText(
-    `${BIG_CITY_SEARCH_MATCHES} офиса в ${BIG_CITY}`,
+    `${BIG_CITY_SEARCH_MATCHES} офиса в ${BIG_CITY}.`,
   );
 });
 
@@ -244,7 +244,7 @@ test("a city with a single office lists it without a search field", async ({
 
   await expect(officeSearchInput(page)).toHaveCount(0);
   await expect(officeGroup(page).getByRole("radio")).toHaveCount(1);
-  await expect(statusLine(page)).toHaveText(`1 офис в ${SINGLE_OFFICE_CITY}`);
+  await expect(statusLine(page)).toHaveText(`1 офис в ${SINGLE_OFFICE_CITY}.`);
 });
 
 test("an office with no coordinates falls back to its address for directions", async ({

@@ -30,7 +30,7 @@ export function AddToCart({
   }, []);
 
   function handleAdd() {
-    if (timer.current !== undefined) return;
+    if (timer.current !== undefined || full) return;
 
     add(slug);
     setAdded(true);
@@ -46,10 +46,10 @@ export function AddToCart({
       <button
         type="button"
         onClick={handleAdd}
-        disabled={soldOut || full}
-        aria-disabled={added}
+        disabled={soldOut}
+        aria-disabled={added || atLimit}
         aria-describedby={atLimit ? statusId : undefined}
-        className={`${added ? "bg-leaf hover:bg-leaf" : "bg-action hover:bg-action-hover"} text-action-ink disabled:bg-placeholder disabled:text-ink-soft grid w-full rounded-md px-6 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed sm:w-auto sm:self-start`}
+        className={`${added ? "bg-leaf hover:bg-leaf text-action-ink" : atLimit ? "bg-placeholder text-ink-soft cursor-not-allowed" : "bg-action hover:bg-action-hover text-action-ink"} disabled:bg-placeholder disabled:text-ink-soft grid w-full rounded-md px-6 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed sm:w-auto sm:self-start`}
       >
         <span className={`col-start-1 row-start-1 ${added ? "opacity-0" : ""}`}>
           {soldOut ? "Изчерпан" : "Добави в количката"}

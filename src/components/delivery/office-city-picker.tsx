@@ -71,7 +71,7 @@ function ChangeButton({
       type="button"
       onClick={onClick}
       aria-label={label}
-      className="min-h-11 shrink-0 rounded-lg px-2 text-base font-medium text-action underline transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-action/30 focus-visible:outline-none"
+      className="min-h-11 shrink-0 rounded-lg px-2 text-base font-medium text-action underline transition-colors hover:bg-surface focus-visible:ring-2 focus-visible:ring-action/30 focus-visible:outline-hidden"
     >
       {text}
     </button>
@@ -374,7 +374,7 @@ export function OfficeCityPicker({
                 href={directionsUrl(selected)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-action bg-surface px-4 text-base font-medium text-action transition-colors hover:bg-ground focus-visible:ring-2 focus-visible:ring-action/30 focus-visible:outline-none"
+                className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-action bg-surface px-4 text-base font-medium text-action transition-colors hover:bg-ground focus-visible:ring-2 focus-visible:ring-action/30 focus-visible:outline-hidden"
               >
                 Упътване до офиса
               </a>

@@ -442,7 +442,8 @@ Playwright is the other layer. It starts the app with
 on outside CI, so a local run silently attaches to whatever already holds the
 port. With `npm run dev` up, the whole suite tests Turbopack dev instead of the
 build and can fail on differences that do not exist in what ships. Stop the dev
-server before a local suite run, or read the result as provisional.
+server before a local suite run, or point the suite at a free port with
+`E2E_PORT`, which it hands `next start` as `PORT`.
 Dev runs Turbopack and is not what ships, so a smoke test against it proves less
 than the seconds it saves. The suite runs twice, mobile project first, because
 mobile is the priority everything else here is built around.

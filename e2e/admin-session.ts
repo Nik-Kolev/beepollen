@@ -20,7 +20,8 @@ export async function signInAs(
     {
       name: COOKIE,
       value,
-      url: "http://localhost:3000",
+      domain: "localhost",
+      path: "/",
       httpOnly: true,
       sameSite: "Lax",
     },

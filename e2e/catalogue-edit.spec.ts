@@ -20,7 +20,7 @@ async function saveProduct(page: Page, price: string, stock: string) {
   await form.getByLabel("Цена (€)").fill(price);
   await form.getByLabel("Наличност").selectOption(stock);
   await form.getByRole("button", { name: "Запази" }).click();
-  await expect(form.getByText("Запазено.")).toBeVisible();
+  await expect(form.getByRole("status")).toHaveText("Запазено.");
 }
 
 test.afterAll(async ({ browser }, testInfo) => {

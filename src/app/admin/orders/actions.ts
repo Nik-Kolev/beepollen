@@ -2,16 +2,20 @@
 
 import { refresh } from "next/cache";
 
-import { orderMarkInput, setOrderMark } from "@/lib/admin-orders";
+import {
+  applyOrderStep,
+  orderStepInput,
+  type OrderStepResult,
+} from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
 
-export async function markOrder(input: unknown): Promise<{ ok: boolean }> {
+export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
   await requireAdmin();
-  const parsed = orderMarkInput.safeParse(input);
-  if (!parsed.success) return { ok: false };
+  const parsed = orderStepInput.safeParse(input);
+  if (!parsed.success) return { ok: false, reason: "refused" };
 
-  const { reference, mark, on } = parsed.data;
-  await setOrderMark(reference, mark, on);
-  refresh();
-  return { ok: true };
+  const { reference, step, expected } = parsed.data;
+  const result = await applyOrderStep(reference, step, expected);
+  if (result.ok) refresh();
+  return result;
 }

@@ -58,7 +58,11 @@ export function listProductsForAdmin() {
       name: true,
       priceCents: true,
       stock: true,
-      isPublished: true,
+      images: {
+        orderBy: { sortOrder: "asc" },
+        take: 1,
+        select: { path: true, alt: true },
+      },
     },
   });
 }

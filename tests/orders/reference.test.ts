@@ -19,6 +19,17 @@ function sequenceOf(reference: string, prefix: string) {
   return Number(reference.slice(prefix.length));
 }
 
+async function lastSequenceOf(prefix: string) {
+  const orders = await prisma.order.findMany({
+    where: { reference: { startsWith: prefix } },
+    select: { reference: true },
+  });
+  return Math.max(
+    0,
+    ...orders.map((order) => sequenceOf(order.reference, prefix)),
+  );
+}
+
 async function placeOne() {
   const result = await placeOrder(
     validCheckoutInput({
@@ -90,7 +101,7 @@ test("an order from another day does not carry its number into today", async () 
       contactName: "Стара поръчка",
       contactPhone: "0888000000",
       ...TEST_OFFICE_SNAPSHOT,
-      reference: "BP00000099",
+      reference: "BP00000099999",
       itemsCents: 1,
       deliveryCents: 0,
       totalCents: 1,
@@ -99,10 +110,11 @@ test("an order from another day does not carry its number into today", async () 
   });
 
   const prefix = orderReferencePrefix(new Date());
+  const last = await lastSequenceOf(prefix);
   const placed = await placeOne();
 
   assert.ok(placed.reference.startsWith(prefix));
-  assert.ok(sequenceOf(placed.reference, prefix) < 99);
+  assert.equal(sequenceOf(placed.reference, prefix), last + 1);
 });
 
 test("an order from the same day a year earlier does not carry its number into this year", async () => {
@@ -127,7 +139,7 @@ test("an order from the same day a year earlier does not carry its number into t
       contactName: "Миналогодишна поръчка",
       contactPhone: "0888000000",
       ...TEST_OFFICE_SNAPSHOT,
-      reference: `${prefix.slice(0, 6)}${lastYear}99`,
+      reference: `${prefix.slice(0, 6)}${lastYear}99999`,
       itemsCents: 1,
       deliveryCents: 0,
       totalCents: 1,
@@ -135,10 +147,11 @@ test("an order from the same day a year earlier does not carry its number into t
     },
   });
 
+  const last = await lastSequenceOf(prefix);
   const placed = await placeOne();
 
   assert.ok(placed.reference.startsWith(prefix));
-  assert.ok(sequenceOf(placed.reference, prefix) < 99);
+  assert.equal(sequenceOf(placed.reference, prefix), last + 1);
 });
 
 test("concurrent orders never share a reference", async () => {

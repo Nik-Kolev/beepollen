@@ -1,9 +1,10 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import { CONSENT_WORDING } from "@/lib/consent";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
+import { backdateOrderSteps } from "./e2e-db";
 import { signInAs } from "./admin-session";
 import { seedCart } from "./seed-cart";
 
@@ -15,6 +16,10 @@ async function expectNoAxeViolations(page: Page) {
   expect(
     violations.map((v) => `${v.id} on ${v.nodes.length}: ${v.help}`),
   ).toEqual([]);
+}
+
+function badge(card: Locator, label: string) {
+  return card.getByText(label, { exact: true });
 }
 
 async function placeOrder(page: Page, email: string) {
@@ -44,7 +49,7 @@ async function placeOrder(page: Page, email: string) {
   return (await reference.textContent())!;
 }
 
-test("an order placed through checkout appears in the order list and opens in full", async ({
+test("an order placed through checkout appears in the order list and expands in place", async ({
   page,
   context,
   isMobile,
@@ -57,79 +62,61 @@ test("an order placed through checkout appears in the order list and opens in fu
   const orderReference = await placeOrder(page, "admin.list@example.com");
 
   await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin/orders");
+  await page.goto("/admin/orders?filter=new");
 
   const card = page
     .getByRole("article")
     .filter({ has: page.getByRole("heading", { name: orderReference }) });
   await expect(card).toContainText("Админ Тестов");
   await expect(card).toContainText("Павликени");
-  const sent = card.getByRole("button", { name: "Изпратена" });
-  await expect(sent).toHaveAttribute("aria-pressed", "false");
+  await expect(badge(card, "Нова")).toBeVisible();
+  await expect(card.getByRole("button", { name: "Платена" })).toHaveCount(0);
   await expectNoAxeViolations(page);
 
-  await sent.click();
-  await expect(sent).toHaveAttribute("aria-pressed", "true");
-  await page.reload();
-  await expect(sent).toHaveAttribute("aria-pressed", "true");
-  await expect(card.getByRole("button", { name: "Платена" })).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
+  await card.getByRole("button", { name: "Изпратена" }).click();
+  await expect(card).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Поръчки" })).toBeFocused();
 
   const filters = page.getByRole("navigation", {
     name: "Филтър на поръчките",
   });
-  await filters.getByRole("link", { name: /^Неизпратени/ }).click();
-  await expect(page).toHaveURL("/admin/orders?filter=unsent");
-  await expect(card).toHaveCount(0);
-  await filters.getByRole("link", { name: /^Неплатени/ }).click();
-  await expect(page).toHaveURL("/admin/orders?filter=unpaid");
-  await expect(card).toBeVisible();
+  await filters.getByRole("link", { name: /^Чакат плащане/ }).click();
+  await expect(page).toHaveURL("/admin/orders?filter=sent");
+  await expect(badge(card, "Чака плащане")).toBeVisible();
+  await expect(card).toContainText("Изпратена днес");
+  await expect(card.getByRole("button", { name: "Платена" })).toBeVisible();
+  await expect(card.getByRole("button", { name: "Върната" })).toBeVisible();
+  await page.reload();
+  await expect(badge(card, "Чака плащане")).toBeVisible();
 
-  await card.click({ position: { x: 20, y: 60 } });
-
-  await expect(page).toHaveURL(`/admin/orders/${orderReference}`);
+  const details = card.getByRole("group");
   await expect(
-    page.getByRole("heading", {
-      level: 1,
-      name: `Поръчка ${orderReference}`,
-    }),
-  ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Изпратена" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+    details.getByRole("link", { name: "+359899555444" }),
+  ).toBeHidden();
 
-  const items = page.getByRole("region", { name: "Продукти" });
-  await expect(items.getByRole("listitem")).toHaveCount(2);
-  await expect(items).toContainText("Пчелен прашец 500 г");
-  await expect(items).toContainText("Пчелен прашец 1 кг");
+  await card.getByText("Детайли").click();
 
-  const contact = page.getByRole("region", { name: "Клиент" });
-  await expect(contact).toContainText("Админ Тестов");
+  await expect(page).toHaveURL("/admin/orders?filter=sent");
   await expect(
-    contact.getByRole("link", { name: "+359899555444" }),
+    details.getByRole("listitem").filter({ hasText: " × " }),
+  ).toHaveCount(2);
+  await expect(details).toContainText("Пчелен прашец 500 г");
+  await expect(details).toContainText("Пчелен прашец 1 кг");
+  await expect(
+    details.getByRole("link", { name: "+359899555444" }),
   ).toHaveAttribute("href", "tel:+359899555444");
   await expect(
-    contact.getByRole("link", { name: "admin.list@example.com" }),
+    details.getByRole("link", { name: "admin.list@example.com" }),
   ).toBeVisible();
-
-  const delivery = page.getByRole("region", { name: "Доставка" });
-  await expect(delivery).toContainText("пл. Стефан Караджа №16");
-  await expect(delivery).toContainText("Еконт");
-
-  const consents = page.getByRole("region", { name: "Съгласия" });
-  await expect(consents).toContainText(CONSENT_WORDING.TERMS);
-  await expect(consents).toContainText("Без съгласие за оферти по имейл.");
+  await expect(details).toContainText("пл. Стефан Караджа №16");
+  await expect(details).toContainText("Еконт");
+  await expect(details).toContainText(CONSENT_WORDING.TERMS);
+  await expect(details).toContainText("Без съгласие за оферти по имейл.");
 
   await expectNoAxeViolations(page);
-
-  await page.getByRole("link", { name: "Всички поръчки" }).click();
-  await expect(page).toHaveURL("/admin/orders");
 });
 
-test("a mark the server fails to save reverts and says so, a cancellation shows in the error colour, and a lost session goes to the login page", async ({
+test("a step the server fails to save says so, a returned parcel shows in the error colour and stays among the open orders, a stale screen is told the order changed, and a lost session goes to the login page", async ({
   page,
   context,
   isMobile,
@@ -141,54 +128,95 @@ test("a mark the server fails to save reverts and says so, a cancellation shows 
 
   const orderReference = await placeOrder(page, "admin.mark@example.com");
   await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto(`/admin/orders/${orderReference}`);
+  await page.goto("/admin/orders");
 
-  const sent = page.getByRole("button", { name: "Изпратена" });
-  const notSaved = page
+  const cardOn = (target: Page) =>
+    target
+      .getByRole("article")
+      .filter({ has: target.getByRole("heading", { name: orderReference }) });
+  const card = cardOn(page);
+  const notSaved = card
     .getByRole("status")
     .filter({ hasText: "Не е запазено. Опитайте отново." });
 
-  await page.route(`**/admin/orders/${orderReference}`, (route) =>
+  await page.route("**/admin/orders*", (route) =>
     route.request().method() === "POST"
       ? route.fulfill({ status: 500 })
       : route.continue(),
   );
-  await sent.click();
+  await card.getByRole("button", { name: "Изпратена" }).click();
 
   await expect(notSaved).toBeVisible();
-  await expect(sent).toHaveAttribute("aria-pressed", "false");
+  await expect(badge(card, "Нова")).toBeVisible();
 
   await page.unrouteAll();
-  await sent.click();
-
-  await expect(sent).toHaveAttribute("aria-pressed", "true");
+  await card.getByRole("button", { name: "Изпратена" }).click();
+  await expect(badge(card, "Чака плащане")).toBeVisible();
   await expect(notSaved).toHaveCount(0);
-  await page.reload();
-  await expect(sent).toHaveAttribute("aria-pressed", "true");
 
-  const cancelled = page.getByRole("button", { name: "Отказана" });
-  await cancelled.click();
-  await expect(cancelled).toHaveAttribute("aria-pressed", "true");
+  await card.getByRole("button", { name: "Върната" }).click();
+  await page
+    .getByRole("dialog", { name: "Сигурни ли сте?" })
+    .getByRole("button", { name: "Да, върната е" })
+    .click();
+  const returnedBadge = badge(card, "Върната — за прибиране");
+  await expect(returnedBadge).toBeVisible();
   await expect
     .poll(() =>
-      cancelled.evaluate((button) => {
+      returnedBadge.evaluate((element) => {
         const probe = document.createElement("span");
         probe.style.color = "var(--color-error)";
         document.body.append(probe);
         const error = getComputedStyle(probe).color;
         probe.remove();
-        return getComputedStyle(button).backgroundColor === error;
+        return getComputedStyle(element).backgroundColor === error;
       }),
     )
     .toBe(true);
 
+  await page.goto("/admin/orders?open=1");
+  await expect(badge(card, "Върната — за прибиране")).toBeVisible();
+
+  await page.goto("/admin/orders");
+  const other = await context.newPage();
+  await other.goto("/admin/orders");
+  await cardOn(other).getByRole("button", { name: "Прибрана" }).click();
+  await expect(badge(cardOn(other), "Отказана")).toBeVisible();
+
+  await card.getByRole("button", { name: "Прибрана" }).click();
+  await expect(card.getByRole("status")).toHaveText(
+    "Поръчката вече е променена от друг екран.",
+  );
+  await expect(badge(card, "Върната — за прибиране")).toBeVisible();
+  await other.close();
+
+  await card.getByRole("button", { name: "Обнови" }).click();
+  await expect(badge(card, "Отказана")).toBeVisible();
+
+  const hideClosed = page.getByRole("checkbox", {
+    name: /^Скрий приключените/,
+  });
+  await hideClosed.check();
+  await expect(page).toHaveURL("/admin/orders?open=1");
+  await expect(card).toHaveCount(0);
+  await hideClosed.uncheck();
+  await expect(page).toHaveURL("/admin/orders");
+  await expect(badge(card, "Отказана")).toBeVisible();
+
+  await card.getByRole("button", { name: "Върни назад" }).click();
+  await page
+    .getByRole("dialog", { name: "Сигурни ли сте?" })
+    .getByRole("button", { name: "Да, върни" })
+    .click();
+  await expect(badge(card, "Върната — за прибиране")).toBeVisible();
+
   await context.clearCookies();
-  await page.getByRole("button", { name: "Платена" }).click();
+  await card.getByRole("button", { name: "Прибрана" }).click();
 
   await expect(page).toHaveURL("/admin/login");
 });
 
-test("a page number past the last page shows the first, and filters always start at page one", async ({
+test("the list shows five orders, loads five more on request, and filters always start from five", async ({
   page,
   context,
   isMobile,
@@ -198,43 +226,101 @@ test("a page number past the last page shows the first, and filters always start
     "Ordering is rate limited, so it is exercised in the mobile project only.",
   );
 
-  await placeOrder(page, "admin.pages@example.com");
+  await placeOrder(page, "admin.more@example.com");
   await signInAs(context, TEST_ADMIN_EMAIL);
   const references = () =>
     page.getByRole("article").getByRole("heading").allTextContents();
   const filters = page.getByRole("navigation", {
     name: "Филтър на поръчките",
   });
-  const pages = page.getByRole("navigation", {
-    name: "Страници на поръчките",
-  });
+  const loadMore = page.getByRole("link", { name: /^Зареди още/ });
 
-  await page.goto("/admin/orders?page=99");
+  await page.goto("/admin/orders");
   const total = Number(
     (await filters
       .getByRole("link", { name: /^Всички/ })
       .textContent())!.replace(/\D/g, ""),
   );
-  const listed = await references();
+  const first = await references();
+  expect(first).toHaveLength(Math.min(total, 5));
 
-  expect(listed).toHaveLength(Math.min(total, 20));
-  if (total > 20) {
-    await expect(pages).toContainText(`Страница 1 от ${Math.ceil(total / 20)}`);
+  if (total > 5) {
+    await loadMore.click();
+    await expect(page).toHaveURL("/admin/orders?shown=10");
+    const more = await references();
+    expect(more).toHaveLength(Math.min(total, 10));
+    expect(more.slice(0, 5)).toEqual(first);
   } else {
-    await expect(pages).toHaveCount(0);
+    await expect(loadMore).toHaveCount(0);
   }
 
-  await page.goto("/admin/orders");
-  expect(await references()).toContain(listed[0]);
+  await page.goto("/admin/orders?shown=9999");
+  expect(await references()).toHaveLength(total);
+  await expect(loadMore).toHaveCount(0);
 
   for (const href of await filters
     .getByRole("link")
     .evaluateAll((links) => links.map((link) => link.getAttribute("href")))) {
-    expect(href).not.toContain("page=");
+    expect(href).not.toContain("shown=");
   }
 });
 
-test("an unknown order reference is the 404 page", async ({
+test("undo and cancel ask first, naming the order and what will change, and undo still works a month later", async ({
+  page,
+  context,
+  isMobile,
+}) => {
+  test.skip(
+    !isMobile,
+    "Ordering is rate limited, so it is exercised in the mobile project only.",
+  );
+
+  const orderReference = await placeOrder(page, "admin.undo@example.com");
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders");
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: orderReference }) });
+
+  await card.getByRole("button", { name: "Изпратена" }).click();
+  await card.getByRole("button", { name: "Платена" }).click();
+  await expect(badge(card, "Платена")).toBeVisible();
+  const undo = card.getByRole("button", { name: "Върни назад" });
+  await expect(undo).toBeVisible();
+
+  backdateOrderSteps(orderReference, 30 * 24);
+  await page.reload();
+
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  await undo.click();
+  await expect(dialog).toContainText(
+    `Поръчка ${orderReference} на Админ Тестов ще се върне от „Платена“ на „Чака плащане“.`,
+  );
+  await expect(dialog.getByRole("button", { name: "Отказ" })).toBeFocused();
+
+  await dialog.getByRole("button", { name: "Отказ" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(undo).toBeFocused();
+  await expect(badge(card, "Платена")).toBeVisible();
+
+  await undo.click();
+  await dialog.getByRole("button", { name: "Да, върни" }).click();
+  await expect(badge(card, "Чака плащане")).toBeVisible();
+
+  await undo.click();
+  await dialog.getByRole("button", { name: "Да, върни" }).click();
+  await expect(badge(card, "Нова")).toBeVisible();
+
+  await card.getByRole("button", { name: "Откажи" }).click();
+  await expect(dialog).toContainText(
+    `Поръчка ${orderReference} на Админ Тестов ще бъде отказана и няма да се изпраща.`,
+  );
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(badge(card, "Нова")).toBeVisible();
+});
+
+test("an order has no page of its own any more, so its old address is the 404 page", async ({
   page,
   context,
 }) => {
@@ -243,16 +329,7 @@ test("an unknown order reference is the 404 page", async ({
   const response = await page.goto("/admin/orders/BP000000");
 
   expect(response?.status()).toBe(404);
-  await expect(page).toHaveTitle(/^Страницата не е намерена/);
   await expect(
     page.getByRole("heading", { level: 1, name: "Страницата не е намерена" }),
   ).toBeVisible();
-});
-
-test("an anonymous visitor to an order is sent to the login page", async ({
-  page,
-}) => {
-  await page.goto("/admin/orders/BP000000");
-
-  await expect(page).toHaveURL("/admin/login");
 });

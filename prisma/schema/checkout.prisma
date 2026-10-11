@@ -23,6 +23,7 @@ model Order {
   sentAt      DateTime?
   paidAt      DateTime?
   cancelledAt DateTime?
+  collectedAt DateTime?
 
   contactName  String
   contactPhone String

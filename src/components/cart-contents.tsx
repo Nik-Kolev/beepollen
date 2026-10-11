@@ -14,7 +14,7 @@ const STEP_BUTTON =
   "border-line text-ink hover:border-brand-deep grid size-11 place-items-center rounded-md border text-lg leading-none transition-colors disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 sm:size-9";
 
 const REMOVE_BUTTON =
-  "text-ink-soft hover:text-brand-deep inline-flex min-h-11 items-center px-2 text-sm underline underline-offset-4 sm:min-h-0 sm:px-0";
+  "text-ink hover:text-brand-deep inline-flex min-h-11 items-center px-2 text-sm font-semibold underline underline-offset-4 sm:min-h-0 sm:px-0";
 
 export function CartContents({ products }: { products: CartProduct[] }) {
   const { cart, ready, setQuantity, remove } = useCart();
@@ -71,7 +71,7 @@ export function CartContents({ products }: { products: CartProduct[] }) {
               key={slug}
               className="flex flex-wrap items-center gap-4 py-5 sm:flex-nowrap"
             >
-              <div className="bg-placeholder relative size-20 shrink-0 overflow-hidden rounded-md">
+              <div className="bg-placeholder relative size-24 shrink-0 overflow-hidden rounded-md sm:size-32">
                 {image && (
                   <Image
                     src={image.path}
@@ -79,7 +79,7 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                     fill
                     loading={index === 0 ? "eager" : "lazy"}
                     fetchPriority={index === 0 ? "high" : "auto"}
-                    sizes="80px"
+                    sizes="(min-width: 640px) 128px, 96px"
                     className="object-cover"
                   />
                 )}
@@ -96,9 +96,17 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                 </h2>
                 <p className="text-brand-deep mt-1 font-semibold">
                   {product.priceCents > 0
-                    ? formatPrice(product.priceCents)
+                    ? `${formatPrice(product.priceCents)} / бр.`
                     : "TODO: цена"}
                 </p>
+                {product.priceCents > 0 && quantity > 1 && (
+                  <p className="text-ink-soft mt-1 text-sm tabular-nums">
+                    {quantity} × {formatPrice(product.priceCents)} ={" "}
+                    <span className="text-ink font-semibold">
+                      {formatPrice(product.priceCents * quantity)}
+                    </span>
+                  </p>
+                )}
                 {product.stock === "NONE" && (
                   <p className="text-ink-soft mt-1 text-sm">Изчерпан</p>
                 )}

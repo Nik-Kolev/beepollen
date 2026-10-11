@@ -15,6 +15,16 @@ function summaryRows(page: Page) {
   return page.getByRole("main").getByRole("listitem");
 }
 
+async function showSummary(page: Page, isMobile: boolean) {
+  if (isMobile) {
+    await page.getByRole("button", { name: /^Вашата поръчка/ }).click();
+  }
+}
+
+function confirmation(page: Page) {
+  return page.getByRole("region", { name: "Потвърждение" });
+}
+
 function emailField(page: Page) {
   return page.getByLabel("Имейл", { exact: true });
 }
@@ -82,7 +92,30 @@ test("an empty cart offers the catalogue instead of a form", async ({
   await expect(page).toHaveURL("/");
 });
 
-test("the summary lists a line per product", async ({ page }) => {
+test("the summary lists a line per product", async ({ page, isMobile }) => {
+  await seedCart(page, {
+    version: 1,
+    items: [
+      { slug: POLLEN_SLUG, quantity: 2 },
+      { slug: SECOND_SLUG, quantity: 1 },
+    ],
+  });
+  await page.goto("/checkout");
+  await showSummary(page, isMobile);
+
+  await expect(summaryRows(page)).toHaveCount(2);
+  await expect(summaryRows(page).first()).toContainText(POLLEN_NAME);
+  await expect(summaryRows(page).first()).toContainText("2 бр.");
+  await expect(summaryRows(page).last()).toContainText(SECOND_NAME);
+  await expect(page.getByText("5,90 €", { exact: true })).toBeVisible();
+  await expect(confirmation(page)).toContainText("100,80 €");
+});
+
+test("on a phone the summary starts folded and names the item count and total", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "The summary folds on a phone only.");
   await seedCart(page, {
     version: 1,
     items: [
@@ -92,16 +125,21 @@ test("the summary lists a line per product", async ({ page }) => {
   });
   await page.goto("/checkout");
 
+  const toggle = page.getByRole("button", {
+    name: "Вашата поръчка · 3 бр. · 100,80 €",
+  });
+  await expect(toggle).toHaveAttribute("aria-expanded", "false");
+  await expect(summaryRows(page)).toHaveCount(0);
+
+  await toggle.click();
+
+  await expect(toggle).toHaveAttribute("aria-expanded", "true");
   await expect(summaryRows(page)).toHaveCount(2);
-  await expect(summaryRows(page).first()).toContainText(POLLEN_NAME);
-  await expect(summaryRows(page).first()).toContainText("2 бр.");
-  await expect(summaryRows(page).last()).toContainText(SECOND_NAME);
-  await expect(page.getByText("5,90 €", { exact: true })).toBeVisible();
-  await expect(page.getByText("100,80 €")).toBeVisible();
 });
 
 test("local delivery in Popovo drops the office picker and the delivery charge", async ({
   page,
+  isMobile,
 }) => {
   await seedCart(page, {
     version: 1,
@@ -111,17 +149,21 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
     ],
   });
   await page.goto("/checkout");
+  await showSummary(page, isMobile);
+  const dispatchNote = page.getByText(/^Изпращаме в деня на поръчката/);
+  await expect(dispatchNote).toBeVisible();
 
   await page.getByLabel(/Поръчката е за гр\. Попово/).check();
 
+  await expect(dispatchNote).toHaveCount(0);
   await expect(page.getByLabel("Град", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Безплатна", { exact: true })).toBeVisible();
-  await expect(page.getByText("94,90 €")).toBeVisible();
+  await expect(confirmation(page)).toContainText("94,90 €");
 
   await page.getByLabel(/Поръчката е за гр\. Попово/).uncheck();
 
   await expect(page.getByLabel("Град", { exact: true })).toBeVisible();
-  await expect(page.getByText("100,80 €")).toBeVisible();
+  await expect(confirmation(page)).toContainText("100,80 €");
 });
 
 test("a withdrawn product is named rather than dropped", async ({ page }) => {
@@ -304,7 +346,7 @@ test.describe("placing an order", () => {
     await expect(offices).toHaveAccessibleDescription(officeRequired);
 
     await offices.locator("label").filter({ hasText: OFFICE_STREET }).click();
-    await expect(offices).not.toHaveAttribute("aria-invalid");
+    await expect(offices).toHaveCount(0);
     await expect(page.getByText(officeRequired)).toHaveCount(0);
 
     await page.getByRole("button", { name: /Промени града/ }).click();
@@ -334,7 +376,7 @@ test.describe("placing an order", () => {
     await expect(
       page.getByRole("heading", { name: "Поръчката е приета" }),
     ).toBeVisible();
-    await expect(page.getByText("Общо: 24,50 €")).toBeVisible();
+    await expect(page.getByText("24,50 €", { exact: true })).toBeVisible();
   });
 
   test("a placed order returns a reference and empties the cart", async ({

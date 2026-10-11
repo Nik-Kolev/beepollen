@@ -78,6 +78,8 @@ export default function OfficeMap({
 
     const map = L.map(containerRef.current, {
       preferCanvas: true,
+      renderer: L.canvas({ tolerance: 8 }),
+      zoomSnap: 0.25,
       scrollWheelZoom: false,
     });
 
@@ -160,7 +162,7 @@ export default function OfficeMap({
 
     if (shown.length > 0) {
       map.fitBounds(coreBounds(shown), {
-        padding: [40, 40],
+        padding: [20, 20],
         maxZoom: CITY_MAX_ZOOM,
         animate: false,
       });
@@ -179,7 +181,7 @@ export default function OfficeMap({
       ref={containerRef}
       role="application"
       aria-label="Карта с офисите на Еконт"
-      className="h-64 w-full overflow-hidden rounded-lg border border-line sm:h-72 lg:h-96"
+      className="h-80 w-full overflow-hidden rounded-lg border border-line sm:h-96 lg:h-[30rem]"
     />
   );
 }

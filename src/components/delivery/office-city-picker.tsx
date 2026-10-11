@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type Ref,
 } from "react";
 
 import { OfficeOption } from "@/components/delivery/office-option";
@@ -22,7 +23,7 @@ import { listEcontCities, officeCount, type EcontOffice } from "@/lib/econt";
 const OfficeMap = dynamic(() => import("./office-map"), {
   ssr: false,
   loading: () => (
-    <div className="h-64 w-full animate-pulse rounded-lg border border-line bg-placeholder sm:h-72 lg:h-96" />
+    <div className="h-80 w-full animate-pulse rounded-lg border border-line bg-placeholder sm:h-96 lg:h-[30rem]" />
   ),
 });
 
@@ -53,21 +54,24 @@ function directionsUrl(office: EcontOffice): string {
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
 }
 
-type FocusTarget = "city" | "offices" | null;
+type FocusTarget = "city" | "offices" | "selected" | null;
 
 type ErrorTarget = "city" | "search" | "offices";
 
 function ChangeButton({
+  ref,
   label,
   text,
   onClick,
 }: {
+  ref?: Ref<HTMLButtonElement>;
   label: string;
   text: string;
   onClick: () => void;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       aria-label={label}
@@ -93,6 +97,7 @@ export function OfficeCityPicker({
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
   const [cityOpen, setCityOpen] = useState(false);
   const [activeCity, setActiveCity] = useState(-1);
+  const [browsing, setBrowsing] = useState(false);
 
   const cityId = useId();
   const cityListId = useId();
@@ -102,6 +107,8 @@ export function OfficeCityPicker({
   const cityInputRef = useRef<HTMLInputElement>(null);
   const officeSearchRef = useRef<HTMLInputElement>(null);
   const officeGroupRef = useRef<HTMLDivElement>(null);
+  const changeOfficeRef = useRef<HTMLButtonElement>(null);
+  const pointerRef = useRef(false);
 
   const cities = useMemo(() => listEcontCities(offices), [offices]);
 
@@ -134,6 +141,8 @@ export function OfficeCityPicker({
   const selected =
     offices.find((office) => office.code === selectedCode) ?? null;
 
+  const collapsed = selected !== null && !browsing;
+
   const listOpen = cityOpen && matchingCities.length > 0;
 
   function chooseCity(name: string) {
@@ -141,6 +150,7 @@ export function OfficeCityPicker({
     setCityQuery("");
     setOfficeQuery("");
     setSelectedCode(null);
+    setBrowsing(false);
     setCityOpen(false);
     setActiveCity(-1);
     focusTargetRef.current = "offices";
@@ -152,6 +162,7 @@ export function OfficeCityPicker({
     setCityQuery("");
     setOfficeQuery("");
     setSelectedCode(null);
+    setBrowsing(false);
     setCityOpen(false);
     setActiveCity(-1);
     focusTargetRef.current = "city";
@@ -160,11 +171,26 @@ export function OfficeCityPicker({
 
   function chooseOffice(code: string) {
     setSelectedCode(code);
+    setBrowsing(false);
+    focusTargetRef.current = "selected";
+    onSelect?.(offices.find((office) => office.code === code) ?? null);
+  }
+
+  function chooseFromList(code: string) {
+    if (pointerRef.current) {
+      pointerRef.current = false;
+      chooseOffice(code);
+      return;
+    }
+
+    setSelectedCode(code);
+    setBrowsing(true);
     onSelect?.(offices.find((office) => office.code === code) ?? null);
   }
 
   function clearOffice() {
     setSelectedCode(null);
+    setBrowsing(false);
     focusTargetRef.current = "offices";
     onSelect?.(null);
   }
@@ -215,12 +241,17 @@ export function OfficeCityPicker({
       return;
     }
 
+    if (target === "selected") {
+      changeOfficeRef.current?.focus();
+      return;
+    }
+
     const firstOption = officeGroupRef.current?.querySelector<HTMLInputElement>(
       'input[type="radio"]',
     );
 
     (officeSearchRef.current ?? firstOption)?.focus();
-  }, [city, selectedCode]);
+  }, [city, selectedCode, browsing]);
 
   const status = selected
     ? `Избрахте ${officeHeading(selected)}, ${selected.street}.`
@@ -234,10 +265,10 @@ export function OfficeCityPicker({
 
   const mapOffices = useMemo(() => {
     if (!city) return [];
-    if (selected) return [selected];
+    if (selected && !browsing) return [selected];
 
     return shownOffices.length > 0 ? shownOffices : cityOffices;
-  }, [city, selected, shownOffices, cityOffices]);
+  }, [city, selected, browsing, shownOffices, cityOffices]);
 
   const errorOn: ErrorTarget | null = !error
     ? null
@@ -263,186 +294,200 @@ export function OfficeCityPicker({
     ) : null;
   }
 
-  const mapHint = !city
-    ? "Изберете град, за да избирате офис от картата."
-    : selected
-      ? "Избраният офис е отбелязан в зелено на картата."
-      : "Натиснете точка на картата или изберете офис от списъка.";
-
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,24rem)_1fr] lg:gap-8">
-      <div className="flex flex-col gap-6">
-        {city ? (
-          <div className={PANEL_CLASS}>
-            <span className="min-w-0 flex-1 self-center text-ink">
-              <span className="text-sm text-ink-soft">Град: </span>
-              <span className="text-base font-medium">{city}</span>
-            </span>
-            <ChangeButton
-              label={`Промени града ${city}`}
-              text="Промени"
-              onClick={clearCity}
-            />
-          </div>
-        ) : (
-          <div
-            onBlur={(event) => {
-              if (!event.currentTarget.contains(event.relatedTarget)) {
-                setCityOpen(false);
-                setActiveCity(-1);
-              }
-            }}
-          >
-            <label htmlFor={cityId} className={LABEL}>
-              Град
-            </label>
-            <div className="relative">
-              <input
-                id={cityId}
-                ref={cityInputRef}
-                type="search"
-                role="combobox"
-                aria-expanded={listOpen}
-                aria-controls={cityListId}
-                aria-autocomplete="list"
-                aria-activedescendant={
-                  listOpen && activeCity >= 0
-                    ? `${cityListId}-${activeCity}`
-                    : undefined
-                }
-                value={cityQuery}
-                onChange={(event) => {
-                  setCityQuery(event.target.value);
-                  setCityOpen(true);
-                  setActiveCity(-1);
-                }}
-                onKeyDown={onCityKeyDown}
-                placeholder="Например София"
-                autoComplete="off"
-                className={errorOn === "city" ? FIELD_INVALID : FIELD}
-                {...errorProps("city")}
+    <div>
+      <div>
+        <div className="flex flex-col gap-6">
+          {city ? (
+            <div className={PANEL_CLASS}>
+              <span className="min-w-0 flex-1 self-center text-ink">
+                <span className="text-sm text-ink-soft">Град: </span>
+                <span className="text-base font-medium">{city}</span>
+              </span>
+              <ChangeButton
+                label={`Промени града ${city}`}
+                text="Промени"
+                onClick={clearCity}
               />
-
-              <ul
-                id={cityListId}
-                role="listbox"
-                aria-label="Градове"
-                hidden={!listOpen}
-                className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-surface shadow-lg"
-              >
-                {matchingCities.map((name, index) => (
-                  <li
-                    key={name}
-                    id={`${cityListId}-${index}`}
-                    role="option"
-                    aria-selected={index === activeCity}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => chooseCity(name)}
-                    className={`flex min-h-11 cursor-pointer items-center border-b border-line px-4 text-ink last:border-0 hover:bg-ground ${
-                      index === activeCity ? "bg-ground" : ""
-                    }`}
-                  >
-                    {name}
-                  </li>
-                ))}
-              </ul>
             </div>
-
-            {cityOpen && cityQuery.trim() && matchingCities.length === 0 && (
-              <p className="mt-2 pl-4 text-sm text-ink-soft">
-                Няма град с това име в списъка на Еконт.
-              </p>
-            )}
-
-            {errorLine("city")}
-          </div>
-        )}
-
-        {selected && (
-          <div className={PANEL_CLASS}>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-ink-soft">Избран офис</p>
-              <p className="mt-1 text-lg leading-snug font-semibold text-ink">
-                {officeHeading(selected)}
-              </p>
-              <p className="text-base text-ink">{selected.street}</p>
-              <p className="mt-1 text-sm text-ink-soft">
-                {selected.hours}
-                {selected.phone && ` · ${selected.phone}`}
-              </p>
-              <a
-                href={directionsUrl(selected)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-action bg-surface px-4 text-base font-medium text-action transition-colors hover:bg-ground focus-visible:ring-2 focus-visible:ring-action/30 focus-visible:outline-hidden"
-              >
-                Упътване до офиса
-              </a>
-            </div>
-            <ChangeButton
-              label="Изчисти избрания офис"
-              text="Изчисти"
-              onClick={clearOffice}
-            />
-          </div>
-        )}
-
-        {city && needsSearch && !selected && (
-          <div>
-            <label htmlFor={officeId} className={LABEL}>
-              Офис — улица, квартал или име
-            </label>
-            <input
-              id={officeId}
-              ref={officeSearchRef}
-              type="search"
-              value={officeQuery}
-              onChange={(event) => setOfficeQuery(event.target.value)}
-              onKeyDown={onSearchKeyDown}
-              placeholder="Например Център"
-              autoComplete="off"
-              className={errorOn === "search" ? FIELD_INVALID : FIELD}
-              {...errorProps("search")}
-            />
-            {errorLine("search")}
-          </div>
-        )}
-
-        <p className="pl-4 text-base text-ink" aria-live="polite">
-          {status}
-        </p>
-
-        {city && (
-          <div>
+          ) : (
             <div
-              ref={officeGroupRef}
-              role="radiogroup"
-              aria-label="Офиси на Еконт"
-              className="flex flex-col gap-3"
-              {...errorProps("offices")}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setCityOpen(false);
+                  setActiveCity(-1);
+                }
+              }}
             >
-              {shownOffices.map((office) => (
-                <OfficeOption
-                  key={office.code}
-                  office={office}
-                  selected={office.code === selectedCode}
-                  onSelect={chooseOffice}
+              <label htmlFor={cityId} className={LABEL}>
+                Град
+              </label>
+              <div className="relative">
+                <input
+                  id={cityId}
+                  ref={cityInputRef}
+                  type="search"
+                  role="combobox"
+                  aria-expanded={listOpen}
+                  aria-controls={cityListId}
+                  aria-autocomplete="list"
+                  aria-activedescendant={
+                    listOpen && activeCity >= 0
+                      ? `${cityListId}-${activeCity}`
+                      : undefined
+                  }
+                  value={cityQuery}
+                  onChange={(event) => {
+                    setCityQuery(event.target.value);
+                    setCityOpen(true);
+                    setActiveCity(-1);
+                  }}
+                  onKeyDown={onCityKeyDown}
+                  placeholder="Например София"
+                  autoComplete="off"
+                  className={errorOn === "city" ? FIELD_INVALID : FIELD}
+                  {...errorProps("city")}
                 />
-              ))}
-            </div>
-            {errorLine("offices")}
-          </div>
-        )}
-      </div>
 
-      <div className="isolate lg:sticky lg:top-4">
-        <OfficeMap
-          offices={offices}
-          visible={mapOffices}
-          selectedCode={selectedCode}
-          onSelect={chooseOffice}
-        />
-        <p className="mt-3 text-base text-ink">{mapHint}</p>
+                <ul
+                  id={cityListId}
+                  role="listbox"
+                  aria-label="Градове"
+                  hidden={!listOpen}
+                  className="absolute top-full right-0 left-0 z-20 mt-1 max-h-64 overflow-y-auto rounded-lg border border-line bg-surface shadow-lg"
+                >
+                  {matchingCities.map((name, index) => (
+                    <li
+                      key={name}
+                      id={`${cityListId}-${index}`}
+                      role="option"
+                      aria-selected={index === activeCity}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => chooseCity(name)}
+                      className={`flex min-h-11 cursor-pointer items-center border-b border-line px-4 text-ink last:border-0 hover:bg-ground ${
+                        index === activeCity ? "bg-ground" : ""
+                      }`}
+                    >
+                      {name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {cityOpen && cityQuery.trim() && matchingCities.length === 0 && (
+                <p className="mt-2 pl-4 text-sm text-ink-soft">
+                  Няма град с това име в списъка на Еконт.
+                </p>
+              )}
+
+              {errorLine("city")}
+            </div>
+          )}
+
+          {selected && collapsed && (
+            <div className={PANEL_CLASS}>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-ink-soft">Избран офис</p>
+                <p className="mt-1 text-lg leading-snug font-semibold text-ink">
+                  {officeHeading(selected)}
+                </p>
+                <p className="text-base text-ink">{selected.street}</p>
+                <p className="mt-1 text-sm text-ink-soft">
+                  {selected.hours}
+                  {selected.phone && ` · ${selected.phone}`}
+                </p>
+                <a
+                  href={directionsUrl(selected)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-action bg-surface px-4 text-base font-medium text-action transition-colors hover:bg-ground focus-visible:ring-2 focus-visible:ring-action/30 focus-visible:outline-hidden"
+                >
+                  Упътване до офиса
+                </a>
+              </div>
+              <ChangeButton
+                ref={changeOfficeRef}
+                label={`Промени офиса ${officeHeading(selected)}`}
+                text="Промени"
+                onClick={clearOffice}
+              />
+            </div>
+          )}
+
+          {city && needsSearch && !collapsed && (
+            <div>
+              <label htmlFor={officeId} className={LABEL}>
+                Офис — улица, квартал или име
+              </label>
+              <input
+                id={officeId}
+                ref={officeSearchRef}
+                type="search"
+                value={officeQuery}
+                onChange={(event) => setOfficeQuery(event.target.value)}
+                onKeyDown={onSearchKeyDown}
+                placeholder="Например Център"
+                autoComplete="off"
+                className={errorOn === "search" ? FIELD_INVALID : FIELD}
+                {...errorProps("search")}
+              />
+              {errorLine("search")}
+            </div>
+          )}
+
+          <p
+            className={collapsed ? "sr-only" : "pl-4 text-base text-ink"}
+            aria-live="polite"
+          >
+            {status}
+          </p>
+
+          {city && !collapsed && (
+            <div>
+              <div
+                ref={officeGroupRef}
+                role="radiogroup"
+                aria-label="Офиси на Еконт"
+                className="flex flex-col gap-3"
+                onPointerDown={() => {
+                  pointerRef.current = true;
+                }}
+                onKeyDown={() => {
+                  pointerRef.current = false;
+                }}
+                onBlur={(event) => {
+                  if (event.currentTarget.contains(event.relatedTarget)) return;
+
+                  if (event.relatedTarget === officeSearchRef.current) {
+                    focusTargetRef.current = "selected";
+                  }
+
+                  setBrowsing(false);
+                }}
+                {...errorProps("offices")}
+              >
+                {shownOffices.map((office) => (
+                  <OfficeOption
+                    key={office.code}
+                    office={office}
+                    selected={office.code === selectedCode}
+                    onSelect={chooseFromList}
+                  />
+                ))}
+              </div>
+              {errorLine("offices")}
+            </div>
+          )}
+
+          <div className="isolate">
+            <OfficeMap
+              offices={offices}
+              visible={mapOffices}
+              selectedCode={selectedCode}
+              onSelect={chooseOffice}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

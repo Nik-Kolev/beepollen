@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
 
+import { ArrowIcon } from "@/components/art/arrow-icon";
+
 const PRODUCTS_PATH = "/";
 
 type NavigationHistory = {
@@ -48,9 +50,9 @@ export function BackToProductsLink() {
     <Link
       href={PRODUCTS_PATH}
       onClick={handleClick}
-      className="text-ink-soft hover:text-brand-deep inline-flex items-center gap-2 text-sm transition-colors"
+      className="text-ink hover:text-brand-deep inline-flex min-h-11 items-center gap-2 text-base font-medium transition-colors"
     >
-      <span aria-hidden="true">&larr;</span>
+      <ArrowIcon direction="left" className="size-5" />
       Към продуктите
     </Link>
   );

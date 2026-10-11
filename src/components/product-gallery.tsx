@@ -31,7 +31,7 @@ export function ProductGallery({
               fill
               loading="eager"
               fetchPriority="high"
-              sizes="(min-width: 1152px) 524px, (min-width: 768px) 50vw, 100vw"
+              sizes="(min-width: 1152px) 444px, (min-width: 768px) 42vw, 100vw"
               className="object-cover"
             />
           )}

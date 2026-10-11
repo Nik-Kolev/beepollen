@@ -20,7 +20,7 @@ test("the seed publishes exactly the two pollen products in catalogue order", as
   ]);
 });
 
-test("the seed leaves the lorem-ipsum draft unpublished and priced at zero", async () => {
+test("the test fixtures add the lorem-ipsum draft, unpublished and priced at zero", async () => {
   const draft = await prisma.product.findUnique({
     where: { slug: "lorem-ipsum" },
     select: { isPublished: true, priceCents: true },

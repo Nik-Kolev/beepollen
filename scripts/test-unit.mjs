@@ -8,6 +8,11 @@ for (const suffix of ["", "-journal", "-wal", "-shm"]) {
 }
 
 execSync("npm run db:setup", { env, stdio: "inherit" });
+execFileSync(
+  process.execPath,
+  ["--import", "tsx", "scripts/seed-test-fixtures.ts"],
+  { env, stdio: "inherit" },
+);
 
 execFileSync(
   process.execPath,

@@ -375,8 +375,8 @@ Auth.js v5 with Google as the only provider. `next-auth` is a beta pinned to an
 exact version, since betas break their API between releases.
 
 `ADMIN_WITHOUT_SIGN_IN="true"` makes `requireAdmin()` let every request through
-with no session, so the admin can be reviewed before a Google OAuth client
-exists. It is a stopgap: **delete the variable and its check before launch, once
+with no session, and `isAdmin()` answer yes for every visitor, so the admin can
+be reviewed before a Google OAuth client exists. It is a stopgap: **delete the variable and its check before launch, once
 the admin is finished and Google sign-in is configured.** Never set it on a host
 anyone else can reach.
 
@@ -417,6 +417,10 @@ single source for that destination, so the dialog and the server cannot disagree
 on screen with its message even when the step would have moved it out of the
 current filter. The list sets `overflow-anchor: none`, because a card that
 changes height after a step otherwise scrolls the page under the owner's finger.
+
+The admin bar above the shop header is fetched from `/api/admin-status` in the
+browser after load. Asking the session while rendering would make every
+prerendered shop page dynamic, so do not move that check to the server.
 
 `/admin/products` edits price and stock only. A save revalidates `/`, `/cart`,
 `/checkout` and that product's page, since all four are prerendered with the

@@ -10,7 +10,9 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <main className="flex-1">
       <Container>
-        <div className="flex flex-col items-start gap-4 py-12">{children}</div>
+        <div className="flex flex-col items-start gap-4 pt-4 pb-12">
+          {children}
+        </div>
       </Container>
     </main>
   );

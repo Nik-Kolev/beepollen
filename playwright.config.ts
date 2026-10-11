@@ -42,6 +42,7 @@ export default defineConfig({
       AUTH_SECRET: TEST_AUTH_SECRET,
       AUTH_TRUST_HOST: "true",
       ADMIN_EMAILS: TEST_ADMIN_EMAIL,
+      ADMIN_WITHOUT_SIGN_IN: "false",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

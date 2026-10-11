@@ -94,6 +94,52 @@ test("an allowed admin opening the login page is sent on to the order list", asy
   await expect(page).toHaveURL("/admin/orders");
 });
 
+test("the shop shows a signed-in admin a bar linking to the admin, and the admin links back to the shop", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/");
+
+  const bar = page.getByRole("navigation", { name: "Админ" });
+  await bar.getByRole("link", { name: "Към поръчки" }).click();
+  await expect(page).toHaveURL("/admin/orders");
+
+  await page.getByRole("link", { name: "Към сайта" }).click();
+  await expect(page).toHaveURL("/");
+  await expect(bar.getByRole("link", { name: "Към продукти" })).toBeVisible();
+
+  await bar.getByRole("button", { name: "Изход от акаунта" }).click();
+  await expect(page).toHaveURL("/admin/login");
+  await page.goto("/admin/orders");
+  await expect(page).toHaveURL("/admin/login");
+});
+
+for (const [who, email] of [
+  ["an anonymous visitor", null],
+  ["a signed-in address no longer on the list", "removed@example.com"],
+] as const) {
+  test(`the shop shows ${who} no admin bar`, async ({ page, context }) => {
+    if (email) await signInAs(context, email);
+    const status = page.waitForResponse("**/api/admin-status");
+
+    await page.goto("/");
+    const response = await status;
+    expect(response.headers()["cache-control"]).toContain("no-store");
+    expect(await response.json()).toEqual({ admin: false });
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(resolve)),
+        ),
+    );
+
+    await expect(page.getByRole("navigation", { name: "Админ" })).toHaveCount(
+      0,
+    );
+  });
+}
+
 test("a valid session for an address no longer on the list is refused", async ({
   page,
   context,

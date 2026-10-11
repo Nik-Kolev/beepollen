@@ -69,6 +69,10 @@
   }
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 main :is(h1, h2, h3),
 header a[href="/"] {
   font-family: var(--font-head);

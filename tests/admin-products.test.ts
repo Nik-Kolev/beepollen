@@ -63,15 +63,15 @@ test("shows cents in the price field with a comma and two decimals", () => {
   assert.equal(formatPriceInput(4500), "45,00");
 });
 
-test("lists every product in shop order, drafts included", async () => {
+test("lists every product in shop order, drafts included, each with its first photo", async () => {
   const listed = await listProductsForAdmin();
 
   assert.deepEqual(
-    listed.map(({ slug, isPublished }) => ({ slug, isPublished })),
+    listed.map(({ slug, images }) => ({ slug, photos: images.length })),
     [
-      { slug: "pchelen-prashets-500g", isPublished: true },
-      { slug: "pchelen-prashets-1kg", isPublished: true },
-      { slug: "lorem-ipsum", isPublished: false },
+      { slug: "pchelen-prashets-500g", photos: 1 },
+      { slug: "pchelen-prashets-1kg", photos: 1 },
+      { slug: "lorem-ipsum", photos: 0 },
     ],
   );
 });

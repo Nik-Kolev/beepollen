@@ -397,16 +397,26 @@ variables that is not nullish and then applies `!!`, so an empty
 `.env.example` sets `AUTH_TRUST_HOST` to `"true"` rather than leaving it blank
 like its neighbours.
 
-An unknown `/admin/orders/[reference]` or `/products/[slug]` returns
-`notFoundMetadata` from `generateMetadata`: a title built from the param would name the
-missing order on the 404, and `{}` falls back to the root title. The 404 body
-itself renders only after hydration, as `notFound()` does on any request-time
-route.
+An unknown `/products/[slug]` returns `notFoundMetadata` from
+`generateMetadata`: a title built from the param would name the missing product
+on the 404, and `{}` falls back to the root title. Orders have no page of their
+own; their details expand in place on `/admin/orders`.
 
-An order's state is three nullable timestamps — `sentAt`, `paidAt`,
-`cancelledAt` — set by hand, not a status enum: with cash on delivery an order
-is sent and later paid, so the marks are independent. The action sends the
-target value rather than a flip, and a mark already set keeps its first time.
+An order's state is four nullable timestamps — `sentAt`, `paidAt`,
+`cancelledAt`, `collectedAt` — and its status is derived from them by
+`orderStatus`, never stored. The admin takes named steps rather than toggling
+marks: the action sends the step and the status the card showed, the server
+refuses a step that status does not allow and answers `stale` when the row has
+moved on, and the write matches all four timestamps as read, so two screens
+cannot both apply one. A returned parcel is `sentAt` plus `cancelledAt` until
+`collectedAt` records that the owner fetched it back. A Попово hand-over writes
+`sentAt` and `paidAt` together. Undo clears the latest timestamp at any age.
+Cancel, return and undo open a native `<dialog>` naming the order, the buyer and
+the status it will move to, with the cancel button focused; `undoTarget` is the
+single source for that destination, so the dialog and the server cannot disagree. A failed step does not refresh the page, so the card stays
+on screen with its message even when the step would have moved it out of the
+current filter. The list sets `overflow-anchor: none`, because a card that
+changes height after a step otherwise scrolls the page under the owner's finger.
 
 `/admin/products` edits price and stock only. A save revalidates `/`, `/cart`,
 `/checkout` and that product's page, since all four are prerendered with the

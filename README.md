@@ -49,29 +49,30 @@ holds no database, so placing an order in it fails.
 
 ## Scripts
 
-| Command                | Does                          |
-| ---------------------- | ----------------------------- |
-| `npm run dev`          | Development server            |
-| `npm run build`        | Production build              |
-| `npm run build:demo`   | Migrate, seed, then build     |
-| `npm start`            | Serve the production build    |
-| `npm run format`       | Prettier, writing in place    |
-| `npm run format:check` | Prettier, failing on a diff   |
-| `npm run lint`         | ESLint                        |
-| `npm run generate`     | Prisma client from the schema |
-| `npm run typecheck`    | Generate, route types, `tsc`  |
-| `npm run ci`           | CI's `ci` job, run locally    |
-| `npm run db:migrate`   | New migration, then generate  |
-| `npm run db:deploy`    | Apply migrations in Docker    |
-| `npm run db:setup`     | Generate, migrate, then seed  |
-| `npm run db:seed`      | Seed the database             |
-| `npm run db:studio`    | Browse the database           |
-| `npm run db:reset`     | Wipe and replay migrations    |
-| `npm run db:fresh`     | Reset, then seed              |
-| `npm run econt:sync`   | Refresh the Econt office list |
-| `npm run test:unit`    | Unit tests, own throwaway DB  |
-| `npm run test:e2e`     | E2E and accessibility tests   |
-| `npm run test:perf`    | Lighthouse, not on Windows    |
+| Command                    | Does                                      |
+| -------------------------- | ----------------------------------------- |
+| `npm run dev`              | Development server                        |
+| `npm run build`            | Production build                          |
+| `npm run build:demo`       | Migrate, seed, then build                 |
+| `npm start`                | Serve the production build                |
+| `npm run format`           | Prettier, writing in place                |
+| `npm run format:check`     | Prettier, failing on a diff               |
+| `npm run lint`             | ESLint                                    |
+| `npm run generate`         | Prisma client from the schema             |
+| `npm run typecheck`        | Generate, route types, `tsc`              |
+| `npm run ci`               | CI's `ci` job, run locally                |
+| `npm run db:migrate`       | New migration, then generate              |
+| `npm run db:deploy`        | Apply migrations in Docker                |
+| `npm run db:setup`         | Generate, migrate, then seed              |
+| `npm run db:seed`          | Seed the database                         |
+| `npm run db:studio`        | Browse the database                       |
+| `npm run db:reset`         | Wipe and replay migrations                |
+| `npm run db:fresh`         | Reset, then seed                          |
+| `npm run db:sample-orders` | Place sample orders in every admin status |
+| `npm run econt:sync`       | Refresh the Econt office list             |
+| `npm run test:unit`        | Unit tests, own throwaway DB              |
+| `npm run test:e2e`         | E2E and accessibility tests               |
+| `npm run test:perf`        | Lighthouse, not on Windows                |
 
 ## Preview
 

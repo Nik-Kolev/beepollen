@@ -2,19 +2,26 @@ import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
 import {
-  countOrdersByFilter,
+  applyOrderStep,
+  calendarDaysSince,
+  countOrdersByView,
+  daysAgoLabel,
   deliveryLabel,
   formatOrderTime,
-  getOrderByReference,
   listOrders,
+  nextOrderSteps,
   ORDER_FILTERS,
   orderListHref,
-  orderMarkInput,
-  orderPageCount,
-  ORDERS_PER_PAGE,
+  ORDERS_STEP,
+  orderStatus,
+  type OrderStatus,
+  type OrderStep,
+  orderStepInput,
+  orderView,
+  parseHideClosed,
   parseOrderFilter,
-  parseOrderPage,
-  setOrderMark,
+  parseOrderShown,
+  undoTarget,
 } from "@/lib/admin-orders";
 import { CONSENT_WORDING } from "@/lib/consent";
 import { placeOrder } from "@/lib/orders";
@@ -26,6 +33,8 @@ after(async () => {
   await prisma.$disconnect();
 });
 
+const LOCAL = { deliveryMethod: "LOCAL", officeCode: "" };
+
 async function place(
   overrides: Record<string, unknown> = {},
   ipAddress: string | null = null,
@@ -36,19 +45,57 @@ async function place(
   return result.order;
 }
 
-test("lists orders newest first", async () => {
+async function read(reference: string) {
+  return prisma.order.findUniqueOrThrow({ where: { reference } });
+}
+
+async function step(reference: string, ...steps: OrderStep[]) {
+  for (const next of steps) {
+    const status = orderStatus(await read(reference));
+    assert.deepEqual(
+      await applyOrderStep(reference, next, status),
+      { ok: true },
+      `${status} → ${next}`,
+    );
+  }
+}
+
+async function placedIn(status: OrderStatus, overrides = {}) {
+  const { reference } = await place(overrides);
+  const path: Record<OrderStatus, OrderStep[]> = {
+    new: [],
+    sent: ["send"],
+    paid: "deliveryMethod" in overrides ? ["handOver"] : ["send", "pay"],
+    returned: ["send", "return"],
+    collected: ["send", "return", "collect"],
+    cancelled: ["cancel"],
+  };
+  await step(reference, ...path[status]);
+  return reference;
+}
+
+const FILTER_OF: Record<OrderStatus, (typeof ORDER_FILTERS)[number]> = {
+  new: "new",
+  sent: "sent",
+  paid: "paid",
+  returned: "returned",
+  collected: "cancelled",
+  cancelled: "cancelled",
+};
+
+test("the full list shows the newest order first", async () => {
   const older = await place();
   const newer = await place();
 
-  const references = (await listOrders()).map((order) => order.reference);
+  const references = (await listOrders("all")).map((order) => order.reference);
 
+  assert.equal(references[0], newer.reference);
   assert.ok(
     references.indexOf(newer.reference) < references.indexOf(older.reference),
   );
-  assert.equal(references[0], newer.reference);
 });
 
-test("reads one order by its reference with its lines, snapshot contact, email, office and consents", async () => {
+test("a listed order carries its lines, snapshot contact, email, office and consents", async () => {
   const placed = await place(
     {
       name: "Мария Петрова",
@@ -62,9 +109,10 @@ test("reads one order by its reference with its lines, snapshot contact, email, 
     },
     "203.0.113.7",
   );
-  await place();
 
-  const order = await getOrderByReference(placed.reference);
+  const order = (await listOrders("all", 9999)).find(
+    (listed) => listed.reference === placed.reference,
+  );
 
   assert.ok(order);
   assert.equal(order.contactName, "Мария Петрова");
@@ -101,15 +149,11 @@ test("reads one order by its reference with its lines, snapshot contact, email, 
   );
 });
 
-test("an unknown reference reads as no order", async () => {
-  assert.equal(await getOrderByReference("BP000000"), null);
-});
-
 test("labels a Popovo order as hand delivery and an Econt order by its office city", async () => {
-  const local = await place({ deliveryMethod: "LOCAL", officeCode: "" });
+  const local = await place(LOCAL);
   const econt = await place();
 
-  const listed = await listOrders();
+  const listed = await listOrders("all", 9999);
   const find = (reference: string) =>
     listed.find((order) => order.reference === reference);
   const localListed = find(local.reference);
@@ -120,197 +164,393 @@ test("labels a Popovo order as hand delivery and an Econt order by its office ci
   assert.equal(deliveryLabel(econtListed), TEST_OFFICE_SNAPSHOT.officeCity);
 });
 
-test("a new order carries no marks", async () => {
-  const placed = await place();
+test("a new Econt order offers sending or cancelling; a Popovo one offers hand-over", async () => {
+  const econt = await read((await place()).reference);
+  const local = await read((await place(LOCAL)).reference);
 
-  const order = await getOrderByReference(placed.reference);
-
-  assert.ok(order);
-  assert.equal(order.sentAt, null);
-  assert.equal(order.paidAt, null);
-  assert.equal(order.cancelledAt, null);
+  assert.equal(orderStatus(econt), "new");
+  assert.deepEqual(nextOrderSteps(econt), ["send", "cancel"]);
+  assert.deepEqual(nextOrderSteps(local), ["handOver", "cancel"]);
 });
 
-test("marking an order stamps only that mark, and unmarking clears it", async () => {
-  const placed = await place();
+test("an Econt order is sent, then paid, each step stamping only its own time", async () => {
+  const { reference } = await place();
 
-  await setOrderMark(placed.reference, "sent", true);
-  const fresh = await prisma.order.findUniqueOrThrow({
-    where: { reference: placed.reference },
-  });
+  await step(reference, "send");
+  const sent = await read(reference);
+  assert.equal(orderStatus(sent), "sent");
+  assert.ok(sent.sentAt instanceof Date);
+  assert.equal(sent.paidAt, null);
+  assert.deepEqual(nextOrderSteps(sent), ["pay", "return"]);
 
-  assert.ok(fresh.sentAt instanceof Date);
-  assert.equal(fresh.paidAt, null);
-  assert.equal(fresh.cancelledAt, null);
-
-  await setOrderMark(placed.reference, "sent", false);
-  const cleared = await prisma.order.findUniqueOrThrow({
-    where: { reference: placed.reference },
-  });
-
-  assert.equal(cleared.sentAt, null);
+  await step(reference, "pay");
+  const paid = await read(reference);
+  assert.equal(orderStatus(paid), "paid");
+  assert.equal(paid.sentAt?.getTime(), sent.sentAt.getTime());
+  assert.ok(paid.paidAt instanceof Date);
+  assert.deepEqual(nextOrderSteps(paid), []);
 });
 
-test("marking an already marked order keeps the time it was first marked", async () => {
-  const placed = await place();
+test("a Popovo hand-over marks the order sent and paid at once", async () => {
+  const { reference } = await place(LOCAL);
 
-  await setOrderMark(placed.reference, "paid", true);
-  const first = await prisma.order.findUniqueOrThrow({
-    where: { reference: placed.reference },
-  });
-  await new Promise((resolve) => setTimeout(resolve, 20));
-  await setOrderMark(placed.reference, "paid", true);
-  const second = await prisma.order.findUniqueOrThrow({
-    where: { reference: placed.reference },
-  });
+  await step(reference, "handOver");
+  const order = await read(reference);
 
-  assert.ok(first.paidAt);
-  assert.equal(second.paidAt?.getTime(), first.paidAt.getTime());
+  assert.equal(orderStatus(order), "paid");
+  assert.ok(order.sentAt && order.paidAt);
 });
 
-test("marking an unknown reference changes nothing and does not throw", async () => {
-  await setOrderMark("BP000000", "sent", true);
+test("a sent order the buyer did not collect is returned, then collected back", async () => {
+  const { reference } = await place();
 
-  assert.equal(await getOrderByReference("BP000000"), null);
+  await step(reference, "send", "return");
+  const returned = await read(reference);
+  assert.equal(orderStatus(returned), "returned");
+  assert.deepEqual(nextOrderSteps(returned), ["collect"]);
+
+  await step(reference, "collect");
+  const collected = await read(reference);
+  assert.equal(orderStatus(collected), "collected");
+  assert.ok(collected.collectedAt instanceof Date);
+  assert.deepEqual(nextOrderSteps(collected), []);
 });
 
-test("filters list what is still to send, still to collect, and what was cancelled", async () => {
-  const fresh = await place();
-  const sent = await place();
-  const paid = await place();
-  const cancelled = await place();
-  await setOrderMark(sent.reference, "sent", true);
-  await setOrderMark(paid.reference, "sent", true);
-  await setOrderMark(paid.reference, "paid", true);
-  await setOrderMark(cancelled.reference, "cancelled", true);
+test("an order cancelled before sending has nothing further to do", async () => {
+  const reference = await placedIn("cancelled");
+  const order = await read(reference);
 
-  const listed = async (filter: (typeof ORDER_FILTERS)[number]) =>
-    new Set((await listOrders(filter)).map((order) => order.reference));
-  const unsent = await listed("unsent");
-  const unpaid = await listed("unpaid");
-  const cancelledOnly = await listed("cancelled");
-  const all = await listed("all");
+  assert.equal(orderStatus(order), "cancelled");
+  assert.deepEqual(nextOrderSteps(order), []);
+});
 
-  assert.ok(unsent.has(fresh.reference));
-  assert.ok(!unsent.has(sent.reference));
-  assert.ok(!unsent.has(cancelled.reference));
+test("a step the order's status does not allow is refused and changes nothing", async () => {
+  const cases: [OrderStatus, OrderStep, object?][] = [
+    ["new", "pay"],
+    ["new", "return"],
+    ["new", "collect"],
+    ["new", "handOver"],
+    ["new", "undo"],
+    ["new", "send", LOCAL],
+    ["sent", "send"],
+    ["sent", "cancel"],
+    ["sent", "collect"],
+    ["sent", "handOver"],
+    ["paid", "pay"],
+    ["paid", "return"],
+    ["paid", "cancel"],
+    ["paid", "collect"],
+    ["returned", "pay"],
+    ["returned", "send"],
+    ["returned", "return"],
+    ["collected", "collect"],
+    ["collected", "pay"],
+    ["cancelled", "send"],
+    ["cancelled", "pay"],
+    ["cancelled", "cancel"],
+  ];
 
-  assert.ok(unpaid.has(fresh.reference));
-  assert.ok(unpaid.has(sent.reference));
-  assert.ok(!unpaid.has(paid.reference));
-  assert.ok(!unpaid.has(cancelled.reference));
+  const placed = new Map<string, string>();
+  for (const [status, refused, overrides] of cases) {
+    const key = `${status}${overrides ? "-local" : ""}`;
+    if (!placed.has(key)) placed.set(key, await placedIn(status, overrides));
+    const reference = placed.get(key)!;
+    const before = await read(reference);
 
-  assert.ok(cancelledOnly.has(cancelled.reference));
-  assert.ok(!cancelledOnly.has(fresh.reference));
-
-  for (const order of [fresh, sent, paid, cancelled]) {
-    assert.ok(all.has(order.reference));
+    assert.deepEqual(
+      await applyOrderStep(reference, refused, status),
+      { ok: false, reason: "refused" },
+      `${status} → ${refused}`,
+    );
+    assert.deepEqual(await read(reference), before);
   }
 });
 
-async function listEveryPage(filter: (typeof ORDER_FILTERS)[number]) {
-  const counts = await countOrdersByFilter();
-  const pages = orderPageCount(counts[filter]);
-  const orders = [];
-  for (let page = 1; page <= pages; page++) {
-    orders.push(...(await listOrders(filter, page)));
-  }
-  return orders;
-}
+test("a step sent from a view of an older status is refused as stale and changes nothing", async () => {
+  const reference = await placedIn("paid");
+  const before = await read(reference);
 
-test("each filter's count matches the orders it lists across its pages", async () => {
-  const counts = await countOrdersByFilter();
+  assert.deepEqual(await applyOrderStep(reference, "undo", "sent"), {
+    ok: false,
+    reason: "stale",
+  });
+  assert.deepEqual(await applyOrderStep(reference, "send", "new"), {
+    ok: false,
+    reason: "stale",
+  });
+  assert.deepEqual(await read(reference), before);
+});
 
-  for (const filter of ORDER_FILTERS) {
-    assert.equal(counts[filter], (await listEveryPage(filter)).length, filter);
+test("two screens undoing the same paid order take back only one step", async () => {
+  const reference = await placedIn("paid");
+
+  const results = await Promise.all([
+    applyOrderStep(reference, "undo", "paid"),
+    applyOrderStep(reference, "undo", "paid"),
+  ]);
+
+  assert.equal(results.filter((result) => result.ok).length, 1);
+  assert.equal(orderStatus(await read(reference)), "sent");
+});
+
+test("undo takes back only the last step", async () => {
+  const econt = await placedIn("paid");
+  const local = await place(LOCAL);
+  const returned = await placedIn("collected");
+  const cancelled = await placedIn("cancelled");
+
+  await step(econt, "undo");
+  assert.equal(orderStatus(await read(econt)), "sent");
+  await step(econt, "undo");
+  assert.equal(orderStatus(await read(econt)), "new");
+
+  await step(local.reference, "handOver", "undo");
+  const localBack = await read(local.reference);
+  assert.equal(orderStatus(localBack), "new");
+  assert.equal(localBack.sentAt, null);
+
+  await step(returned, "undo");
+  assert.equal(orderStatus(await read(returned)), "returned");
+  await step(returned, "undo");
+  assert.equal(orderStatus(await read(returned)), "sent");
+
+  await step(cancelled, "undo");
+  assert.equal(orderStatus(await read(cancelled)), "new");
+});
+
+test("undo lands on exactly the status the confirmation names, however old the step", async () => {
+  const cases: [OrderStatus, OrderStatus | null, object?][] = [
+    ["new", null],
+    ["sent", "new"],
+    ["paid", "sent"],
+    ["paid", "new", LOCAL],
+    ["returned", "sent"],
+    ["collected", "returned"],
+    ["cancelled", "new"],
+  ];
+
+  for (const [status, target, overrides] of cases) {
+    const reference = await placedIn(status, overrides);
+    const monthLater = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    assert.equal(undoTarget(await read(reference)), target, status);
+    if (!target) continue;
+
+    assert.deepEqual(
+      await applyOrderStep(reference, "undo", status, monthLater),
+      { ok: true },
+      status,
+    );
+    assert.equal(orderStatus(await read(reference)), target, status);
   }
 });
 
-test("a page holds at most its share of orders and the next page carries on without overlap", async () => {
-  const { all } = await countOrdersByFilter();
-  for (let i = all; i <= ORDERS_PER_PAGE; i++) await place();
+test("a step on an unknown reference is refused and does not throw", async () => {
+  assert.deepEqual(await applyOrderStep("BP000000", "send", "new"), {
+    ok: false,
+    reason: "refused",
+  });
+});
 
-  const first = await listOrders("all", 1);
-  const second = await listOrders("all", 2);
-  const every = await listEveryPage("all");
+test("every order appears in exactly the filter its status names, and in the open view only while open", async () => {
+  for (const status of [
+    "new",
+    "sent",
+    "paid",
+    "returned",
+    "collected",
+    "cancelled",
+  ] as const) {
+    await placedIn(status);
+  }
 
-  assert.equal(first.length, ORDERS_PER_PAGE);
-  assert.ok(second.length >= 1);
+  const views = [...ORDER_FILTERS, "open"] as const;
+  const members = new Map<string, Set<string>>();
+  for (const view of views) {
+    members.set(
+      view,
+      new Set((await listOrders(view, 9999)).map((order) => order.reference)),
+    );
+  }
+
+  for (const order of await listOrders("all", 9999)) {
+    const status = orderStatus(order);
+    const open = ["new", "sent", "returned"].includes(status);
+    for (const view of views) {
+      const expected =
+        view === "all" ||
+        view === FILTER_OF[status] ||
+        (view === "open" && open);
+      assert.equal(
+        members.get(view)!.has(order.reference),
+        expected,
+        `${order.reference} (${status}) in ${view}`,
+      );
+    }
+  }
+});
+
+test("hiding closed orders lists only the open ones, newest first", async () => {
+  await placedIn("returned");
+  await placedIn("paid");
+  await placedIn("new");
+  await placedIn("cancelled");
+  await placedIn("sent");
+
+  const listed = await listOrders(orderView("all", true), 9999);
+  const times = listed.map((order) => order.createdAt.getTime());
+
+  assert.ok(listed.length > 0);
+  for (const order of listed) {
+    assert.ok(
+      ["new", "sent", "returned"].includes(orderStatus(order)),
+      order.reference,
+    );
+  }
   assert.deepEqual(
-    [...first, ...second].map((order) => order.reference),
-    every.slice(0, first.length + second.length).map((o) => o.reference),
-  );
-  assert.equal(
-    new Set(every.map((order) => order.reference)).size,
-    every.length,
+    times,
+    [...times].sort((a, b) => b - a),
   );
 });
 
-test("the page count rounds up and never falls below one", () => {
-  assert.equal(orderPageCount(0), 1);
-  assert.equal(orderPageCount(1), 1);
-  assert.equal(orderPageCount(ORDERS_PER_PAGE), 1);
-  assert.equal(orderPageCount(ORDERS_PER_PAGE + 1), 2);
-  assert.equal(orderPageCount(ORDERS_PER_PAGE * 3), 3);
+test("the closed-orders switch applies to the full list only", () => {
+  assert.equal(orderView("all", true), "open");
+  assert.equal(orderView("all", false), "all");
+  assert.equal(orderView("sent", true), "sent");
+  assert.equal(parseHideClosed("1"), true);
+  for (const crafted of ["0", "true", "", undefined, ["1"]]) {
+    assert.equal(parseHideClosed(crafted), false, JSON.stringify(crafted));
+  }
 });
 
-test("an unknown, malformed or out-of-range page falls back to the first", () => {
-  assert.equal(parseOrderPage("2", 3), 2);
-  assert.equal(parseOrderPage("3", 3), 3);
+test("each view's count matches the orders it lists when all are shown", async () => {
+  const counts = await countOrdersByView();
+
+  for (const view of [...ORDER_FILTERS, "open"] as const) {
+    const shown = parseOrderShown(String(counts[view]), counts[view]);
+    assert.equal(counts[view], (await listOrders(view, shown)).length);
+  }
+});
+
+test("the full list shows the newest orders first, and showing more extends it without reordering", async () => {
+  const { all } = await countOrdersByView();
+  for (let i = all; i <= ORDERS_STEP * 2; i++) await place();
+
+  const first = await listOrders("all", ORDERS_STEP);
+  const more = await listOrders("all", ORDERS_STEP * 2);
+
+  assert.equal(first.length, ORDERS_STEP);
+  assert.equal(more.length, ORDERS_STEP * 2);
+  assert.deepEqual(
+    first.map((order) => order.reference),
+    more.slice(0, ORDERS_STEP).map((order) => order.reference),
+  );
+  const times = more.map((order) => order.createdAt.getTime());
+  assert.deepEqual(
+    times,
+    [...times].sort((a, b) => b - a),
+  );
+});
+
+test("the shown count starts at one step, never drops below it and never passes the total", () => {
+  assert.equal(parseOrderShown("10", 23), 10);
+  assert.equal(parseOrderShown("23", 23), 23);
+  assert.equal(parseOrderShown("100", 23), 23);
+  assert.equal(parseOrderShown("2", 23), ORDERS_STEP);
+  assert.equal(parseOrderShown("100", 2), ORDERS_STEP);
   for (const crafted of [
-    "4",
     "0",
     "-1",
     "1.5",
-    "02",
-    "2abc",
-    " 2",
+    "010",
+    "10abc",
+    " 10",
     "",
     undefined,
-    ["2"],
+    ["10"],
   ]) {
-    assert.equal(parseOrderPage(crafted, 3), 1, JSON.stringify(crafted));
+    assert.equal(
+      parseOrderShown(crafted, 23),
+      ORDERS_STEP,
+      JSON.stringify(crafted),
+    );
   }
 });
 
-test("a list link keeps the filter and leaves page one and all orders out of the address", () => {
-  assert.equal(orderListHref("all", 1), "/admin/orders");
-  assert.equal(orderListHref("all", 2), "/admin/orders?page=2");
-  assert.equal(orderListHref("unpaid", 1), "/admin/orders?filter=unpaid");
+test("a list link keeps the filter and leaves the default filter and first step out of the address", () => {
+  assert.equal(orderListHref("all", ORDERS_STEP), "/admin/orders");
+  assert.equal(orderListHref("all", 10), "/admin/orders?shown=10");
+  assert.equal(orderListHref("all", ORDERS_STEP, true), "/admin/orders?open=1");
+  assert.equal(orderListHref("all", 10, true), "/admin/orders?open=1&shown=10");
   assert.equal(
-    orderListHref("unpaid", 3),
-    "/admin/orders?filter=unpaid&page=3",
+    orderListHref("sent", 15, true),
+    "/admin/orders?filter=sent&shown=15",
   );
 });
 
-test("a mark request is accepted only with a known mark, a strict boolean and a bounded reference", () => {
-  const valid = { reference: "BP2809261", mark: "paid", on: true };
+test("a step request is accepted only with a known step, a known status and a bounded reference", () => {
+  const valid = { reference: "BP2809261", step: "pay", expected: "sent" };
 
-  assert.equal(orderMarkInput.safeParse(valid).success, true);
+  assert.equal(orderStepInput.safeParse(valid).success, true);
   for (const crafted of [
-    { ...valid, mark: "shipped" },
-    { ...valid, mark: "sentAt" },
-    { ...valid, on: "true" },
-    { ...valid, on: 1 },
+    { ...valid, step: "shipped" },
+    { ...valid, step: "paidAt" },
+    { ...valid, step: ["pay"] },
+    { ...valid, expected: "done" },
+    { reference: valid.reference, step: valid.step },
     { ...valid, reference: "" },
     { ...valid, reference: "B".repeat(33) },
     { ...valid, reference: { not: null } },
-    { mark: "paid", on: true },
     null,
   ]) {
     assert.equal(
-      orderMarkInput.safeParse(crafted).success,
+      orderStepInput.safeParse(crafted).success,
       false,
       JSON.stringify(crafted),
     );
   }
 });
 
-test("an unknown or missing filter falls back to all orders", () => {
-  assert.equal(parseOrderFilter("unsent"), "unsent");
-  assert.equal(parseOrderFilter("shipped"), "all");
+test("an unknown or missing filter falls back to the full list", () => {
+  assert.equal(parseOrderFilter("returned"), "returned");
+  assert.equal(parseOrderFilter("action"), "all");
+  assert.equal(parseOrderFilter("open"), "all");
   assert.equal(parseOrderFilter(undefined), "all");
-  assert.equal(parseOrderFilter(["unsent"]), "all");
+  assert.equal(parseOrderFilter(["new"]), "all");
+});
+
+test("days are counted by the Sofia calendar date, not by 24-hour periods", () => {
+  const lateEvening = new Date("2026-10-11T20:59:00Z");
+  const justAfterMidnight = new Date("2026-10-11T21:01:00Z");
+
+  assert.equal(calendarDaysSince(lateEvening, justAfterMidnight), 1);
+  assert.equal(
+    calendarDaysSince(new Date("2026-10-11T05:00:00Z"), lateEvening),
+    0,
+  );
+  assert.equal(
+    calendarDaysSince(
+      new Date("2026-10-24T12:00:00Z"),
+      new Date("2026-10-26T12:00:00Z"),
+    ),
+    2,
+  );
+
+  assert.equal(
+    daysAgoLabel("Изпратена", lateEvening, lateEvening),
+    "Изпратена днес",
+  );
+  assert.equal(
+    daysAgoLabel("Изпратена", lateEvening, justAfterMidnight),
+    "Изпратена вчера",
+  );
+  assert.equal(
+    daysAgoLabel(
+      "Върната",
+      new Date("2026-10-08T09:00:00Z"),
+      new Date("2026-10-11T09:00:00Z"),
+    ),
+    "Върната преди 3 дни",
+  );
 });
 
 test("shows an order's time in Sofia, across both sides of daylight saving", () => {

@@ -11,7 +11,7 @@ test("an anonymous visitor to the product list is sent to the login page", async
   await expect(page).toHaveURL("/admin/login");
 });
 
-test("every product is listed with its price and stock, drafts marked", async ({
+test("every product is listed with its photo, price and stock", async ({
   page,
   context,
 }) => {
@@ -27,8 +27,15 @@ test("every product is listed with its price and stock, drafts marked", async ({
   const draft = page
     .getByRole("article")
     .filter({ has: page.getByRole("heading", { name: "Lorem ipsum" }) });
-  await expect(draft).toContainText("Непубликуван");
   await expect(draft.getByLabel("Цена (€)")).toHaveValue("0,00");
+  await expect(
+    page
+      .getByRole("article")
+      .filter({
+        has: page.getByRole("heading", { name: "Пчелен прашец 500 г" }),
+      })
+      .getByRole("img"),
+  ).toBeVisible();
 });
 
 test("a price of zero is refused, marked on the field and not stored", async ({
@@ -78,6 +85,28 @@ test("a save sent after the session is gone is refused and stores nothing", asyn
   await expect(
     page.getByRole("form", { name: "Lorem ipsum" }).getByLabel("Цена (€)"),
   ).toHaveValue("0,00");
+});
+
+test("a save the server fails to answer is reported in place and keeps the page", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/products");
+  const form = page.getByRole("form", { name: "Lorem ipsum" });
+
+  await page.route("**/admin/products", (route) =>
+    route.request().method() === "POST"
+      ? route.fulfill({ status: 500 })
+      : route.continue(),
+  );
+  await form.getByLabel("Цена (€)").fill("12,00");
+  await form.getByRole("button", { name: "Запази" }).click();
+
+  await expect(form.getByRole("status")).toHaveText(
+    "Не е запазено. Опитайте отново.",
+  );
+  await expect(page.getByRole("form")).toHaveCount(3);
 });
 
 test("the admin nav moves between orders and products and marks the current one", async ({

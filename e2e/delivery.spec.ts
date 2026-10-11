@@ -200,14 +200,18 @@ test("choosing an office hides the search field and the office count", async ({
   await expect(page.getByText("Избран офис")).toBeVisible();
 });
 
-test("Изчисти clears only the office, leaving the city selected", async ({
+function changeOfficeButton(page: Page) {
+  return page.getByRole("button", { name: /^Промени офиса / });
+}
+
+test("Промени on the chosen office clears only the office, leaving the city selected", async ({
   page,
 }) => {
   await openPicker(page);
   await chooseCity(page, SMALL_CITY);
   await officeRow(page, SMALL_CITY_OFFICE_A.street).click();
 
-  await page.getByRole("button", { name: "Изчисти избрания офис" }).click();
+  await changeOfficeButton(page).click();
 
   await expect(page.getByText("Избран офис")).toHaveCount(0);
   await expect(page.getByText(`Град: ${SMALL_CITY}`)).toBeVisible();
@@ -224,7 +228,7 @@ test("clearing a chosen office in a large city brings back the search that found
   await officeSearchInput(page).fill(BIG_CITY_SEARCH_TERM);
   await officeGroup(page).getByRole("radio").first().click();
 
-  await page.getByRole("button", { name: "Изчисти избрания офис" }).click();
+  await changeOfficeButton(page).click();
 
   await expect(officeSearchInput(page)).toHaveValue(BIG_CITY_SEARCH_TERM);
   await expect(statusLine(page)).toHaveText(
@@ -244,12 +248,20 @@ test("a chosen office in a large city can be swapped for another from the list",
   await rows.first().click();
 
   await expect(officeSearchInput(page)).toHaveCount(0);
+  await expect(rows).toHaveCount(0);
+
+  await changeOfficeButton(page).click();
   await expect(rows).toHaveCount(BIG_CITY_SEARCH_MATCHES);
+
+  const secondStreet = (
+    await officeGroup(page).locator("label").nth(1).innerText()
+  )
+    .split("\n")[1]
+    .trim();
 
   await rows.nth(1).click();
 
-  await expect(rows.nth(1)).toBeChecked();
-  await expect(selectedPanel(page)).toBeVisible();
+  await expect(selectedPanel(page)).toContainText(secondStreet);
 });
 
 test("a city with a single office lists it without a search field", async ({
@@ -278,20 +290,20 @@ test("an office with no coordinates falls back to its address for directions", a
   expect(href).not.toContain("%2C");
 });
 
-test("the offices list stays visible after a choice, so another can be picked", async ({
+test("a click collapses the list into the panel, and Промени brings it back to pick another", async ({
   page,
 }) => {
   await openPicker(page);
   await chooseCity(page, SMALL_CITY);
   await officeRow(page, SMALL_CITY_OFFICE_A.street).click();
 
-  await expect(officeRow(page, SMALL_CITY_OFFICE_B.street)).toBeVisible();
+  await expect(selectedPanel(page)).toContainText(SMALL_CITY_OFFICE_A.heading);
+  await expect(officeGroup(page)).toHaveCount(0);
+
+  await changeOfficeButton(page).click();
   await officeRow(page, SMALL_CITY_OFFICE_B.street).click();
 
   await expect(selectedPanel(page)).toContainText(SMALL_CITY_OFFICE_B.heading);
-  await expect(
-    officeRow(page, SMALL_CITY_OFFICE_B.street).getByRole("radio"),
-  ).toBeChecked();
 });
 
 test("Промени clears the city, the office and both queries", async ({
@@ -368,7 +380,7 @@ test("choosing a city moves focus on to the control that continues the choice", 
   await expect(officeGroup(page).getByRole("radio").first()).toBeFocused();
 });
 
-test("choosing an office says which one was chosen and leaves focus in the list", async ({
+test("clicking an office announces it to screen readers only and moves focus to its Промени", async ({
   page,
 }) => {
   await openPicker(page);
@@ -378,7 +390,28 @@ test("choosing an office says which one was chosen and leaves focus in the list"
   await expect(statusLine(page)).toHaveText(
     `Избрахте ${SMALL_CITY_OFFICE_A.heading}, ${SMALL_CITY_OFFICE_A.street}.`,
   );
-  await expect(officeGroup(page).getByRole("radio").first()).toBeFocused();
+  await expect(statusLine(page)).toHaveClass("sr-only");
+  await expect(changeOfficeButton(page)).toBeFocused();
+});
+
+test("the office list stays open while the arrow keys walk it, and collapses on Tab", async ({
+  page,
+}) => {
+  await openPicker(page);
+  await chooseCity(page, SMALL_CITY);
+
+  const radios = officeGroup(page).getByRole("radio");
+
+  await radios.first().press("ArrowDown");
+
+  await expect(radios).toHaveCount(2);
+  await expect(selectedPanel(page)).toHaveCount(0);
+  await expect(statusLine(page)).not.toHaveClass("sr-only");
+
+  await radios.nth(1).press("Tab");
+
+  await expect(officeGroup(page)).toHaveCount(0);
+  await expect(selectedPanel(page)).toContainText(SMALL_CITY_OFFICE_B.heading);
 });
 
 test("the arrow keys walk the office list without focus leaving it", async ({

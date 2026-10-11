@@ -31,6 +31,9 @@ unfinished code. Never replace one with plausible Bulgarian filler, and never
 invent an origin, certificate or review — plausible text survives to launch
 unnoticed, and Lorem ipsum and `TODO:` cannot.
 
+The owner's phone is a real fact he supplied and lives once, as `OWNER_PHONE` in
+`src/lib/site.ts`; every page that shows it reads it from there.
+
 Prices are the single exception, added because checkout cannot be tested against
 a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,
 never inline, so every one is deletable in a single edit, and they are deleted at

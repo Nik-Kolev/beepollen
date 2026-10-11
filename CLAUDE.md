@@ -372,6 +372,12 @@ best-effort and can be withdrawn without notice.
 Auth.js v5 with Google as the only provider. `next-auth` is a beta pinned to an
 exact version, since betas break their API between releases.
 
+`ADMIN_WITHOUT_SIGN_IN="true"` makes `requireAdmin()` let every request through
+with no session, so the admin can be reviewed before a Google OAuth client
+exists. It is a stopgap: **delete the variable and its check before launch, once
+the admin is finished and Google sign-in is configured.** Never set it on a host
+anyone else can reach.
+
 `ADMIN_EMAILS` is re-read on every admin request by `requireAdmin()`, not only at
 sign-in, so removing an address revokes a session that is still valid. Every
 admin page and every admin server action calls it itself — a layout does not

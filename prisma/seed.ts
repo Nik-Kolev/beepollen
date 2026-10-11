@@ -63,24 +63,6 @@ const products = [
       },
     ],
   },
-  {
-    id: 3,
-    slug: "lorem-ipsum",
-    name: "Lorem ipsum",
-    summary: SUMMARY,
-    description: DESCRIPTION,
-    variety: null,
-    priceCents: 0,
-    sortOrder: 2,
-    isPublished: false,
-    netWeightGrams: null,
-    composition: null,
-    origin: null,
-    storage: null,
-    bestBefore: null,
-    allergenInfo: null,
-    images: [],
-  },
 ];
 
 async function seedOffices() {

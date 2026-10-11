@@ -39,8 +39,10 @@ a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,
 never inline, so every one is deletable in a single edit, and they are deleted at
 launch rather than corrected into real ones. Deleting them changes only a database
 seeded afterwards, since the seed never updates an existing row's price. They differ from one another on
-purpose, since equal prices hide a quantity or subtotal bug. The unpublished draft row keeps a
-zero price so the `TODO: цена` branch still has a row that reaches it. The Econt
+purpose, since equal prices hide a quantity or subtotal bug. The unpublished
+zero-price draft the tests need is not in the seed:
+`scripts/seed-test-fixtures.ts` adds it to the unit and e2e databases after
+seeding, so it never reaches a database anyone reviews. The Econt
 tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is the one other invented
 number, for the same reason; it is replaced by calculated Econt prices rather than
 corrected. Ask before inventing a number anywhere else.
@@ -458,7 +460,9 @@ than the seconds it saves. The suite runs twice, mobile project first, because
 mobile is the priority everything else here is built around.
 
 The server Playwright starts reads `data/e2e.db`, deleted before every build,
-because re-seeding no longer resets an edited price. Checkout specs assert
+because re-seeding no longer resets an edited price. The test draft is added
+after `build:demo` rather than before it, because the seed deletes every product
+missing from its own list. Checkout specs assert
 seeded totals, so the one spec that edits a published product is its own
 `catalogue-edit` project, run after both others and restoring the seeded values.
 

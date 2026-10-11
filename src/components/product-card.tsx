@@ -11,10 +11,23 @@ import { formatPrice } from "@/lib/money";
 import type { ProductListItem } from "@/lib/products";
 import { productPhotoTransitionName } from "@/lib/view-transition";
 
-const DECOR: readonly { comb: HoneycombVariant; bee: string | null }[] = [
-  { comb: "climb", bee: "top-3 right-3 w-10 -rotate-12" },
-  { comb: "climbRight", bee: "bottom-3 left-3 w-9 rotate-6" },
-  { comb: "climbStep", bee: null },
+const DECOR: readonly {
+  comb: HoneycombVariant;
+  photoBee: string | null;
+  cardBee: string | null;
+}[] = [
+  {
+    comb: "climb",
+    photoBee: null,
+    cardBee:
+      "w-9 scale-x-[-1] rotate-20 @min-[680px]:scale-x-100 @min-[680px]:-rotate-20",
+  },
+  {
+    comb: "climbRight",
+    photoBee: "bottom-3 left-3 w-9 -rotate-6",
+    cardBee: null,
+  },
+  { comb: "climbStep", photoBee: null, cardBee: null },
 ];
 
 export function ProductCard({
@@ -51,7 +64,9 @@ export function ProductCard({
             )}
           </div>
         </ViewTransition>
-        {decor.bee && <Bee className={`text-bee-dark absolute ${decor.bee}`} />}
+        {decor.photoBee && (
+          <Bee className={`text-bee-dark absolute ${decor.photoBee}`} />
+        )}
       </div>
 
       <div className="flex flex-1 gap-4 px-4 py-5">
@@ -77,6 +92,11 @@ export function ProductCard({
               : "TODO: цена"}
           </p>
         </div>
+        {decor.cardBee && (
+          <Bee
+            className={`text-bee-dark pointer-events-none shrink-0 self-start ${decor.cardBee}`}
+          />
+        )}
       </div>
     </article>
   );

@@ -9,35 +9,19 @@ export default async function Home() {
     <>
       <section>
         <Container>
-          <div className="py-16 text-center sm:py-24">
-            <h1 className="mx-auto max-w-3xl text-3xl leading-tight font-semibold text-balance sm:text-4xl">
-              Lorem ipsum dolor sit amet consectetur
+          <div className="pt-10 pb-12 sm:pt-14 sm:pb-16">
+            <h1 className="mx-auto max-w-3xl text-center text-3xl leading-tight font-semibold text-balance sm:text-4xl">
+              Пчелни продукти от семеен пчелин
             </h1>
-            <p className="text-ink-soft mx-auto mt-4 max-w-prose text-base sm:text-lg">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </p>
-            <a
-              href="#"
-              className="bg-action hover:bg-action-hover text-action-ink mt-7 inline-block rounded-md px-6 py-3 text-sm font-semibold transition-colors"
-            >
-              Lorem ipsum dolor
-            </a>
-          </div>
-        </Container>
-      </section>
-
-      <section className="border-line border-t">
-        <Container>
-          <div className="py-12 sm:py-16">
-            <h2 className="text-2xl font-semibold sm:text-3xl">Lorem ipsum</h2>
 
             {products.length === 0 ? (
-              <p className="text-ink-soft mt-8">Няма налични продукти.</p>
+              <p className="text-ink-soft mt-8 text-center">
+                Няма налични продукти.
+              </p>
             ) : (
               <ul
                 role="list"
-                className="mt-8 grid grid-cols-[repeat(auto-fit,minmax(min(20rem,100%),1fr))] gap-8 sm:gap-10"
+                className="@container mt-8 grid grid-cols-[repeat(auto-fit,minmax(min(20rem,100%),1fr))] gap-8 sm:mt-10 sm:gap-10"
               >
                 {products.map((product, index) => (
                   <li key={product.id}>

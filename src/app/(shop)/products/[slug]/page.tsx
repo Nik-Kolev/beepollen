@@ -51,7 +51,8 @@ export default async function ProductPage({
 
   if (!product) notFound();
 
-  const foodInformation: [label: string, value: string | null][] = [
+  const information: [label: string, value: string | null][] = [
+    ["Описание", product.description],
     [
       "Нетно количество",
       product.netWeightGrams === null ? null : `${product.netWeightGrams} г`,
@@ -62,6 +63,9 @@ export default async function ProductPage({
     ["Срок на годност", product.bestBefore],
     ["Алергени", product.allergenInfo],
   ];
+  const productInformation = information.filter(
+    (row): row is [string, string] => row[1] !== null,
+  );
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -90,10 +94,8 @@ export default async function ProductPage({
       <div className="py-8 sm:py-12">
         <BackToProductsLink />
 
-        <div className="mt-6 grid gap-8 md:grid-cols-2 md:gap-10 lg:gap-14">
-          <ProductGallery slug={product.slug} images={product.images} />
-
-          <div className="flex flex-col">
+        <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:grid-rows-[auto_1fr] md:gap-x-10 md:gap-y-0 lg:gap-x-12">
+          <div className="md:col-start-2 md:row-start-1">
             <h1 className="text-2xl font-semibold text-balance sm:text-3xl">
               {product.name}
             </h1>
@@ -101,8 +103,14 @@ export default async function ProductPage({
             {product.variety && (
               <p className="text-ink-soft mt-2 text-sm">{product.variety}</p>
             )}
+          </div>
 
-            <p className="text-brand-deep mt-4 text-2xl font-semibold">
+          <div className="md:col-start-1 md:row-span-2 md:row-start-1">
+            <ProductGallery slug={product.slug} images={product.images} />
+          </div>
+
+          <div className="flex flex-col md:col-start-2 md:row-start-2 md:pt-4">
+            <p className="text-brand-deep text-2xl font-semibold">
               {product.priceCents > 0
                 ? formatPrice(product.priceCents)
                 : "TODO: цена"}
@@ -110,27 +118,22 @@ export default async function ProductPage({
 
             <AddToCart slug={product.slug} soldOut={product.stock === "NONE"} />
 
-            <p className="text-ink-soft mt-8 text-base whitespace-pre-line">
-              {product.description}
-            </p>
-          </div>
-        </div>
-
-        {foodInformation.some(([, value]) => value !== null) && (
-          <section className="border-line mt-12 border-t pt-8">
-            <h2 className="text-xl font-semibold">Информация за продукта</h2>
-            <dl className="mt-6 grid gap-x-10 gap-y-4 sm:grid-cols-2">
-              {foodInformation
-                .filter(([, value]) => value !== null)
-                .map(([label, value]) => (
-                  <div key={label} className="border-line border-b pb-3">
+            <section className="mt-8">
+              <h2 className="text-lg font-semibold">Информация за продукта</h2>
+              <dl className="border-line divide-line mt-3 divide-y border-y">
+                {productInformation.map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="grid gap-1 py-3 sm:grid-cols-[11rem_1fr] sm:gap-4"
+                  >
                     <dt className="text-ink-soft text-sm">{label}</dt>
-                    <dd className="mt-1">{value}</dd>
+                    <dd className="text-sm whitespace-pre-line">{value}</dd>
                   </div>
                 ))}
-            </dl>
-          </section>
-        )}
+              </dl>
+            </section>
+          </div>
+        </div>
       </div>
     </Container>
   );

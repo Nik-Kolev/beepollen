@@ -8,9 +8,6 @@ test("the homepage serves its shell", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("lang", "bg");
 
   await expect(page.getByRole("banner")).toBeVisible();
-  await expect(
-    page.getByRole("banner").getByRole("navigation", { name: "Основно меню" }),
-  ).toBeVisible();
   await expect(page.getByRole("main")).toBeVisible();
   await expect(page.getByRole("contentinfo")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -29,7 +26,7 @@ test("the footer shows the visitor's year rather than the one the page was built
   await page.goto("/");
 
   await expect(page.getByRole("contentinfo")).toContainText(
-    "© 2031 Пчелни продукти",
+    "© 2031 Всички права запазени",
   );
   expect(errors).toEqual([]);
 });

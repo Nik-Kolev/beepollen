@@ -9,7 +9,7 @@ import { totalQuantity } from "@/lib/cart";
 function CartIcon({ total, buzz }: { total: number; buzz: number }) {
   return (
     <span className="relative block">
-      <CartMark className="size-9 sm:size-12" buzz={buzz} />
+      <CartMark className="size-11 sm:size-12" buzz={buzz} />
 
       <span
         aria-hidden="true"
@@ -27,7 +27,7 @@ export function CartLink() {
   const buzz = useCartAdds();
 
   return (
-    <Link href="/cart" className="text-bee-dark relative ml-auto sm:ml-8">
+    <Link href="/cart" className="text-bee-dark relative ml-auto">
       <CartIcon total={total} buzz={buzz} />
 
       <span className="sr-only">

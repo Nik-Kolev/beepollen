@@ -3,7 +3,7 @@ export function RetryButton({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="bg-action text-action-ink hover:bg-action-hover rounded-md px-4 py-2 text-sm transition-colors"
+      className="bg-action text-action-ink hover:bg-action-hover inline-flex min-h-14 items-center justify-center rounded-full px-8 text-lg font-semibold transition-colors"
     >
       Опитайте отново
     </button>

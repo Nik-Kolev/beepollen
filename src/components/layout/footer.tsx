@@ -4,26 +4,14 @@ import { Container } from "@/components/container";
 import { CurrentYear } from "@/components/layout/current-year";
 import { OWNER_PHONE } from "@/lib/site";
 
-const footerColumns: {
-  heading: string;
-  lines: { text: string; href?: string }[];
-}[] = [
-  {
-    heading: "Контакти",
-    lines: [
-      { text: "гр. Попово" },
-      { text: OWNER_PHONE.display, href: OWNER_PHONE.href },
-    ],
-  },
-  {
-    heading: "Доставка и плащане",
-    lines: [
-      { text: "До офис на Еконт или Спиди в цялата страна" },
-      { text: "Лично и безплатно за град Попово" },
-      { text: "Плащане с наложен платеж" },
-    ],
-  },
+const deliveryLines = [
+  "До офис на Еконт или Спиди в цялата страна",
+  "Лично и безплатно за град Попово",
+  "Плащане с наложен платеж",
 ];
+
+const COLUMN_HEADING =
+  "text-sm font-semibold tracking-[0.12em] text-balance uppercase";
 
 const hiveBees = [
   "top-1 left-3 w-8 -rotate-12",
@@ -34,48 +22,32 @@ const hiveBees = [
 
 export function Footer() {
   return (
-    <footer className="bg-footer text-footer-ink border-line border-t text-sm">
+    <footer className="bg-footer text-footer-ink border-line font-head border-t text-sm">
       <Container>
-        <div className="grid justify-items-center gap-10 py-12 text-center md:grid-cols-[auto_auto_auto] md:items-start md:justify-between md:justify-items-start md:gap-8 md:text-left">
-          {footerColumns.map((column) => (
-            <div key={column.heading} className="md:pt-10">
-              <h2 className="text-sm font-semibold tracking-[0.12em] uppercase">
-                {column.heading}
-              </h2>
-              <ul role="list" className="mt-4 space-y-3 text-base">
-                {column.lines.map((line) => (
-                  <li
-                    key={line.text}
-                    className="md:flex md:items-center md:gap-2.5 xl:whitespace-nowrap"
-                  >
-                    <svg
-                      viewBox="0 0 14 16"
-                      aria-hidden="true"
-                      className="text-brand-deep hidden size-3.5 shrink-0 md:block"
-                    >
-                      <path
-                        d="M7 1 L13 4.5 L13 11.5 L7 15 L1 11.5 L1 4.5 Z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    {line.href ? (
-                      <a
-                        href={line.href}
-                        className="hover:text-brand-deep underline-offset-4 hover:underline"
-                      >
-                        {line.text}
-                      </a>
-                    ) : (
-                      line.text
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+        <div className="grid justify-items-center gap-10 py-12 text-center md:grid-cols-[auto_auto_auto] md:items-start md:justify-between md:justify-items-start md:gap-8 md:py-8 md:text-left">
+          <div className="md:pt-6 md:text-center">
+            <h2 className={COLUMN_HEADING}>Желаете ли да се свържете с нас?</h2>
+            <a
+              href={OWNER_PHONE.href}
+              className="bg-action text-action-ink hover:bg-action-hover mt-4 inline-flex min-h-12 items-center rounded-full px-6 text-lg font-semibold transition-colors"
+            >
+              {OWNER_PHONE.display}
+            </a>
+          </div>
+
+          <div className="md:pt-6">
+            <h2 className={COLUMN_HEADING}>Доставка и плащане</h2>
+            <ul
+              role="list"
+              className="mt-4 space-y-3 text-base md:mt-3 md:space-y-2"
+            >
+              {deliveryLines.map((line) => (
+                <li key={line} className="xl:whitespace-nowrap">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
 
           <div
             aria-hidden="true"
@@ -91,7 +63,7 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="border-footer-ink-soft/20 text-footer-ink-soft flex flex-col items-center gap-3 border-t py-6">
+        <div className="border-footer-ink-soft/20 text-footer-ink-soft flex flex-col items-center gap-3 border-t py-6 md:py-4">
           <span className="text-footer-ink inline-block">
             <span className="block text-base leading-none font-bold">
               Д{" "}
@@ -104,9 +76,9 @@ export function Footer() {
               пчелни продукти
             </span>
           </span>
-          <span className="font-sans text-xs tracking-wide">
+          <span className="text-xs tracking-wide">
             © <CurrentYear builtIn={new Date().getFullYear()} /> Всички права
-            запазени
+            запазени · гр. Попово
           </span>
         </div>
       </Container>

@@ -145,7 +145,7 @@ export function OrderSteps({
               type="button"
               onClick={() => request(step)}
               aria-disabled={pending}
-              className={`${NEGATIVE_STEPS.includes(step) ? "border-error text-error bg-surface hover:bg-halo" : "bg-action border-action text-action-ink hover:bg-action-hover"} inline-flex min-h-12 items-center justify-center gap-2 rounded-md border-2 px-3 font-semibold shadow-sm transition-colors aria-disabled:opacity-70 sm:min-h-11 sm:min-w-36 sm:text-sm`}
+              className={`${NEGATIVE_STEPS.includes(step) ? "border-ink text-ink bg-surface hover:bg-ground" : "bg-action border-action text-action-ink hover:bg-action-hover"} inline-flex min-h-12 items-center justify-center gap-2 rounded-md border-2 px-3 font-semibold shadow-sm transition-colors aria-disabled:opacity-70 sm:min-h-11 sm:min-w-36 sm:text-sm`}
             >
               {pending && running === step ? (
                 <>

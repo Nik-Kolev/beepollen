@@ -10,7 +10,7 @@ export default async function Home() {
       <section>
         <Container>
           <div className="pt-10 pb-12 sm:pt-14 sm:pb-16">
-            <h1 className="mx-auto max-w-3xl text-center text-3xl leading-tight font-semibold text-balance sm:text-4xl">
+            <h1 className="font-head mx-auto max-w-3xl text-center text-4xl leading-tight font-semibold text-balance sm:text-5xl">
               Пчелни продукти от семеен пчелин
             </h1>
 

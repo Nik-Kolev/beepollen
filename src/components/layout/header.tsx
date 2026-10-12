@@ -34,7 +34,7 @@ export function Header() {
             className="text-bee-dark pointer-events-none absolute top-3 left-[66%] hidden w-8 -rotate-6 lg:block"
           />
 
-          <Link href="/">
+          <Link href="/" className="font-head">
             <span className="block text-xl leading-none font-bold">
               Д <span className="text-brand mr-0.5 text-2xl italic">&amp;</span>{" "}
               Н Димитрови

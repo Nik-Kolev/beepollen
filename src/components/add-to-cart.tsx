@@ -51,7 +51,7 @@ export function AddToCart({
         disabled={soldOut}
         aria-disabled={added || atLimit}
         aria-describedby={atLimit ? statusId : undefined}
-        className={`${added ? "bg-leaf hover:bg-leaf text-action-ink" : atLimit ? "bg-placeholder text-ink-soft cursor-not-allowed" : "bg-action hover:bg-action-hover text-action-ink"} disabled:bg-placeholder disabled:text-ink-soft grid min-h-12 w-full rounded-md px-6 py-3 text-base font-semibold transition-colors disabled:cursor-not-allowed`}
+        className={`${added ? "bg-leaf hover:bg-leaf text-action-ink" : atLimit ? "bg-placeholder text-ink-soft cursor-not-allowed" : "bg-action hover:bg-action-hover text-action-ink"} disabled:bg-placeholder disabled:text-ink-soft grid min-h-14 w-full rounded-full px-8 py-3 text-lg font-semibold transition-colors disabled:cursor-not-allowed`}
       >
         <span className={`col-start-1 row-start-1 ${added ? "opacity-0" : ""}`}>
           {soldOut ? "Изчерпан" : "Добави в количката"}

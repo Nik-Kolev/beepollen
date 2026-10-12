@@ -39,7 +39,7 @@ import type { PlaceOrderResult, PlacedOrder } from "@/lib/orders";
 import type { CartProduct } from "@/lib/products";
 import { OWNER_PHONE } from "@/lib/site";
 
-const CHECKBOX = "border-line size-5 shrink-0 rounded-sm border";
+const CHECKBOX = "border-line accent-action size-5 shrink-0 rounded-sm border";
 
 const CHECKBOX_LABEL = "flex min-h-11 items-center gap-3 text-sm";
 
@@ -163,7 +163,7 @@ function OrderPlaced({
         </p>
         <Link
           href="/"
-          className="bg-action text-action-ink hover:bg-action-hover mt-8 inline-flex min-h-11 items-center rounded-md px-6 font-semibold transition-colors"
+          className="bg-action text-action-ink hover:bg-action-hover mt-8 inline-flex min-h-14 items-center rounded-full px-8 text-lg font-semibold transition-colors"
         >
           Към продуктите
         </Link>
@@ -571,7 +571,7 @@ function FilledCheckout({
             <button
               type="submit"
               disabled={pending || blocked !== null}
-              className="bg-action text-action-ink disabled:bg-placeholder disabled:text-ink-soft mt-4 w-full rounded-md px-6 py-3 text-base font-semibold disabled:cursor-not-allowed"
+              className="bg-action text-action-ink hover:bg-action-hover disabled:bg-placeholder disabled:text-ink-soft mt-4 min-h-14 w-full rounded-full px-8 text-lg font-semibold disabled:cursor-not-allowed"
             >
               {pending ? "Изпращане…" : "Завърши поръчката"}
             </button>

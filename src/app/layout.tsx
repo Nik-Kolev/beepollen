@@ -1,18 +1,9 @@
 import type { Metadata } from "next";
-import { Roboto, Roboto_Slab } from "next/font/google";
 
+import { FONT_VARIABLES } from "@/app/fonts";
 import { SITE_URL } from "@/lib/site";
 
 import "./globals.css";
-
-const robotoSlab = Roboto_Slab({
-  variable: "--font-roboto-slab",
-  subsets: ["latin", "cyrillic"],
-});
-const roboto = Roboto({
-  variable: "--font-roboto",
-  subsets: ["latin", "cyrillic"],
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -25,11 +16,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="bg"
-      className={`${robotoSlab.variable} ${roboto.variable} h-full antialiased`}
-    >
-      <body className="bg-ground text-ink flex min-h-full flex-col font-sans">
+    <html lang="bg" className={`${FONT_VARIABLES} h-full antialiased`}>
+      <body className="bg-ground text-ink flex min-h-full flex-col font-sans lining-nums">
         {children}
       </body>
     </html>

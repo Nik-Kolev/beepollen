@@ -10,7 +10,9 @@ export default function Error({ retry }: { retry: () => void }) {
   return (
     <Container>
       <div className="flex flex-col items-center gap-4 py-20 text-center sm:py-24">
-        <h1 className="text-2xl font-semibold sm:text-3xl">Възникна грешка</h1>
+        <h1 className="font-head text-2xl font-semibold sm:text-3xl">
+          Възникна грешка
+        </h1>
         <p className="text-ink-soft max-w-prose">
           В момента не можем да приемем поръчката ви. Опитайте отново след
           малко. Ако проблемът продължи, обадете се на{" "}
@@ -26,7 +28,7 @@ export default function Error({ retry }: { retry: () => void }) {
           <RetryButton onClick={retry} />
           <Link
             href="/"
-            className="border-line hover:bg-halo inline-flex min-h-11 items-center justify-center rounded-md border px-4 text-sm transition-colors"
+            className="border-ink-soft hover:bg-surface inline-flex min-h-14 items-center justify-center rounded-full border-2 px-8 text-lg font-semibold transition-colors"
           >
             Към началната страница
           </Link>

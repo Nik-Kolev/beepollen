@@ -11,7 +11,7 @@ import { formatPrice } from "@/lib/money";
 import type { CartProduct } from "@/lib/products";
 
 const STEP_BUTTON =
-  "border-line text-ink hover:border-brand-deep grid size-11 place-items-center rounded-md border text-lg leading-none transition-colors disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 sm:size-9";
+  "border-ink-soft text-ink hover:border-ink grid size-11 place-items-center rounded-full border-2 text-lg leading-none transition-colors disabled:cursor-not-allowed disabled:opacity-40 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 sm:size-9";
 
 const REMOVE_BUTTON =
   "text-ink hover:text-brand-deep inline-flex min-h-11 items-center px-2 text-sm font-semibold underline underline-offset-4 sm:min-h-0 sm:px-0";
@@ -170,7 +170,7 @@ export function CartContents({ products }: { products: CartProduct[] }) {
 
         <Link
           href="/checkout"
-          className="bg-action text-action-ink w-full rounded-md px-6 py-3 text-center text-sm font-semibold sm:w-auto"
+          className="bg-action text-action-ink hover:bg-action-hover inline-flex min-h-14 w-full items-center justify-center rounded-full px-8 text-lg font-semibold transition-colors sm:w-auto"
         >
           Към поръчката
         </Link>

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ViewTransition } from "react";
 
+import { ArrowIcon } from "@/components/art/arrow-icon";
 import { Bee } from "@/components/art/bee";
 import {
   HoneycombMark,
@@ -43,7 +44,7 @@ export function ProductCard({
   const image = product.images[0];
 
   return (
-    <article className="bg-surface ring-line relative flex h-full flex-col overflow-hidden rounded-xl shadow-sm ring-1 transition-shadow hover:shadow-md">
+    <article className="group bg-surface ring-line relative flex h-full flex-col overflow-hidden rounded-xl shadow-sm ring-1 transition-shadow hover:shadow-md">
       <div className="relative">
         <ViewTransition
           name={productPhotoTransitionName(product.slug)}
@@ -75,7 +76,9 @@ export function ProductCard({
           className="text-brand-deep h-16 w-auto shrink-0 self-start"
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <h3 className="font-medium">
+          <h3
+            className={`text-base leading-snug font-semibold ${decor.cardBee ? "pr-11" : ""}`}
+          >
             <Link
               href={`/products/${product.slug}`}
               className="after:absolute after:inset-0"
@@ -86,16 +89,30 @@ export function ProductCard({
           <p className="text-ink-soft mt-1 line-clamp-3 text-sm">
             {product.summary}
           </p>
-          <p className="text-brand-deep mt-auto pt-3 font-semibold">
-            {product.priceCents > 0
-              ? formatPrice(product.priceCents)
-              : "TODO: цена"}
-          </p>
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-3">
+            <p className="text-brand-deep font-head text-lg font-bold">
+              {product.priceCents > 0
+                ? formatPrice(product.priceCents)
+                : "TODO: цена"}
+            </p>
+            <span
+              aria-hidden="true"
+              className="text-brand-deep font-head inline-flex items-center gap-1.5 text-sm font-semibold underline-offset-4 group-hover:underline"
+            >
+              Виж продукта
+              <ArrowIcon
+                direction="right"
+                className="pointer-events-none size-4"
+              />
+            </span>
+          </div>
         </div>
         {decor.cardBee && (
-          <Bee
-            className={`text-bee-dark pointer-events-none shrink-0 self-start ${decor.cardBee}`}
-          />
+          <div className="relative -ml-4 w-0 shrink-0">
+            <Bee
+              className={`text-bee-dark pointer-events-none absolute top-0 right-0 ${decor.cardBee}`}
+            />
+          </div>
         )}
       </div>
     </article>

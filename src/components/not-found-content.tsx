@@ -17,7 +17,7 @@ export function NotFoundContent() {
           <Bee className="text-bee-dark w-11 rotate-6" />
           <Bee className="text-bee-dark w-7 scale-x-[-1] -rotate-6" />
         </div>
-        <h1 className="text-2xl font-semibold sm:text-3xl">
+        <h1 className="font-head text-2xl font-semibold sm:text-3xl">
           Страницата не е намерена
         </h1>
         <p className="text-ink-soft max-w-prose">
@@ -26,7 +26,7 @@ export function NotFoundContent() {
         </p>
         <Link
           href="/"
-          className="bg-action text-action-ink hover:bg-action-hover mt-2 inline-flex min-h-11 items-center rounded-md px-6 font-semibold transition-colors"
+          className="bg-action text-action-ink hover:bg-action-hover mt-2 inline-flex min-h-14 items-center rounded-full px-8 text-lg font-semibold transition-colors"
         >
           Към началната страница
         </Link>

@@ -89,6 +89,16 @@ use — a family without one renders the whole site in a substituted system font
 with no warning. Lato, Poppins, DM Sans, Plus Jakarta Sans, Figtree and Outfit
 all fail this, which rules out much of any "best web fonts" list.
 
+Roboto is the default face; Alegreya is opt-in through `font-head`, never a
+global heading rule. The font calls live in `src/app/fonts.ts` because
+`global-error.tsx` renders its own `<html>` and needs the same variables. Any
+element rule in `globals.css` goes inside `@layer base`: unlayered CSS beats every
+utility regardless of specificity, which is how a field's `focus-visible:outline-1`
+and a heading's `font-sans` once silently lost.
+
+A button that switches from disabled to enabled on hydration carries no
+`transition-colors` — axe catches the checkout submit mid-transition at 1.06:1.
+
 The cart lives in `localStorage` alone, under one versioned key parsed with Zod;
 anything unreadable or of another version is discarded rather than migrated.
 `/cart` is a server component that hands its client half the whole published

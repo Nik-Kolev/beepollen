@@ -179,7 +179,7 @@ export default async function AdminOrders({
               <Link
                 href={orderListHref(option, ORDERS_STEP)}
                 aria-current={option === filter ? "page" : undefined}
-                className={`${option === filter ? "bg-brand-deep border-brand-deep text-action-ink" : "bg-surface border-line hover:border-brand-deep"} inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors`}
+                className={`${option === filter ? "bg-brand-deep border-brand-deep text-action-ink" : "bg-surface border-line hover:border-brand-deep"} inline-flex min-h-11 items-center gap-1.5 rounded-md border px-4 text-sm font-medium transition-colors`}
               >
                 {ORDER_FILTER_LABEL[option]}
                 <span className="tabular-nums">{counts[option]}</span>

@@ -70,6 +70,30 @@ test("the error page a failed order submission falls into has no accessibility v
   ).toEqual([]);
 });
 
+test("a focused field draws one thin frame while other controls keep the offset outline", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+  });
+  await page.goto("/checkout");
+
+  const name = page.getByLabel("Име и фамилия", { exact: true });
+  await expect(name).toBeEnabled();
+  await name.focus();
+  await expect(name).toHaveCSS("outline-width", "1px");
+  await expect(name).toHaveCSS("outline-offset", "0px");
+
+  const submit = page.getByRole("button", { name: "Завърши поръчката" });
+  await submit.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(submit).toBeFocused();
+  await expect(submit).toHaveCSS("outline-width", "3px");
+  await expect(submit).toHaveCSS("outline-offset", "2px");
+});
+
 const LIST_PAGES = ["/", "/products/pchelen-prashets-500g"] as const;
 
 for (const path of LIST_PAGES) {

@@ -365,7 +365,9 @@ export function OfficeCityPicker({
                       onMouseDown={(event) => event.preventDefault()}
                       onClick={() => chooseCity(name)}
                       className={`flex min-h-11 cursor-pointer items-center border-b border-line px-4 text-ink last:border-0 hover:bg-ground ${
-                        index === activeCity ? "bg-ground" : ""
+                        index === activeCity
+                          ? "bg-ground outline-3 -outline-offset-3 outline-ink"
+                          : ""
                       }`}
                     >
                       {name}

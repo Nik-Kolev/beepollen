@@ -178,7 +178,7 @@ export function OrderSteps({
         aria-labelledby={titleId}
         aria-describedby={textId}
         onClose={() => setConfirming(null)}
-        className="bg-surface text-ink backdrop:bg-footer-ink/60 m-auto w-[calc(100%-2rem)] max-w-md rounded-xl p-6 shadow-xl"
+        className="bg-surface text-ink backdrop:bg-ink/60 m-auto w-[calc(100%-2rem)] max-w-md rounded-xl p-6 shadow-xl"
       >
         <h2 id={titleId} className="text-lg font-semibold">
           Сигурни ли сте?
@@ -191,7 +191,7 @@ export function OrderSteps({
             type="button"
             autoFocus
             onClick={closeDialog}
-            className="border-line text-ink bg-surface hover:bg-halo inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors"
+            className="border-line text-ink bg-surface hover:bg-ground inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors"
           >
             Отказ
           </button>

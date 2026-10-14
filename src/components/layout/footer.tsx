@@ -22,7 +22,7 @@ const hiveBees = [
 
 export function Footer() {
   return (
-    <footer className="bg-footer text-footer-ink border-line font-head border-t text-sm">
+    <footer className="bg-footer text-footer-ink font-head text-sm">
       <Container>
         <div className="grid justify-items-center gap-10 py-12 text-center md:grid-cols-[auto_auto_auto] md:items-start md:justify-between md:justify-items-start md:gap-8 md:py-8 md:text-left">
           <div className="md:pt-6 md:text-center">

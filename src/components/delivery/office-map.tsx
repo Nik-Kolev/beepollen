@@ -37,8 +37,8 @@ function coreBounds(points: L.LatLngTuple[]): L.LatLngBounds {
 
   const lats = points.map((point) => point[0]).sort((a, b) => a - b);
   const lngs = points.map((point) => point[1]).sort((a, b) => a - b);
-  const low = Math.floor(points.length * 0.05);
-  const high = Math.ceil(points.length * 0.95) - 1;
+  const low = Math.floor(points.length * 0.1);
+  const high = points.length - 1 - low;
 
   return L.latLngBounds([lats[low], lngs[low]], [lats[high], lngs[high]]);
 }

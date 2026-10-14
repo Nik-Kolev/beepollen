@@ -39,7 +39,7 @@ import type { PlaceOrderResult, PlacedOrder } from "@/lib/orders";
 import type { CartProduct } from "@/lib/products";
 import { OWNER_PHONE } from "@/lib/site";
 
-const CHECKBOX = "border-line accent-action size-5 shrink-0 rounded-sm border";
+const CHECKBOX = "accent-action size-5 shrink-0";
 
 const CHECKBOX_LABEL = "flex min-h-11 items-center gap-3 text-sm";
 

@@ -53,7 +53,7 @@ export default async function AdminLogin({
         <form action={signInWithGoogle}>
           <button
             type="submit"
-            className="border-brand-deep text-ink hover:bg-halo flex min-h-11 w-full items-center justify-center gap-2.5 bg-surface rounded-lg border-2 px-4 font-medium transition-colors"
+            className="border-brand-deep text-ink hover:bg-ground flex min-h-11 w-full items-center justify-center gap-2.5 bg-surface rounded-lg border-2 px-4 font-medium transition-colors"
           >
             <svg className="size-4" viewBox="0 0 24 24" aria-hidden="true">
               <path

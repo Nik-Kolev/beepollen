@@ -1,6 +1,7 @@
 import { Bee } from "@/components/art/bee";
 import { HiveBox } from "@/components/art/hive-box";
 import { Container } from "@/components/container";
+import { CookieSettingsButton } from "@/components/layout/cookie-settings-button";
 import { CurrentYear } from "@/components/layout/current-year";
 import { OWNER_PHONE } from "@/lib/site";
 
@@ -80,6 +81,7 @@ export function Footer() {
             © <CurrentYear builtIn={new Date().getFullYear()} /> Всички права
             запазени · гр. Попово
           </span>
+          <CookieSettingsButton />
         </div>
       </Container>
     </footer>

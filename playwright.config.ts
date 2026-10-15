@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
 import { TEST_ADMIN_EMAIL, TEST_AUTH_SECRET } from "./e2e/admin-env";
+import { COOKIE_CONSENT_KEY } from "./src/lib/cookie-consent";
 
 const port = process.env.E2E_PORT ?? "3000";
 const baseURL = `http://localhost:${port}`;
@@ -14,6 +15,15 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "on-first-retry",
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: baseURL,
+          localStorage: [{ name: COOKIE_CONSENT_KEY, value: "rejected" }],
+        },
+      ],
+    },
   },
   projects: [
     {

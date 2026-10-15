@@ -15,11 +15,18 @@ const PAGES = [
   ["the admin login page", "/admin/login"],
   ["the admin order list", "/admin/orders"],
   ["the admin product list", "/admin/products"],
+  ["the admin statistics page", "/admin/analytics"],
 ] as const;
+
+const SIGNED_IN: readonly string[] = [
+  "/admin/orders",
+  "/admin/products",
+  "/admin/analytics",
+];
 
 for (const [name, path] of PAGES) {
   test(`${name} has no accessibility violations`, async ({ page, context }) => {
-    if (path === "/admin/orders" || path === "/admin/products") {
+    if (SIGNED_IN.includes(path)) {
       await signInAs(context, TEST_ADMIN_EMAIL);
     }
     if (path === "/cart" || path === "/checkout") {

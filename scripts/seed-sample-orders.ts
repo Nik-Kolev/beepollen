@@ -8,12 +8,15 @@ import {
 import { placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const samples: {
   name: string;
   phone: string;
   city: string | null;
   items: { slug: string; quantity: number }[];
   steps: OrderStep[];
+  offersDaysAgo?: number;
 }[] = [
   {
     name: "Мария Петрова",
@@ -21,6 +24,7 @@ const samples: {
     city: "Варна",
     items: [{ slug: "pchelen-prashets-500g", quantity: 2 }],
     steps: [],
+    offersDaysAgo: 2,
   },
   {
     name: "Георги Иванов",
@@ -38,6 +42,7 @@ const samples: {
       { slug: "pchelen-prashets-1kg", quantity: 1 },
     ],
     steps: [],
+    offersDaysAgo: 5,
   },
   {
     name: "Петър Николов",
@@ -45,6 +50,7 @@ const samples: {
     city: "София",
     items: [{ slug: "pchelen-prashets-1kg", quantity: 2 }],
     steps: ["send"],
+    offersDaysAgo: 12,
   },
   {
     name: "Иванка Стоянова",
@@ -52,6 +58,7 @@ const samples: {
     city: "Бургас",
     items: [{ slug: "pchelen-prashets-500g", quantity: 3 }],
     steps: ["send"],
+    offersDaysAgo: 20,
   },
   {
     name: "Николай Георгиев",
@@ -59,6 +66,7 @@ const samples: {
     city: "Русе",
     items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
     steps: ["send", "pay"],
+    offersDaysAgo: 45,
   },
   {
     name: "Даниела Колева",
@@ -73,6 +81,7 @@ const samples: {
     city: "Велико Търново",
     items: [{ slug: "pchelen-prashets-1kg", quantity: 1 }],
     steps: ["send", "pay"],
+    offersDaysAgo: 90,
   },
   {
     name: "Цветелина Маринова",
@@ -101,6 +110,7 @@ const samples: {
     city: "Търговище",
     items: [{ slug: "pchelen-prashets-500g", quantity: 4 }],
     steps: [],
+    offersDaysAgo: 0,
   },
 ];
 
@@ -125,7 +135,7 @@ async function main() {
         deliveryMethod: sample.city ? "ECONT_OFFICE" : "LOCAL",
         officeCode: sample.city ? await officeIn(sample.city) : "",
         acceptsTerms: true,
-        acceptsOffers: false,
+        acceptsOffers: sample.offersDaysAgo !== undefined,
         idempotencyKey: randomUUID(),
       },
       null,
@@ -133,6 +143,18 @@ async function main() {
     if (!result.ok) throw new Error(`Order refused: ${result.code}`);
 
     const { reference } = result.order;
+    if (sample.offersDaysAgo !== undefined) {
+      const placedAt = new Date(Date.now() - sample.offersDaysAgo * DAY_MS);
+      await prisma.order.update({
+        where: { reference },
+        data: {
+          createdAt: placedAt,
+          consents: {
+            updateMany: { where: {}, data: { createdAt: placedAt } },
+          },
+        },
+      });
+    }
     for (const step of sample.steps) {
       const order = await prisma.order.findUniqueOrThrow({
         where: { reference },

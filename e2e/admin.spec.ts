@@ -15,13 +15,18 @@ test("an anonymous visitor to /admin is sent to the login page", async ({
   await expect(page.getByRole("main").getByRole("alert")).toHaveCount(0);
 });
 
-test("an anonymous visitor to the order list is sent to the login page", async ({
-  page,
-}) => {
-  await page.goto("/admin/orders");
+for (const [name, path] of [
+  ["the order list", "/admin/orders"],
+  ["the statistics page", "/admin/analytics"],
+] as const) {
+  test(`an anonymous visitor to ${name} is sent to the login page`, async ({
+    page,
+  }) => {
+    await page.goto(path);
 
-  await expect(page).toHaveURL("/admin/login");
-});
+    await expect(page).toHaveURL("/admin/login");
+  });
+}
 
 test("a session cookie signed with another secret is treated as no session", async ({
   page,
@@ -102,14 +107,13 @@ test("the shop shows a signed-in admin a bar linking to the admin, and the admin
   await page.goto("/");
 
   const bar = page.getByRole("navigation", { name: "Админ" });
-  await bar.getByRole("link", { name: "Към поръчки" }).click();
+  await bar.getByRole("link", { name: "Админ панел", exact: true }).click();
   await expect(page).toHaveURL("/admin/orders");
 
   await page.getByRole("link", { name: "Към сайта" }).click();
   await expect(page).toHaveURL("/");
-  await expect(bar.getByRole("link", { name: "Към продукти" })).toBeVisible();
 
-  await bar.getByRole("button", { name: "Изход от акаунта" }).click();
+  await bar.getByRole("button", { name: "Изход", exact: true }).click();
   await expect(page).toHaveURL("/admin/login");
   await page.goto("/admin/orders");
   await expect(page).toHaveURL("/admin/login");

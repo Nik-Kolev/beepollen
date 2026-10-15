@@ -5,6 +5,7 @@ import { signOutOfAdmin } from "@/app/admin/actions";
 const SECTIONS = [
   { href: "/admin/orders", label: "Поръчки" },
   { href: "/admin/products", label: "Продукти" },
+  { href: "/admin/analytics", label: "Статистика" },
 ] as const;
 
 export type AdminSection = (typeof SECTIONS)[number]["href"];
@@ -24,14 +25,17 @@ export function AdminHeader({
     <div className="bg-ground border-line sticky top-0 z-10 -mx-4 border-b px-4 pt-2 pb-3 sm:-mx-6 sm:px-6">
       <h1 className="sr-only">{title}</h1>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <nav aria-label="Админ">
-          <ul role="list" className="flex gap-1">
+        <nav
+          aria-label="Админ"
+          className="max-md:flex max-md:w-full max-md:justify-center"
+        >
+          <ul role="list" className="flex sm:gap-1">
             {SECTIONS.map(({ href, label }) => (
               <li key={href}>
                 <Link
                   href={href}
                   aria-current={href === current ? "page" : undefined}
-                  className={`${href === current ? "text-ink border-brand-deep" : "text-ink-soft hover:text-ink border-transparent"} inline-flex min-h-12 items-center border-b-4 px-2 text-lg font-semibold transition-colors sm:px-3 sm:text-xl`}
+                  className={`${href === current ? "text-ink border-brand-deep" : "text-ink-soft hover:text-ink border-transparent"} inline-flex min-h-12 items-center border-b-4 px-1 text-lg font-semibold transition-colors sm:px-3 sm:text-xl`}
                 >
                   {label}
                 </Link>
@@ -39,7 +43,7 @@ export function AdminHeader({
             ))}
           </ul>
         </nav>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 max-md:w-full max-md:justify-center">
           {email && <p className="text-ink-soft text-sm">{email}</p>}
           <Link
             href="/"

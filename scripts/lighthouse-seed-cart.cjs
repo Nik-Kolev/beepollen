@@ -10,6 +10,7 @@ module.exports = async (browser, { url }) => {
   await page.goto(target.origin);
   await page.evaluate(
     (cart) => {
+      localStorage.setItem("beepollen.cookie-consent", "rejected");
       if (cart) localStorage.setItem("beepollen.cart", cart);
       else localStorage.removeItem("beepollen.cart");
     },

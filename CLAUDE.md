@@ -493,6 +493,12 @@ missing from its own list. Checkout specs assert
 seeded totals, so the one spec that edits a published product is its own
 `catalogue-edit` project, run after both others and restoring the seeded values.
 
+Every Playwright context starts with the cookie choice stored as `rejected`,
+through `use.storageState` in `playwright.config.ts`, and the Lighthouse script
+stores the same before each URL — otherwise the bar covers the controls a spec
+clicks and the page a run measures. A spec about the bar opts out with an empty
+`storageState`, as `e2e/cookie-consent.spec.ts` does.
+
 `@axe-core/playwright` scans each page against WCAG A and AA and fails on any
 violation. It runs inside the existing suite rather than as its own job, because
 the suite already builds the app and drives a browser. Add a scan for every new

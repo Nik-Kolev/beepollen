@@ -68,7 +68,7 @@ holds no database, so placing an order in it fails.
 | `npm run db:studio`        | Browse the database                       |
 | `npm run db:reset`         | Wipe and replay migrations                |
 | `npm run db:fresh`         | Reset, then seed                          |
-| `npm run db:sample-orders` | Place sample orders in every admin status |
+| `npm run db:sample-orders` | Sample orders in each status, subscribers |
 | `npm run econt:sync`       | Refresh the Econt office list             |
 | `npm run test:unit`        | Unit tests, own throwaway DB              |
 | `npm run test:e2e`         | E2E and accessibility tests               |

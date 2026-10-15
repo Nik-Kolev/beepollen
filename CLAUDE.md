@@ -43,9 +43,12 @@ purpose, since equal prices hide a quantity or subtotal bug. The unpublished
 zero-price draft the tests need is not in the seed:
 `scripts/seed-test-fixtures.ts` adds it to the unit and e2e databases after
 seeding, so it never reaches a database anyone reviews. The Econt
-tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is the one other invented
+tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is another invented
 number, for the same reason; it is replaced by calculated Econt prices rather than
-corrected. Ask before inventing a number anywhere else.
+corrected. `TODO_VISITORS` in `src/lib/analytics.ts` is the third: the admin's
+visitor and traffic-source counts until GA4 is wired, announced as sample numbers
+on the page, and deleted when the GA4 read replaces it. Ask before inventing a
+number anywhere else.
 
 The catalogue is pollen only. Honey and comb were seeded early against borrowed
 free-licensed photographs and removed once the catalogue settled on pollen alone

@@ -47,11 +47,11 @@ export function CookieBanner() {
     <section
       ref={section}
       aria-label="Бисквитки"
-      className="bg-surface border-line fixed inset-x-0 bottom-0 z-50 border-t shadow-[0_-4px_16px_rgb(0_0_0/0.08)]"
+      className="bg-surface border-line fixed inset-x-0 bottom-0 z-50 border-t shadow-[0_-4px_16px_rgb(0_0_0/0.08)] sm:pointer-events-none sm:border-t-0 sm:bg-transparent sm:pb-4 sm:shadow-none"
     >
       <Container>
-        <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-          <p className="text-sm">
+        <div className="sm:bg-surface sm:border-line flex flex-col gap-3 py-4 sm:pointer-events-auto sm:rounded-xl sm:border sm:px-6 sm:shadow-lg md:flex-row md:items-center md:justify-between md:gap-6">
+          <p className="text-center text-sm md:text-left">
             Ползваме бисквитки на Google Analytics само ако ги приемете — за да
             знаем колко хора разглеждат сайта и откъде идват.
           </p>

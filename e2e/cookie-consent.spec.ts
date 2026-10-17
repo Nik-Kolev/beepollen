@@ -183,6 +183,55 @@ test("scrolled to the end, the footer's last row sits clear of the bar", async (
   expect(button!.y + button!.height).toBeLessThanOrEqual(banner!.y);
 });
 
+test("on a wide screen the bar is a card as wide as the catalogue, and the strip around it lets clicks through", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "the card layout starts at the sm breakpoint");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await expect(bar(page)).toBeVisible();
+
+  const cardLocator = bar(page).locator("p").locator("..");
+  const transparent = "rgba(0, 0, 0, 0)";
+  expect(
+    await bar(page).evaluate((el) => getComputedStyle(el).backgroundColor),
+  ).toBe(transparent);
+  expect(
+    await cardLocator.evaluate((el) => getComputedStyle(el).backgroundColor),
+  ).not.toBe(transparent);
+
+  const card = await cardLocator.boundingBox();
+  const grid = await page.locator("main ul").first().boundingBox();
+  const region = await bar(page).boundingBox();
+  expect(card).not.toBeNull();
+  expect(grid).not.toBeNull();
+  expect(region).not.toBeNull();
+  expect(Math.round(card!.x)).toBe(Math.round(grid!.x));
+  expect(Math.round(card!.width)).toBe(Math.round(grid!.width));
+
+  const below = {
+    x: card!.x + 40,
+    y: (card!.y + card!.height + region!.y + region!.height) / 2,
+  };
+  const beside = {
+    x: (region!.x + card!.x) / 2,
+    y: card!.y + card!.height / 2,
+  };
+  const hits = await page.evaluate(
+    (points) =>
+      points.map(({ x, y }) =>
+        Boolean(
+          document
+            .elementFromPoint(x, y)
+            ?.closest("section[aria-label='Бисквитки']"),
+        ),
+      ),
+    [below, beside],
+  );
+  expect(hits).toEqual([false, false]);
+});
+
 test("the bar's arrival moves nothing on a page shorter than the screen", async ({
   page,
 }) => {

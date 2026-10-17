@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { Container } from "@/components/container";
 import { CookieChoice } from "@/components/cookie-choice";
@@ -150,7 +151,16 @@ export default function CookiesPage() {
           <h2 id="who" className={HEADING}>
             Кой отговаря за данните
           </h2>
-          <p>TODO: име, адрес и имейл на администратора на лични данни</p>
+          <p>
+            Кой сме, как да се свържете с нас и какви са правата ви пише в{" "}
+            <Link
+              href="/privacy"
+              className="underline underline-offset-4 hover:no-underline"
+            >
+              политиката за поверителност
+            </Link>
+            .
+          </p>
         </section>
       </article>
     </Container>

@@ -11,6 +11,7 @@ const PAGES = [
   ["the cart page", "/cart"],
   ["the checkout page", "/checkout"],
   ["the cookie policy page", "/cookies"],
+  ["the privacy policy page", "/privacy"],
   ["the not-found page", "/no-such-page"],
   ["an unknown product slug", "/products/no-such-product"],
   ["the admin login page", "/admin/login"],
@@ -106,6 +107,7 @@ const LIST_PAGES = [
   "/",
   "/products/pchelen-prashets-500g",
   "/cookies",
+  "/privacy",
 ] as const;
 
 for (const path of LIST_PAGES) {

@@ -113,7 +113,9 @@ build saw; the order service reprices every line from the database regardless.
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That
 claim holds only while the list is complete, so a new key joins the page in the
-same change.
+same change. `/privacy` is held to the same rule for personal data: a new field
+collected or stored, a new recipient, or a changed retention is written into it
+in the same change.
 
 The header bee buzzes on a counter only `add` bumps, so a stepper change or
 another tab's write never sets it off. The add button's green window is locked by

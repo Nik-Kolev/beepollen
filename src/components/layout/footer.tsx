@@ -86,6 +86,14 @@ export function Footer() {
             <ul role="list" className="flex flex-wrap justify-center gap-x-6">
               <li>
                 <Link
+                  href="/privacy"
+                  className="inline-flex min-h-11 items-center underline underline-offset-4 hover:no-underline"
+                >
+                  Поверителност
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/cookies"
                   className="inline-flex min-h-11 items-center underline underline-offset-4 hover:no-underline"
                 >

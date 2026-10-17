@@ -266,6 +266,13 @@ read from the caller — the tariff for an Econt office, zero for `LOCAL`.
 `/checkout` is one page — contact fields, the office picker, consents and the
 line summary.
 
+The submit button must name the obligation to pay (ЗЗП чл. 49 ал. 2): with a
+label such as „Завърши поръчката“ the buyer is not bound by the order. The terms
+checkbox only accepts the terms; the privacy policy is linked beside it, never
+accepted. Its label is written by hand around a link, so `e2e/checkout.spec.ts`
+asserts its accessible name equals `CONSENT_WORDING.TERMS`, the text `Consent`
+stores.
+
 The form submits from `onSubmit` inside `startTransition`, never through the
 `action` prop. React resets a form once its action returns, wiping the fields a
 buyer got right; controlling the inputs rescues the text values but not a

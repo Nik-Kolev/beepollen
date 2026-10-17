@@ -65,7 +65,9 @@ test("the error page a failed order submission falls into has no accessibility v
       : route.continue(),
   );
 
-  await page.getByRole("button", { name: "Завърши поръчката" }).click();
+  await page
+    .getByRole("button", { name: "Поръчай с плащане при доставка" })
+    .click();
   await expect(
     page.getByRole("heading", { level: 1, name: "Възникна грешка" }),
   ).toBeVisible();
@@ -95,7 +97,9 @@ test("a focused field draws one thin frame while other controls keep the offset 
   await expect(name).toHaveCSS("outline-width", "1px");
   await expect(name).toHaveCSS("outline-offset", "0px");
 
-  const submit = page.getByRole("button", { name: "Завърши поръчката" });
+  const submit = page.getByRole("button", {
+    name: "Поръчай с плащане при доставка",
+  });
   await submit.focus();
   await page.keyboard.press("Shift+Tab");
   await page.keyboard.press("Tab");

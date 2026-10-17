@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { UNAVAILABLE_LINES } from "@/lib/checkout-messages";
+import { CONSENT_WORDING } from "@/lib/consent";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
@@ -93,7 +94,9 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await page.getByLabel("Име и фамилия").fill("Мария Иванова");
   await page.getByLabel("Имейл", { exact: true }).fill("sold-out@example.com");
   await page.getByLabel("Телефон", { exact: true }).fill("0899777888");
-  await page.getByLabel(/Съгласен съм с общите условия/).check();
+  await page
+    .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
+    .check();
   await page.getByLabel("Град", { exact: true }).fill("Павликени");
   await page.getByRole("option", { name: "Павликени", exact: true }).click();
   await page
@@ -105,7 +108,9 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await saveProduct(adminPage, SEEDED.price, "NONE");
   await admin.close();
 
-  await page.getByRole("button", { name: "Завърши поръчката" }).click();
+  await page
+    .getByRole("button", { name: "Поръчай с плащане при доставка" })
+    .click();
 
   const main = page.getByRole("main");
   await expect(main.getByRole("alert")).toHaveText(UNAVAILABLE_LINES);

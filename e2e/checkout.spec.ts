@@ -1,5 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { CONSENT_WORDING } from "@/lib/consent";
+
 import { seedCart } from "./seed-cart";
 
 const POLLEN_SLUG = "pchelen-prashets-500g";
@@ -47,7 +49,9 @@ async function fillContact(page: Page, email: string) {
   await page.getByLabel("Име и фамилия").fill("Мария Иванова");
   await emailField(page).fill(email);
   await page.getByLabel("Телефон", { exact: true }).fill("0899777888");
-  await page.getByLabel(/Съгласен съм с общите условия/).check();
+  await page
+    .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
+    .check();
 }
 
 test("the cart leads to the checkout page", async ({ page }) => {
@@ -184,7 +188,7 @@ test("a withdrawn product is named rather than dropped", async ({ page }) => {
   await expect(summaryRows(page)).toHaveCount(2);
 
   await expect(
-    page.getByRole("button", { name: "Завърши поръчката" }),
+    page.getByRole("button", { name: "Поръчай с плащане при доставка" }),
   ).toBeDisabled();
   await expect(
     page.getByText(
@@ -196,7 +200,7 @@ test("a withdrawn product is named rather than dropped", async ({ page }) => {
 
   await expect(summaryRows(page)).toHaveCount(1);
   await expect(
-    page.getByRole("button", { name: "Завърши поръчката" }),
+    page.getByRole("button", { name: "Поръчай с плащане при доставка" }),
   ).toBeEnabled();
 });
 
@@ -210,12 +214,34 @@ test("the consent wording is rendered as it will be stored", async ({
   await page.goto("/checkout");
 
   await expect(
-    page.getByText(
-      "Съгласен съм с общите условия и политиката за поверителност.",
-    ),
+    page.getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByText("Искам да получавам оферти и напомняния по имейл."),
+    page.getByRole("checkbox", { name: CONSENT_WORDING.OFFERS, exact: true }),
+  ).toBeVisible();
+});
+
+test("the terms and the privacy policy are one click from the order button, which names the obligation to pay", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+
+  const main = page.getByRole("main");
+  await expect(
+    main.getByRole("link", { name: "общите условия", exact: true }),
+  ).toHaveAttribute("href", "/terms");
+  await expect(
+    main.getByRole("link", { name: "Политика за поверителност", exact: true }),
+  ).toHaveAttribute("href", "/privacy");
+  await expect(
+    main.getByRole("button", {
+      name: "Поръчай с плащане при доставка",
+      exact: true,
+    }),
   ).toBeVisible();
 });
 
@@ -223,7 +249,9 @@ async function submittedIdempotencyKey(page: Page) {
   const request = page.waitForRequest(
     (sent) => sent.method() === "POST" && sent.url().endsWith("/checkout"),
   );
-  await page.getByRole("button", { name: "Завърши поръчката" }).click();
+  await page
+    .getByRole("button", { name: "Поръчай с плащане при доставка" })
+    .click();
   const body = (await request).postData() ?? "";
 
   return body.match(/name="(?:_\d+_)?idempotencyKey"\r\n\r\n([^\r]+)/)?.[1];
@@ -269,7 +297,9 @@ test.describe("placing an order", () => {
 
     await fillContact(page, "not-an-email");
     await chooseOffice(page);
-    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+    await page
+      .getByRole("button", { name: "Поръчай с плащане при доставка" })
+      .click();
 
     await expect(page.getByText("Въведете валиден имейл адрес.")).toBeVisible();
     await expect(emailField(page)).toHaveAttribute("aria-invalid", "true");
@@ -283,7 +313,7 @@ test.describe("placing an order", () => {
       "0899777888",
     );
     await expect(
-      page.getByLabel(/Съгласен съм с общите условия/),
+      page.getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true }),
     ).toBeChecked();
     await expect(page.getByLabel("Име и фамилия")).not.toHaveAttribute(
       "aria-invalid",
@@ -301,7 +331,9 @@ test.describe("placing an order", () => {
     await page.goto("/checkout");
 
     await fillContact(page, "maria.ivanova@example.com");
-    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+    await page
+      .getByRole("button", { name: "Поръчай с плащане при доставка" })
+      .click();
 
     const officeRequired = page.getByText(
       "Изберете офис на Еконт, до който да получите поръчката.",
@@ -340,7 +372,9 @@ test.describe("placing an order", () => {
 
     await page.getByLabel("Град", { exact: true }).fill(OFFICE_CITY);
     await page.getByRole("option", { name: OFFICE_CITY, exact: true }).click();
-    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+    await page
+      .getByRole("button", { name: "Поръчай с плащане при доставка" })
+      .click();
 
     await expect(offices).toHaveAttribute("aria-invalid", "true");
     await expect(offices).toHaveAccessibleDescription(officeRequired);
@@ -352,7 +386,9 @@ test.describe("placing an order", () => {
     await page.getByRole("button", { name: /Промени града/ }).click();
     await page.getByLabel("Град", { exact: true }).fill("Габрово");
     await page.getByRole("option", { name: "Габрово", exact: true }).click();
-    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+    await page
+      .getByRole("button", { name: "Поръчай с плащане при доставка" })
+      .click();
 
     await expect(search).toHaveAttribute("aria-invalid", "true");
     await expect(search).toHaveAccessibleDescription(officeRequired);
@@ -371,7 +407,9 @@ test.describe("placing an order", () => {
 
     await fillContact(page, "maria.ivanova@example.com");
     await page.getByLabel(/Поръчката е за гр\. Попово/).check();
-    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+    await page
+      .getByRole("button", { name: "Поръчай с плащане при доставка" })
+      .click();
 
     await expect(
       page.getByRole("heading", { name: "Поръчката е приета" }),
@@ -390,7 +428,9 @@ test.describe("placing an order", () => {
 
     await fillContact(page, "maria.ivanova@example.com");
     await chooseOffice(page);
-    await page.getByRole("button", { name: "Завърши поръчката" }).click();
+    await page
+      .getByRole("button", { name: "Поръчай с плащане при доставка" })
+      .click();
 
     await expect(
       page.getByRole("heading", { name: "Поръчката е приета" }),

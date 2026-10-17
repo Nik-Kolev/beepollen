@@ -34,7 +34,9 @@ async function placeOrder(page: Page, email: string) {
   await page.getByLabel("Име и фамилия").fill("Админ Тестов");
   await page.getByLabel("Имейл", { exact: true }).fill(email);
   await page.getByLabel("Телефон", { exact: true }).fill("0899555444");
-  await page.getByLabel(/Съгласен съм с общите условия/).check();
+  await page
+    .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
+    .check();
   await page.getByLabel("Град", { exact: true }).fill("Павликени");
   await page.getByRole("option", { name: "Павликени", exact: true }).click();
   await page
@@ -42,7 +44,9 @@ async function placeOrder(page: Page, email: string) {
     .locator("label")
     .filter({ hasText: "пл. Стефан Караджа №16" })
     .click();
-  await page.getByRole("button", { name: "Завърши поръчката" }).click();
+  await page
+    .getByRole("button", { name: "Поръчай с плащане при доставка" })
+    .click();
 
   const reference = page.getByText(/^BP\d{7,}$/);
   await expect(reference).toBeVisible();

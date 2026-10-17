@@ -45,6 +45,8 @@ const CHECKBOX_LABEL = "flex min-h-11 items-center gap-3 text-sm";
 
 const CONSENT_BOX = "border-line bg-ground rounded-lg border px-4 py-2";
 
+const LEGAL_LINK = "underline underline-offset-4 hover:no-underline";
+
 const CARD = "bg-surface ring-line rounded-xl p-5 shadow-sm ring-1 sm:p-6";
 
 function StepCard({
@@ -542,7 +544,18 @@ function FilledCheckout({
                     className={CHECKBOX}
                     {...fieldProps("acceptsTerms")}
                   />
-                  <span>{CONSENT_WORDING.TERMS}</span>
+                  <span>
+                    Прочетох и приемам{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      aria-describedby="new-tab-note"
+                      className={LEGAL_LINK}
+                    >
+                      общите условия
+                    </Link>
+                    .
+                  </span>
                 </label>
                 {invalid.has("acceptsTerms") && (
                   <p id="acceptsTerms-error" className={ERROR_TEXT}>
@@ -550,6 +563,21 @@ function FilledCheckout({
                   </p>
                 )}
               </div>
+
+              <p className="text-sm">
+                Как обработваме данните ви:{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  aria-describedby="new-tab-note"
+                  className={LEGAL_LINK}
+                >
+                  Политика за поверителност
+                </Link>
+                <span id="new-tab-note" className="sr-only">
+                  Отваря се в нов раздел.
+                </span>
+              </p>
 
               <label className={`${CONSENT_BOX} ${CHECKBOX_LABEL}`}>
                 <input
@@ -571,9 +599,9 @@ function FilledCheckout({
             <button
               type="submit"
               disabled={pending || blocked !== null}
-              className="bg-action text-action-ink hover:bg-action-hover disabled:bg-placeholder disabled:text-ink-soft mt-4 min-h-14 w-full rounded-full px-8 text-lg font-semibold disabled:cursor-not-allowed"
+              className="bg-action text-action-ink hover:bg-action-hover disabled:bg-placeholder disabled:text-ink-soft mt-4 min-h-14 w-full rounded-full px-6 py-3 text-base leading-snug font-semibold disabled:cursor-not-allowed sm:px-8 sm:text-lg"
             >
-              {pending ? "Изпращане…" : "Завърши поръчката"}
+              {pending ? "Изпращане…" : "Поръчай с плащане при доставка"}
             </button>
 
             {blocked && <p className={ERROR_TEXT}>{blocked}</p>}

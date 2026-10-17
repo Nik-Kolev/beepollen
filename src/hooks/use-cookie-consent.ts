@@ -12,22 +12,13 @@ const listeners = new Set<() => void>();
 
 let memoryChoice: CookieChoice | null = null;
 let storageWorks = true;
-let reopened = false;
-let reopenedFrom: HTMLElement | null = null;
 
 function emit() {
   for (const listener of listeners) listener();
 }
 
 function handleStorage(event: StorageEvent) {
-  if (event.key === null || event.key === COOKIE_CONSENT_KEY) {
-    const returnFocusTo = reopenedFrom;
-
-    reopened = false;
-    reopenedFrom = null;
-    emit();
-    returnFocusTo?.focus();
-  }
+  if (event.key === null || event.key === COOKIE_CONSENT_KEY) emit();
 }
 
 function subscribe(listener: () => void) {
@@ -61,11 +52,7 @@ function subscribeToNothing() {
 }
 
 export function chooseCookies(next: CookieChoice) {
-  const returnFocusTo = reopenedFrom;
-
   memoryChoice = next;
-  reopened = false;
-  reopenedFrom = null;
 
   try {
     localStorage.setItem(COOKIE_CONSENT_KEY, next);
@@ -74,27 +61,15 @@ export function chooseCookies(next: CookieChoice) {
   }
 
   emit();
-  returnFocusTo?.focus();
-}
-
-export function reopenCookieBar(trigger: HTMLElement) {
-  reopened = true;
-  reopenedFrom = trigger;
-  emit();
 }
 
 export function useCookieConsent() {
   const choice = useSyncExternalStore(subscribe, getChoice, () => null);
-  const isReopened = useSyncExternalStore(
-    subscribe,
-    () => reopened,
-    () => false,
-  );
   const ready = useSyncExternalStore(
     subscribeToNothing,
     () => true,
     () => false,
   );
 
-  return { choice, ready, isReopened };
+  return { choice, ready };
 }

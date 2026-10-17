@@ -1,7 +1,8 @@
+import Link from "next/link";
+
 import { Bee } from "@/components/art/bee";
 import { HiveBox } from "@/components/art/hive-box";
 import { Container } from "@/components/container";
-import { CookieSettingsButton } from "@/components/layout/cookie-settings-button";
 import { CurrentYear } from "@/components/layout/current-year";
 import { OWNER_PHONE } from "@/lib/site";
 
@@ -81,7 +82,18 @@ export function Footer() {
             © <CurrentYear builtIn={new Date().getFullYear()} /> Всички права
             запазени · гр. Попово
           </span>
-          <CookieSettingsButton />
+          <nav aria-label="Правна информация">
+            <ul role="list" className="flex flex-wrap justify-center gap-x-6">
+              <li>
+                <Link
+                  href="/cookies"
+                  className="inline-flex min-h-11 items-center underline underline-offset-4 hover:no-underline"
+                >
+                  Бисквитки
+                </Link>
+              </li>
+            </ul>
+          </nav>
         </div>
       </Container>
     </footer>

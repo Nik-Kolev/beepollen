@@ -10,6 +10,7 @@ const PAGES = [
   ["a product page", "/products/pchelen-prashets-500g"],
   ["the cart page", "/cart"],
   ["the checkout page", "/checkout"],
+  ["the cookie policy page", "/cookies"],
   ["the not-found page", "/no-such-page"],
   ["an unknown product slug", "/products/no-such-product"],
   ["the admin login page", "/admin/login"],
@@ -101,7 +102,11 @@ test("a focused field draws one thin frame while other controls keep the offset 
   await expect(submit).toHaveCSS("outline-offset", "2px");
 });
 
-const LIST_PAGES = ["/", "/products/pchelen-prashets-500g"] as const;
+const LIST_PAGES = [
+  "/",
+  "/products/pchelen-prashets-500g",
+  "/cookies",
+] as const;
 
 for (const path of LIST_PAGES) {
   test(`every list on ${path} declares its role`, async ({ page }) => {

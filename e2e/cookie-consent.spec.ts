@@ -12,10 +12,14 @@ function bar(page: Page) {
   return page.getByRole("region", { name: "Бисквитки", exact: true });
 }
 
-function settingsButton(page: Page) {
+function footerLink(page: Page) {
   return page
     .locator("footer")
-    .getByRole("button", { name: "Бисквитки", exact: true });
+    .getByRole("link", { name: "Бисквитки", exact: true });
+}
+
+function pageChoice(page: Page, name: "Приемам" | "Отказвам") {
+  return page.getByRole("main").getByRole("button", { name, exact: true });
 }
 
 function storedChoice(page: Page) {
@@ -83,7 +87,7 @@ test("an unreadable stored value shows the bar again", async ({ page }) => {
   await expect(bar(page)).toBeVisible();
 });
 
-test("the footer button reopens the bar and gets focus back after a new choice", async ({
+test("the footer link leads to the cookie page, where a refusal can be changed", async ({
   page,
 }) => {
   await page.goto("/");
@@ -92,20 +96,50 @@ test("the footer button reopens the bar and gets focus back after a new choice",
     .click();
   await expect(bar(page)).toBeHidden();
 
-  await settingsButton(page).click();
+  await footerLink(page).click();
 
-  const accept = bar(page).getByRole("button", {
-    name: "Приемам",
-    exact: true,
-  });
+  await expect(page).toHaveURL("/cookies");
+  await expect(
+    page.getByText("Отказали сте бисквитките на Google Analytics."),
+  ).toBeVisible();
+  await expect(pageChoice(page, "Отказвам")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+
+  await pageChoice(page, "Приемам").click();
+
+  await expect(
+    page.getByText("Приели сте бисквитките на Google Analytics."),
+  ).toBeVisible();
+  await expect(pageChoice(page, "Приемам")).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(pageChoice(page, "Отказвам")).toHaveAttribute(
+    "aria-pressed",
+    "false",
+  );
+  expect(await storedChoice(page)).toBe("accepted");
+  expect(await bar(page).count()).toBe(0);
+});
+
+test("the bar links to the cookie page, and a choice made there closes the bar", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await bar(page)
+    .getByRole("link", { name: "Политика за бисквитките", exact: true })
+    .click();
+
+  await expect(page).toHaveURL("/cookies");
+  await expect(page.getByText("Още не сте избрали.")).toBeVisible();
   await expect(bar(page)).toBeVisible();
-  await expect(accept).toBeFocused();
 
-  await accept.click();
+  await pageChoice(page, "Отказвам").click();
 
   await expect(bar(page)).toBeHidden();
-  await expect(settingsButton(page)).toBeFocused();
-  expect(await storedChoice(page)).toBe("accepted");
+  expect(await storedChoice(page)).toBe("rejected");
 });
 
 test("a choice made in another tab hides this tab's bar", async ({
@@ -123,27 +157,6 @@ test("a choice made in another tab hides this tab's bar", async ({
 
   await expect(bar(first)).toBeHidden();
   expect(await storedChoice(first)).toBe("rejected");
-});
-
-test("a choice made in another tab also closes a reopened bar", async ({
-  context,
-}) => {
-  const first = await context.newPage();
-  await first.goto("/");
-  await bar(first)
-    .getByRole("button", { name: "Отказвам", exact: true })
-    .click();
-  await settingsButton(first).click();
-  await expect(bar(first)).toBeVisible();
-
-  const second = await context.newPage();
-  await second.goto("/");
-  await settingsButton(second).click();
-  await bar(second)
-    .getByRole("button", { name: "Приемам", exact: true })
-    .click();
-
-  await expect(bar(first)).toBeHidden();
 });
 
 test("the bar still closes when the browser refuses storage", async ({
@@ -176,7 +189,7 @@ test("scrolled to the end, the footer's last row sits clear of the bar", async (
     window.scrollTo(0, document.documentElement.scrollHeight),
   );
 
-  const button = await settingsButton(page).boundingBox();
+  const button = await footerLink(page).boundingBox();
   const banner = await bar(page).boundingBox();
   expect(button).not.toBeNull();
   expect(banner).not.toBeNull();

@@ -282,6 +282,31 @@ test("a resubmission reuses its page's idempotency key and a new page load mints
   expect(reloaded).not.toBe(first);
 });
 
+test("two clicks landing together send the order once", async ({ page }) => {
+  await seedCart(page, {
+    version: 1,
+    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+  await fillContact(page, "not-an-email");
+
+  const posts: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST") posts.push(request.url());
+  });
+  const submit = page.getByRole("button", {
+    name: "Поръчай с плащане при доставка",
+  });
+  await submit.evaluate((button) => {
+    (button as HTMLButtonElement).click();
+    (button as HTMLButtonElement).click();
+  });
+
+  await expect(page.getByText("Въведете валиден имейл адрес.")).toBeVisible();
+  await expect(submit).toBeEnabled();
+  expect(posts).toHaveLength(1);
+});
+
 test.describe("placing an order", () => {
   test.skip(
     ({ isMobile }) => !isMobile,

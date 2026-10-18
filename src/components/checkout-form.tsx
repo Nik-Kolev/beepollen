@@ -232,8 +232,10 @@ function FilledCheckout({
   const [summaryOpen, setSummaryOpen] = useState(false);
   const linesId = useId();
   const formRef = useRef<HTMLFormElement>(null);
+  const submitting = useRef(false);
 
   useEffect(() => {
+    submitting.current = false;
     if (!result || result.ok) return;
 
     const form = formRef.current;
@@ -312,6 +314,8 @@ function FilledCheckout({
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
+        if (submitting.current) return;
+        submitting.current = true;
 
         const submitted = new FormData(event.currentTarget);
         idempotencyKey.current ??= crypto.randomUUID();

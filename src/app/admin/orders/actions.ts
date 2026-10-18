@@ -14,8 +14,14 @@ export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
   const parsed = orderStepInput.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "refused" };
 
-  const { reference, step, expected } = parsed.data;
-  const result = await applyOrderStep(reference, step, expected);
+  const { reference, step, expected, confirmed } = parsed.data;
+  const result = await applyOrderStep(
+    reference,
+    step,
+    expected,
+    new Date(),
+    confirmed,
+  );
   if (result.ok) refresh();
   return result;
 }

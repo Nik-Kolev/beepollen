@@ -12,6 +12,7 @@ const NEGATIVE_STEPS: readonly OrderStep[] = ["cancel", "return"];
 const FAILURE_TEXT = {
   stale: "Поръчката вече е променена от друг екран.",
   refused: "Тази стъпка вече не е възможна.",
+  withdrawn: "Купувачът току-що заяви отказ. Обновете, преди да изпратите.",
   error: "Не е запазено. Опитайте отново.",
 } as const;
 
@@ -68,6 +69,7 @@ export function OrderSteps({
   const saving = useRef(false);
   const advanced = useRef(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const stepsRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const textId = useId();
   const router = useRouter();
@@ -96,7 +98,7 @@ export function OrderSteps({
     [],
   );
 
-  function run(step: OrderStep) {
+  function run(step: OrderStep, confirmed = false) {
     if (saving.current) return;
     saving.current = true;
     setFailure(null);
@@ -108,6 +110,7 @@ export function OrderSteps({
           reference,
           step,
           expected: status,
+          confirmed,
         });
         if (result.ok) advanced.current = true;
         else setFailure(result.reason);
@@ -121,14 +124,23 @@ export function OrderSteps({
 
   if (steps.length === 0 && !canUndo && !failure) return null;
 
-  const outdated = failure === "stale" || failure === "refused";
+  const outdated =
+    failure === "stale" || failure === "refused" || failure === "withdrawn";
 
   return (
-    <div className="mt-3 flex flex-col gap-2">
+    <div
+      ref={stepsRef}
+      tabIndex={-1}
+      role="group"
+      aria-label="Стъпки на поръчката"
+      className="mt-3 flex flex-col gap-2"
+    >
       {outdated && (
         <button
           type="button"
           onClick={() => {
+            stepsRef.current?.focus();
+            advanced.current = true;
             setFailure(null);
             router.refresh();
           }}
@@ -200,7 +212,7 @@ export function OrderSteps({
             onClick={() => {
               const step = confirming;
               closeDialog();
-              if (step) run(step);
+              if (step) run(step, true);
             }}
             className="bg-error border-error text-action-ink inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors hover:opacity-90"
           >

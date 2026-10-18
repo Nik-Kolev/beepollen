@@ -281,6 +281,60 @@ test("a step sent from a view of an older status is refused as stale and changes
   assert.deepEqual(await read(reference), before);
 });
 
+test("an order the buyer withdrew is not sent or handed over until the owner confirms it", async () => {
+  const econt = await place();
+  const local = await place(LOCAL);
+  const withdrawnAt = new Date("2026-10-18T09:30:00Z");
+
+  for (const [reference, dispatch] of [
+    [econt.reference, "send"],
+    [local.reference, "handOver"],
+  ] as const) {
+    await prisma.order.update({ where: { reference }, data: { withdrawnAt } });
+    const before = await read(reference);
+
+    assert.deepEqual(
+      await applyOrderStep(reference, dispatch, "new"),
+      { ok: false, reason: "withdrawn" },
+      dispatch,
+    );
+    assert.deepEqual(await read(reference), before, dispatch);
+
+    assert.deepEqual(
+      await applyOrderStep(reference, dispatch, "new", new Date(), true),
+      { ok: true },
+      dispatch,
+    );
+    assert.notEqual((await read(reference)).sentAt, null, dispatch);
+  }
+});
+
+test("a withdrawn order can still be cancelled without a confirmation of the withdrawal", async () => {
+  const { reference } = await place();
+  await prisma.order.update({
+    where: { reference },
+    data: { withdrawnAt: new Date("2026-10-18T09:30:00Z") },
+  });
+
+  assert.deepEqual(await applyOrderStep(reference, "cancel", "new"), {
+    ok: true,
+  });
+});
+
+test("the action's input accepts the confirmation flag and nothing but a boolean", () => {
+  const base = { reference: "BP1810261", step: "send", expected: "new" };
+
+  assert.equal(orderStepInput.safeParse(base).success, true);
+  assert.equal(
+    orderStepInput.safeParse({ ...base, confirmed: true }).success,
+    true,
+  );
+  assert.equal(
+    orderStepInput.safeParse({ ...base, confirmed: "true" }).success,
+    false,
+  );
+});
+
 test("two screens undoing the same paid order take back only one step", async () => {
   const reference = await placedIn("paid");
 

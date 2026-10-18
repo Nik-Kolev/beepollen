@@ -1,4 +1,33 @@
 import { execFileSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
+
+export function placeLocalOrder(email: string, phone: string) {
+  const input = {
+    name: "Отказ Тестов",
+    email,
+    phone,
+    items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+    deliveryMethod: "LOCAL",
+    officeCode: "",
+    acceptsTerms: true,
+    acceptsOffers: false,
+    idempotencyKey: randomUUID(),
+  };
+  const script = `
+    import("@/lib/orders").then(async (module) => {
+      const { placeOrder } = module.placeOrder ? module : module.default;
+      const prisma = (await import("@/lib/prisma")).default;
+      const result = await placeOrder(${JSON.stringify(input)}, null);
+      await (prisma.default ?? prisma).$disconnect();
+      if (!result.ok) throw new Error(JSON.stringify(result));
+      process.stdout.write(result.order.reference);
+    });
+  `;
+  return execFileSync(process.execPath, ["--import", "tsx", "-e", script], {
+    env: { ...process.env, DATABASE_URL: "file:./data/e2e.db" },
+    encoding: "utf8",
+  });
+}
 
 export function backdateOrderSteps(reference: string, hoursAgo: number) {
   const at = new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();

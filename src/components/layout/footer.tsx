@@ -108,6 +108,14 @@ export function Footer() {
                   Бисквитки
                 </Link>
               </li>
+              <li>
+                <Link
+                  href="/withdraw"
+                  className="inline-flex min-h-11 items-center underline underline-offset-4 hover:no-underline"
+                >
+                  Откажете се от договора тук
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>

@@ -49,6 +49,7 @@ CREATE TABLE "Order" (
     "paidAt" DATETIME,
     "cancelledAt" DATETIME,
     "collectedAt" DATETIME,
+    "withdrawnAt" DATETIME,
     "contactName" TEXT NOT NULL,
     "contactPhone" TEXT NOT NULL,
     "deliveryMethod" TEXT NOT NULL,

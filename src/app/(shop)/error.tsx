@@ -14,15 +14,15 @@ export default function Error({ retry }: { retry: () => void }) {
           Възникна грешка
         </h1>
         <p className="text-ink-soft max-w-prose">
-          В момента не можем да приемем поръчката ви. Опитайте отново след
-          малко. Ако проблемът продължи, обадете се на{" "}
+          Нещо се обърка от наша страна. Опитайте отново след малко. Ако
+          проблемът продължи, обадете се на{" "}
           <a
             href={OWNER_PHONE.href}
             className="text-brand-deep font-medium whitespace-nowrap underline underline-offset-4"
           >
             {OWNER_PHONE.display}
           </a>{" "}
-          и ще приемем поръчката по телефона.
+          и ще ви помогнем по телефона.
         </p>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
           <RetryButton onClick={retry} />

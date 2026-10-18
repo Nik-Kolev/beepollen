@@ -13,6 +13,7 @@ const PAGES = [
   ["the cookie policy page", "/cookies"],
   ["the privacy policy page", "/privacy"],
   ["the terms page", "/terms"],
+  ["the withdrawal page", "/withdraw"],
   ["the not-found page", "/no-such-page"],
   ["an unknown product slug", "/products/no-such-product"],
   ["the admin login page", "/admin/login"],
@@ -114,6 +115,7 @@ const LIST_PAGES = [
   "/cookies",
   "/privacy",
   "/terms",
+  "/withdraw",
 ] as const;
 
 for (const path of LIST_PAGES) {

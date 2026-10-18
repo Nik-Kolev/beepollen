@@ -81,12 +81,26 @@ function stepConfirmations(
   order: Parameters<typeof undoTarget>[0] & {
     reference: string;
     contactName: string;
+    withdrawnAt: Date | null;
   },
   status: OrderStatus,
 ): Partial<Record<OrderStep, StepConfirmation>> {
   const subject = `Поръчка ${order.reference} на ${order.contactName}`;
   const target = undoTarget(order);
+  const withdrawal =
+    order.withdrawnAt &&
+    `Купувачът заяви отказ от ${order.reference} на ${formatOrderTime(order.withdrawnAt)}.`;
   return {
+    ...(withdrawal && {
+      send: {
+        text: `${withdrawal} Изпратете я само ако сте се разбрали с ${order.contactName} по телефона.`,
+        confirm: "Да, изпрати",
+      },
+      handOver: {
+        text: `${withdrawal} Предайте я само ако сте се разбрали с ${order.contactName} по телефона.`,
+        confirm: "Да, предадена е",
+      },
+    }),
     cancel: {
       text: `${subject} ще бъде отказана и няма да се изпраща.`,
       confirm: "Да, откажи",
@@ -164,6 +178,13 @@ export default async function AdminOrders({
           последната стъпка, ако сте натиснали погрешно. „
           {ORDER_STEP_LABEL.cancel}“, „{ORDER_STEP_LABEL.return}“ и „
           {ORDER_STEP_LABEL.undo}“ първо питат дали сте сигурни.
+        </p>
+        <p className="mb-3 text-sm">
+          „Заявен отказ“ значи, че купувачът се е отказал от поръчката през
+          сайта. Ако още не е изпратена, не я изпращайте — „
+          {ORDER_STEP_LABEL.send}“ и „{ORDER_STEP_LABEL.handOver}“ първо питат
+          дали сте сигурни. Ако вече е изпратена, обадете се, за да уговорите
+          връщането.
         </p>
         <p className="mb-3 text-sm">
           „{ORDER_FILTER_LABEL.all}“ показва всички поръчки, най-новите
@@ -255,6 +276,17 @@ export default async function AdminOrders({
                         </time>
                       </span>
                     </p>
+                    {order.withdrawnAt && (
+                      <p className="text-error mt-1 text-sm font-semibold">
+                        Заявен отказ ·{" "}
+                        <time
+                          dateTime={order.withdrawnAt.toISOString()}
+                          className="tabular-nums"
+                        >
+                          {formatOrderTime(order.withdrawnAt)}
+                        </time>
+                      </p>
+                    )}
                     {status === "sent" && order.sentAt && (
                       <p className="mt-1 text-sm font-semibold">
                         {daysAgoLabel("Изпратена", order.sentAt, now)}

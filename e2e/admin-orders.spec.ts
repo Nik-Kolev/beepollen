@@ -93,7 +93,7 @@ test("an order placed through checkout appears in the order list and expands in 
   await page.reload();
   await expect(badge(card, "Чака плащане")).toBeVisible();
 
-  const details = card.getByRole("group");
+  const details = card.locator("details");
   await expect(
     details.getByRole("link", { name: "+359899555444" }),
   ).toBeHidden();

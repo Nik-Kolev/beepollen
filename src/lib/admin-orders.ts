@@ -137,16 +137,20 @@ export const orderStepInput = z.object({
   reference: z.string().min(1).max(32),
   step: z.enum(ORDER_STEPS),
   expected: z.enum(ORDER_STATUSES),
+  confirmed: z.boolean().optional(),
 });
 
 export type OrderStepResult =
-  { ok: true } | { ok: false; reason: "stale" | "refused" };
+  { ok: true } | { ok: false; reason: "stale" | "refused" | "withdrawn" };
+
+const DISPATCH_STEPS: readonly OrderStep[] = ["send", "handOver"];
 
 export async function applyOrderStep(
   reference: string,
   step: OrderStep,
   expected: OrderStatus,
   now = new Date(),
+  confirmed = false,
 ): Promise<OrderStepResult> {
   const order = await prisma.order.findUnique({
     where: { reference },
@@ -156,10 +160,14 @@ export async function applyOrderStep(
       paidAt: true,
       cancelledAt: true,
       collectedAt: true,
+      withdrawnAt: true,
     },
   });
   if (!order) return { ok: false, reason: "refused" };
   if (orderStatus(order) !== expected) return { ok: false, reason: "stale" };
+  if (order.withdrawnAt && DISPATCH_STEPS.includes(step) && !confirmed) {
+    return { ok: false, reason: "withdrawn" };
+  }
 
   const data = stepData(order, step, now);
   if (!data) return { ok: false, reason: "refused" };
@@ -332,6 +340,7 @@ const ORDER_DETAIL = {
   paidAt: true,
   cancelledAt: true,
   collectedAt: true,
+  withdrawnAt: true,
   contactName: true,
   contactPhone: true,
   customer: { select: { email: true } },

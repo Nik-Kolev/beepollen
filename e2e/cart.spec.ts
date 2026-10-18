@@ -1,5 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { WITHDRAWN_LINES } from "@/lib/checkout-messages";
+
 import { seedCart } from "./seed-cart";
 
 const POLLEN_SLUG = "pchelen-prashets-500g";
@@ -232,12 +234,22 @@ test("a product that is no longer sold can still be removed", async ({
     hasText: "Продуктът вече не се предлага",
   });
 
-  await expect(withdrawn).toContainText("no-such-product");
+  const toCheckout = page.getByRole("link", { name: "Към поръчката" });
 
-  await withdrawn.getByRole("button", { name: /Премахни/ }).click();
+  await expect(withdrawn).toBeVisible();
+  await expect(withdrawn).not.toContainText("no-such-product");
+  await expect(page.getByText(WITHDRAWN_LINES)).toBeVisible();
+  await expect(toCheckout).toHaveCount(0);
+
+  await withdrawn
+    .getByRole("button", {
+      name: "Премахни продукта, който вече не се предлага",
+    })
+    .click();
 
   await expect(cartRows(page)).toHaveCount(1);
   await expect(cartLink(page)).toHaveAccessibleName("Количка, 1 бр.");
+  await expect(toCheckout).toBeVisible();
 });
 
 test("an unreadable stored cart is discarded", async ({ page }) => {

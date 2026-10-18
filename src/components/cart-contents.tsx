@@ -7,6 +7,7 @@ import { useId } from "react";
 import { EmptyCart } from "@/components/empty-cart";
 import { useCart } from "@/hooks/use-cart";
 import { MAX_LINE_QUANTITY } from "@/lib/cart";
+import { blockedReason } from "@/lib/checkout-messages";
 import { formatPrice } from "@/lib/money";
 import type { CartProduct } from "@/lib/products";
 
@@ -32,6 +33,9 @@ export function CartContents({ products }: { products: CartProduct[] }) {
   const everyPriceKnown = cart.items.every(
     (item) => (catalogue.get(item.slug)?.priceCents ?? 0) > 0,
   );
+  const blocked = blockedReason(
+    cart.items.map((item) => ({ product: catalogue.get(item.slug) })),
+  );
 
   return (
     <div className="mt-6">
@@ -45,17 +49,19 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                 key={slug}
                 className="flex flex-wrap items-center gap-4 py-5 sm:flex-nowrap"
               >
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium">Продуктът вече не се предлага</p>
-                  <p className="text-ink-soft mt-1 text-sm">{slug}</p>
-                </div>
+                <p className="min-w-0 flex-1 font-medium">
+                  Продуктът вече не се предлага
+                </p>
                 <button
                   type="button"
                   onClick={() => remove(slug)}
                   className={REMOVE_BUTTON}
                 >
                   Премахни
-                  <span className="sr-only"> {slug}</span>
+                  <span className="sr-only">
+                    {" "}
+                    продукта, който вече не се предлага
+                  </span>
                 </button>
               </li>
             );
@@ -168,12 +174,18 @@ export function CartContents({ products }: { products: CartProduct[] }) {
           </span>
         </p>
 
-        <Link
-          href="/checkout"
-          className="bg-action text-action-ink hover:bg-action-hover inline-flex min-h-14 w-full items-center justify-center rounded-full px-8 text-lg font-semibold transition-colors sm:w-auto"
-        >
-          Към поръчката
-        </Link>
+        {blocked ? (
+          <p className="border-ink w-full border-l-4 pl-4 font-medium sm:w-auto sm:max-w-sm">
+            {blocked}
+          </p>
+        ) : (
+          <Link
+            href="/checkout"
+            className="bg-action text-action-ink hover:bg-action-hover inline-flex min-h-14 w-full items-center justify-center rounded-full px-8 text-lg font-semibold transition-colors sm:w-auto"
+          >
+            Към поръчката
+          </Link>
+        )}
       </div>
     </div>
   );

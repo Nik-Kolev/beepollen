@@ -54,3 +54,43 @@ export function backdateOrderSteps(reference: string, hoursAgo: number) {
     stdio: "inherit",
   });
 }
+
+function runInE2eDb(body: string) {
+  const script = `
+    import("@/lib/prisma").then(async (module) => {
+      const prisma = module.default.default ?? module.default;
+      ${body}
+      await prisma.$disconnect();
+    });
+  `;
+  execFileSync(process.execPath, ["--import", "tsx", "-e", script], {
+    env: { ...process.env, DATABASE_URL: "file:./data/e2e.db" },
+    stdio: "inherit",
+  });
+}
+
+export function publishTestProduct(
+  slug: string,
+  images: { path: string; alt: string }[],
+) {
+  const data = {
+    slug,
+    name: `Тестов продукт ${slug}`,
+    summary: "Lorem ipsum dolor sit amet.",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    priceCents: 1000,
+    sortOrder: 90,
+    isPublished: true,
+    images: { create: images },
+  };
+  runInE2eDb(`
+    await prisma.product.deleteMany({ where: { slug: ${JSON.stringify(slug)} } });
+    await prisma.product.create({ data: ${JSON.stringify(data)} });
+  `);
+}
+
+export function deleteTestProduct(slug: string) {
+  runInE2eDb(
+    `await prisma.product.deleteMany({ where: { slug: ${JSON.stringify(slug)} } });`,
+  );
+}

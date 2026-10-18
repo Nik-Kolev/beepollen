@@ -504,8 +504,15 @@ The server Playwright starts reads `data/e2e.db`, deleted before every build,
 because re-seeding no longer resets an edited price. The test draft is added
 after `build:demo` rather than before it, because the seed deletes every product
 missing from its own list. Checkout specs assert
-seeded totals, so the one spec that edits a published product is its own
+seeded totals, so the spec that edits a published product is its own
 `catalogue-edit` project, run after both others and restoring the seeded values.
+`catalogue-fixtures` runs after that one and publishes throwaway products —
+one photo, none, no food information — then deletes them; run beside the edit
+spec, its revalidations would bake the throwaways into the prerendered pages. A
+published fixture in the shared seed would instead show in the admin's product
+list and break the unit test asserting the published set. A product page
+rendered on request stays cached after its row is deleted, so changing a
+fixture needs a fresh server.
 
 Every Playwright context starts with the cookie choice stored as `rejected`,
 through `use.storageState` in `playwright.config.ts`, and the Lighthouse script

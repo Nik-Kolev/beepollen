@@ -29,18 +29,24 @@ export default defineConfig({
     {
       name: "mobile",
       use: { ...devices["Pixel 7"] },
-      testIgnore: "catalogue-edit.spec.ts",
+      testIgnore: "catalogue-*.spec.ts",
     },
     {
       name: "desktop",
       use: { ...devices["Desktop Chrome"] },
-      testIgnore: "catalogue-edit.spec.ts",
+      testIgnore: "catalogue-*.spec.ts",
     },
     {
       name: "catalogue-edit",
       use: { ...devices["Pixel 7"] },
       testMatch: "catalogue-edit.spec.ts",
       dependencies: ["mobile", "desktop"],
+    },
+    {
+      name: "catalogue-fixtures",
+      use: { ...devices["Pixel 7"] },
+      testMatch: "catalogue-fixtures.spec.ts",
+      dependencies: ["catalogue-edit"],
     },
   ],
   webServer: {

@@ -1,4 +1,4 @@
-function text(value: FormDataEntryValue | null) {
+export function text(value: FormDataEntryValue | null) {
   return typeof value === "string" ? value : "";
 }
 

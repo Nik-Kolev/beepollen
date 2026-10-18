@@ -15,16 +15,36 @@ export const ORDER_RATE_LIMIT = { limit: 10, windowMs: 5 * 60 * 1000 };
 
 const BULGARIAN_PHONE = /^(?:(?:\+|00)3590?|0)([1-9]\d{7,8})$/;
 
+export const contactNameSchema = z.string().trim().min(2).max(100);
+
+export const contactEmailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .pipe(z.email().max(200));
+
+export const contactPhoneSchema = z
+  .string()
+  .max(30)
+  .transform((value) => value.replace(/[\s().-]/g, ""))
+  .pipe(z.string().regex(BULGARIAN_PHONE))
+  .transform((value) => value.replace(BULGARIAN_PHONE, "+359$1"));
+
+export function invalidFields(issues: z.core.$ZodIssue[]) {
+  return [
+    ...new Set(
+      issues.map((issue) =>
+        issue.path.length > 0 ? String(issue.path[0]) : "_root",
+      ),
+    ),
+  ];
+}
+
 export const checkoutInputSchema = z
   .object({
-    name: z.string().trim().min(2).max(100),
-    email: z.string().trim().toLowerCase().pipe(z.email().max(200)),
-    phone: z
-      .string()
-      .max(30)
-      .transform((value) => value.replace(/[\s().-]/g, ""))
-      .pipe(z.string().regex(BULGARIAN_PHONE))
-      .transform((value) => value.replace(BULGARIAN_PHONE, "+359$1")),
+    name: contactNameSchema,
+    email: contactEmailSchema,
+    phone: contactPhoneSchema,
     items: z
       .array(
         z.object({
@@ -127,13 +147,7 @@ export async function placeOrder(
     return {
       ok: false,
       code: "VALIDATION_ERROR",
-      fields: [
-        ...new Set(
-          parsed.error.issues.map((issue) =>
-            issue.path.length > 0 ? String(issue.path[0]) : "_root",
-          ),
-        ),
-      ],
+      fields: invalidFields(parsed.error.issues),
     };
   }
 

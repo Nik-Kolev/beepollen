@@ -363,3 +363,41 @@ test("a second tab sees the change without reloading", async ({ context }) => {
 
   await expect(cartLink(first)).toHaveAccessibleName("Количка, 1 бр.");
 });
+
+for (const [state, items, shown] of [
+  ["an empty", [], "Количката е празна."],
+  ["a filled", [{ slug: POLLEN_SLUG, quantity: 1 }], "Към поръчката"],
+] as const) {
+  test(`${state} cart does not shift the page once it has been read`, async ({
+    page,
+  }) => {
+    await seedCart(page, { version: 1, items: [...items] });
+    await page.addInitScript(() => {
+      const shifts: PerformanceEntry[] = [];
+      const observer = new PerformanceObserver((list) => {
+        shifts.push(...list.getEntries());
+      });
+      observer.observe({ type: "layout-shift", buffered: true });
+      Object.assign(window, {
+        layoutShift: () =>
+          [...shifts, ...observer.takeRecords()].reduce(
+            (total, entry) =>
+              total + (entry as PerformanceEntry & { value: number }).value,
+            0,
+          ),
+      });
+    });
+
+    await page.goto("/cart");
+    await expect(page.getByText(shown, { exact: true })).toBeVisible();
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(resolve)),
+    );
+
+    const cls = await page.evaluate(() =>
+      (window as Window & { layoutShift?: () => number }).layoutShift?.(),
+    );
+    expect(cls).toBeDefined();
+    expect(cls).toBeLessThan(0.01);
+  });
+}

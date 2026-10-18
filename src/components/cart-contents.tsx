@@ -22,7 +22,7 @@ export function CartContents({ products }: { products: CartProduct[] }) {
   const limitId = useId();
   const catalogue = new Map(products.map((product) => [product.slug, product]));
 
-  if (!ready) return <div className="py-10" aria-hidden="true" />;
+  if (!ready) return <div aria-hidden="true" />;
   if (cart.items.length === 0) return <EmptyCart />;
 
   const totalCents = cart.items.reduce((total, item) => {
@@ -38,7 +38,7 @@ export function CartContents({ products }: { products: CartProduct[] }) {
   );
 
   return (
-    <div className="mt-6">
+    <div className="pt-6">
       <ul role="list" className="border-line divide-line divide-y border-y">
         {cart.items.map(({ slug, quantity }, index) => {
           const product = catalogue.get(slug);

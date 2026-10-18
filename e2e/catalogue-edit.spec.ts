@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { UNAVAILABLE_LINES } from "@/lib/checkout-messages";
+import { SOLD_OUT_LINES, UNAVAILABLE_LINES } from "@/lib/checkout-messages";
 import { CONSENT_WORDING } from "@/lib/consent";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
@@ -61,7 +61,13 @@ test("a price and stock saved in the admin reach the prerendered shop pages", as
   }
 
   await page.goto("/cart");
-  await expect(page.getByRole("main").getByText("Изчерпан")).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Изчерпан", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(SOLD_OUT_LINES)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Към поръчката" })).toHaveCount(
+    0,
+  );
   await expect(
     page.getByRole("button", { name: `Увеличи количеството на ${PRODUCT}` }),
   ).toBeDisabled();

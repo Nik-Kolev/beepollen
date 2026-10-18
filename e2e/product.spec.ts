@@ -94,14 +94,6 @@ test("the gallery swaps the main image", async ({ page }) => {
   await expect(bagThumbnail).toHaveAttribute("aria-pressed", "false");
 });
 
-test.skip("a single-image product renders no thumbnail strip", async ({
-  page,
-}) => {
-  await page.goto("/products/REPLACE-WITH-A-SINGLE-IMAGE-SLUG");
-
-  await expect(page.getByRole("main").getByRole("img")).toHaveCount(1);
-});
-
 test("the product page carries valid Product structured data", async ({
   page,
 }) => {

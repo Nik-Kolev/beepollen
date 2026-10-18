@@ -110,7 +110,7 @@ test("the shop shows a signed-in admin a bar linking to the admin, and the admin
   await bar.getByRole("link", { name: "Админ панел", exact: true }).click();
   await expect(page).toHaveURL("/admin/orders");
 
-  await page.getByRole("link", { name: "Към сайта" }).click();
+  await page.getByRole("link", { name: "Към сайта", exact: true }).click();
   await expect(page).toHaveURL("/");
 
   await bar.getByRole("button", { name: "Изход", exact: true }).click();
@@ -190,7 +190,7 @@ test("signing out ends the session", async ({ page, context }) => {
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/orders");
 
-  await page.getByRole("button", { name: "Изход" }).click();
+  await page.getByRole("button", { name: "Изход", exact: true }).click();
 
   await expect(page).toHaveURL("/admin/login");
   await page.goto("/admin");

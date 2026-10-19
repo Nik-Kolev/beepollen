@@ -31,8 +31,14 @@ const NO_COORDS_OFFICE_STREET = "кв. ЖП гара Курило ул. Търг
 
 async function openPicker(page: Page) {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+    version: 2,
+    items: [
+      {
+        slug: "pchelen-prashets-500g",
+        name: "Пчелен прашец 500 г",
+        quantity: 1,
+      },
+    ],
   });
   await page.goto("/checkout");
 }

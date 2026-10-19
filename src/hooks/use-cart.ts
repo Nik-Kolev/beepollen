@@ -119,8 +119,8 @@ export function useCart() {
     () => false,
   );
 
-  const add = useCallback((slug: string) => {
-    write(addItem(getSnapshot(), slug));
+  const add = useCallback((slug: string, name: string) => {
+    write(addItem(getSnapshot(), slug, name));
     emitAdd();
   }, []);
 

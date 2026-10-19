@@ -56,8 +56,8 @@ async function fillContact(page: Page, email: string) {
 
 test("the cart leads to the checkout page", async ({ page }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   await page.goto("/cart");
 
@@ -73,8 +73,8 @@ test("the form is prerendered, disabled until the cart has been read", async ({
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   const response = await page.goto("/checkout");
   const html = await response?.text();
@@ -98,10 +98,10 @@ test("an empty cart offers the catalogue instead of a form", async ({
 
 test("the summary lists a line per product", async ({ page, isMobile }) => {
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: POLLEN_SLUG, quantity: 2 },
-      { slug: SECOND_SLUG, quantity: 1 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 1 },
     ],
   });
   await page.goto("/checkout");
@@ -121,10 +121,10 @@ test("on a phone the summary starts folded and names the item count and total", 
 }) => {
   test.skip(!isMobile, "The summary folds on a phone only.");
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: POLLEN_SLUG, quantity: 2 },
-      { slug: SECOND_SLUG, quantity: 1 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 1 },
     ],
   });
   await page.goto("/checkout");
@@ -146,10 +146,10 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
   isMobile,
 }) => {
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: POLLEN_SLUG, quantity: 2 },
-      { slug: SECOND_SLUG, quantity: 1 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 1 },
     ],
   });
   await page.goto("/checkout");
@@ -170,22 +170,27 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
   await expect(confirmation(page)).toContainText("100,80 €");
 });
 
-test("a withdrawn product is named rather than dropped", async ({ page }) => {
+test("a withdrawn product is named and left out of the total", async ({
+  page,
+}) => {
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: POLLEN_SLUG, quantity: 1 },
-      { slug: "no-such-product", quantity: 1 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 },
+      { slug: "no-such-product", name: "Пчелен прашец 2 кг", quantity: 3 },
     ],
   });
   await page.goto("/checkout");
 
   const withdrawn = summaryRows(page).filter({
-    hasText: "Продуктът вече не се предлага",
+    hasText: "Пчелен прашец 2 кг",
   });
 
-  await expect(withdrawn).toContainText("no-such-product");
+  await expect(withdrawn.locator("p").first()).toHaveText("Пчелен прашец 2 кг");
+  await expect(withdrawn).toContainText("Вече не се предлага");
+  await expect(withdrawn).not.toContainText("no-such-product");
   await expect(summaryRows(page)).toHaveCount(2);
+  await expect(confirmation(page)).toContainText("30,40 €");
 
   await expect(
     page.getByRole("button", { name: "Поръчай с плащане при доставка" }),
@@ -204,12 +209,27 @@ test("a withdrawn product is named rather than dropped", async ({ page }) => {
   ).toBeEnabled();
 });
 
+test("an order with nothing left to buy totals zero, with no delivery charge", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [
+      { slug: "no-such-product", name: "Пчелен прашец 2 кг", quantity: 1 },
+    ],
+  });
+  await page.goto("/checkout");
+
+  await expect(summaryRows(page)).toHaveCount(1);
+  await expect(confirmation(page)).toContainText("Общо0,00 €");
+});
+
 test("the consent wording is rendered as it will be stored", async ({
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   await page.goto("/checkout");
 
@@ -225,8 +245,8 @@ test("the terms and the privacy policy are one click from the order button, whic
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   await page.goto("/checkout");
 
@@ -261,8 +281,8 @@ test("a resubmission reuses its page's idempotency key and a new page load mints
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   const response = await page.goto("/checkout");
   expect(await response?.text()).not.toContain("idempotencyKey");
@@ -284,8 +304,8 @@ test("a resubmission reuses its page's idempotency key and a new page load mints
 
 test("two clicks landing together send the order once", async ({ page }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   await page.goto("/checkout");
   await fillContact(page, "not-an-email");
@@ -315,8 +335,8 @@ test.describe("placing an order", () => {
 
   test("a refused submission keeps every answer", async ({ page }) => {
     await seedCart(page, {
-      version: 1,
-      items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+      version: 2,
+      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
     });
     await page.goto("/checkout");
 
@@ -350,8 +370,8 @@ test.describe("placing an order", () => {
     page,
   }) => {
     await seedCart(page, {
-      version: 1,
-      items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+      version: 2,
+      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
     });
     await page.goto("/checkout");
 
@@ -389,8 +409,8 @@ test.describe("placing an order", () => {
     const search = page.getByLabel("Офис — улица, квартал или име");
 
     await seedCart(page, {
-      version: 1,
-      items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+      version: 2,
+      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
     });
     await page.goto("/checkout");
     await fillContact(page, "maria.ivanova@example.com");
@@ -425,8 +445,8 @@ test.describe("placing an order", () => {
     page,
   }) => {
     await seedCart(page, {
-      version: 1,
-      items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+      version: 2,
+      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
     });
     await page.goto("/checkout");
 
@@ -446,8 +466,8 @@ test.describe("placing an order", () => {
     page,
   }) => {
     await seedCart(page, {
-      version: 1,
-      items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+      version: 2,
+      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
     });
     await page.goto("/checkout");
 

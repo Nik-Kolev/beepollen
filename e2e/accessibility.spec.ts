@@ -35,8 +35,14 @@ for (const [name, path] of PAGES) {
     }
     if (path === "/cart" || path === "/checkout") {
       await seedCart(page, {
-        version: 1,
-        items: [{ slug: "pchelen-prashets-500g", quantity: 2 }],
+        version: 2,
+        items: [
+          {
+            slug: "pchelen-prashets-500g",
+            name: "Пчелен прашец 500 г",
+            quantity: 2,
+          },
+        ],
       });
     }
 
@@ -56,8 +62,14 @@ test("the error page a failed order submission falls into has no accessibility v
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+    version: 2,
+    items: [
+      {
+        slug: "pchelen-prashets-500g",
+        name: "Пчелен прашец 500 г",
+        quantity: 1,
+      },
+    ],
   });
   await page.goto("/checkout");
   await page.route("**/checkout", (route) =>
@@ -87,8 +99,14 @@ test("a focused field draws one thin frame while other controls keep the offset 
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+    version: 2,
+    items: [
+      {
+        slug: "pchelen-prashets-500g",
+        name: "Пчелен прашец 500 г",
+        quantity: 1,
+      },
+    ],
   });
   await page.goto("/checkout");
 

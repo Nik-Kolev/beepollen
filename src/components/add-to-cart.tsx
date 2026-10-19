@@ -11,9 +11,11 @@ const ADDED_MS = 1200;
 
 export function AddToCart({
   slug,
+  name,
   soldOut,
 }: {
   slug: string;
+  name: string;
   soldOut: boolean;
 }) {
   const { cart, add } = useCart();
@@ -34,7 +36,7 @@ export function AddToCart({
   function handleAdd() {
     if (timer.current !== undefined || full) return;
 
-    add(slug);
+    add(slug, name);
     setAdded(true);
 
     timer.current = window.setTimeout(() => {

@@ -116,7 +116,11 @@ export default async function ProductPage({
                 : "TODO: цена"}
             </p>
 
-            <AddToCart slug={product.slug} soldOut={product.stock === "NONE"} />
+            <AddToCart
+              slug={product.slug}
+              name={product.name}
+              soldOut={product.stock === "NONE"}
+            />
 
             <section className="mt-8">
               <h2 className="text-lg font-semibold">Информация за продукта</h2>

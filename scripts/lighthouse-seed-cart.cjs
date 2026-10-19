@@ -1,6 +1,8 @@
 const CART = {
-  version: 1,
-  items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+  version: 2,
+  items: [
+    { slug: "pchelen-prashets-500g", name: "Пчелен прашец 500 г", quantity: 1 },
+  ],
 };
 
 module.exports = async (browser, { url }) => {

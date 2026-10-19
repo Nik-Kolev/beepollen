@@ -109,6 +109,9 @@ catalogue — at this catalogue size that is cheaper than an API route and it ke
 the page prerendered, so a fetch added there would cost the prerender for nothing.
 Quantities come from the visitor's browser and prices from the catalogue the
 build saw; the order service reprices every line from the database regardless.
+Each line also stores the product's name, only so a withdrawn product can still
+be named: the catalogue's name wins while the product exists, and the checkout
+sends the order service slug and quantity alone.
 
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That

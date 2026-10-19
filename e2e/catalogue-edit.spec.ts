@@ -2,6 +2,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { SOLD_OUT_LINES, UNAVAILABLE_LINES } from "@/lib/checkout-messages";
 import { CONSENT_WORDING } from "@/lib/consent";
+import { formatPrice } from "@/lib/money";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
@@ -39,26 +40,33 @@ test("a price and stock saved in the admin reach the prerendered shop pages", as
 }) => {
   await signInAs(context, TEST_ADMIN_EMAIL);
 
-  await saveProduct(page, "47,30", "NONE");
+  await saveProduct(page, "47,30", "LOW");
 
   const response = await page.goto(`/products/${SLUG}`);
   expect(response?.status()).toBe(200);
   const main = page.getByRole("main");
   await expect(main.getByText("47,30 €")).toBeVisible();
-  await expect(main.getByRole("button", { name: "Изчерпан" })).toBeDisabled();
 
   await page.goto("/");
   await expect(
     page.getByRole("article").filter({ hasText: PRODUCT }),
   ).toContainText("47,30 €");
 
-  await seedCart(page, { version: 1, items: [{ slug: SLUG, quantity: 1 }] });
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: SLUG, name: PRODUCT, quantity: 1 }],
+  });
   for (const path of ["/cart", "/checkout"]) {
     await page.goto(path);
     await expect(
       page.getByRole("main").getByText("47,30 €", { exact: true }).first(),
-    ).toBeVisible();
+    ).toBeAttached();
   }
+
+  await saveProduct(page, "47,30", "NONE");
+
+  await page.goto(`/products/${SLUG}`);
+  await expect(main.getByRole("button", { name: "Изчерпан" })).toBeDisabled();
 
   await page.goto("/cart");
   await expect(
@@ -69,8 +77,9 @@ test("a price and stock saved in the admin reach the prerendered shop pages", as
     0,
   );
   await expect(
-    page.getByRole("button", { name: `Увеличи количеството на ${PRODUCT}` }),
-  ).toBeDisabled();
+    page.getByRole("button", { name: `Премахни ${PRODUCT}` }),
+  ).toBeVisible();
+  await expect(page.getByText("Общо:")).toHaveText(`Общо: ${formatPrice(0)}`);
 
   await page.goto("/admin/products");
   const form = page.getByRole("form", { name: PRODUCT });
@@ -90,10 +99,10 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await saveProduct(adminPage, SEEDED.price, SEEDED.stock);
 
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: SLUG, quantity: 1 },
-      { slug: OTHER_SLUG, quantity: 1 },
+      { slug: SLUG, name: PRODUCT, quantity: 1 },
+      { slug: OTHER_SLUG, name: OTHER_PRODUCT, quantity: 1 },
     ],
   });
   await page.goto("/checkout");
@@ -120,6 +129,9 @@ test("an item sold out after the checkout page loaded is refused and can be remo
 
   const main = page.getByRole("main");
   await expect(main.getByRole("alert")).toHaveText(UNAVAILABLE_LINES);
+  await expect(
+    page.getByRole("region", { name: "Потвърждение" }),
+  ).toContainText("Общо30,40 €");
   await main.getByRole("button", { name: `Премахни ${PRODUCT}` }).click();
 
   await expect(main.getByText(OTHER_PRODUCT, { exact: true })).toBeVisible();

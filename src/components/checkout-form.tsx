@@ -25,7 +25,7 @@ import {
   LABEL,
 } from "@/components/form-styles";
 import { useCart } from "@/hooks/use-cart";
-import type { CartItem } from "@/lib/cart";
+import { isPurchasable, purchasableTotal, type CartItem } from "@/lib/cart";
 import {
   blockedReason,
   FIELD_ERROR,
@@ -207,28 +207,28 @@ function FilledCheckout({
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const catalogue = new Map(products.map((product) => [product.slug, product]));
-  const lines = items.map(({ slug, quantity }) => ({
-    slug,
-    quantity,
-    product: catalogue.get(slug),
+  const lines = items.map((item) => ({
+    ...item,
+    product: catalogue.get(item.slug),
   }));
-  const itemsCents = lines.reduce(
-    (total, line) => total + (line.product?.priceCents ?? 0) * line.quantity,
-    0,
+  const unavailable =
+    result && !result.ok && result.code === "UNAVAILABLE_ITEMS"
+      ? new Set(result.slugs)
+      : new Set<string>();
+  const sellable = lines.filter(
+    (line) => isPurchasable(line) && !unavailable.has(line.slug),
   );
+  const itemsCents = purchasableTotal(sellable);
   const deliveryCents = deliveryPrice(
     answers.localDelivery ? "LOCAL" : "ECONT_OFFICE",
   );
-  const everyPriceKnown = lines.every(
-    (line) => (line.product?.priceCents ?? 0) > 0,
-  );
   const blocked = blockedReason(lines);
-  const itemCount = lines.reduce((total, line) => total + line.quantity, 0);
+  const itemCount = sellable.reduce((total, line) => total + line.quantity, 0);
   const totalText = !ready
     ? null
-    : everyPriceKnown
-      ? formatPrice(itemsCents + deliveryCents)
-      : "TODO: цена";
+    : itemsCents === null
+      ? "TODO: цена"
+      : formatPrice(itemsCents + (itemCount > 0 ? deliveryCents : 0));
   const [summaryOpen, setSummaryOpen] = useState(false);
   const linesId = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -256,10 +256,6 @@ function FilledCheckout({
   const invalid = new Set(
     reported.filter((field) => !correctedFields.has(field)),
   );
-  const unavailable =
-    result && !result.ok && result.code === "UNAVAILABLE_ITEMS"
-      ? new Set(result.slugs)
-      : new Set<string>();
   const stillUnavailable = lines.some((line) => unavailable.has(line.slug));
   const linesShown = summaryOpen || unavailable.size > 0 || blocked !== null;
   const summary = summaryError(
@@ -325,7 +321,13 @@ function FilledCheckout({
       }}
       className="mt-6"
     >
-      <input type="hidden" name="items" value={JSON.stringify(items)} />
+      <input
+        type="hidden"
+        name="items"
+        value={JSON.stringify(
+          items.map(({ slug, quantity }) => ({ slug, quantity })),
+        )}
+      />
       <input type="hidden" name="officeCode" value={office?.code ?? ""} />
 
       <fieldset
@@ -362,44 +364,50 @@ function FilledCheckout({
               role="list"
               className="border-line divide-line mt-4 divide-y border-y"
             >
-              {lines.map(({ slug, quantity, product }) => (
-                <li key={slug} className="flex items-start gap-4 py-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium">
-                      {product ? product.name : "Продуктът вече не се предлага"}
-                    </p>
-                    <p className="text-ink-soft mt-1 text-sm">
-                      {product ? `${quantity} бр.` : slug}
-                    </p>
-                    {product?.stock === "NONE" && (
-                      <p className="text-ink-soft mt-1 text-sm">Изчерпан</p>
+              {lines.map(({ slug, name, quantity, product }) => {
+                const withdrawn = !product || unavailable.has(slug);
+                const soldOut = !withdrawn && product.stock === "NONE";
+
+                return (
+                  <li key={slug} className="flex items-start gap-4 py-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium break-words">
+                        {product?.name ?? name}
+                      </p>
+                      <p className="text-ink-soft mt-1 text-sm">
+                        {withdrawn
+                          ? "Вече не се предлага"
+                          : soldOut
+                            ? "Изчерпан"
+                            : `${quantity} бр.`}
+                      </p>
+                      {(withdrawn || soldOut) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSummaryOpen(true);
+                            onRemove(slug);
+                          }}
+                          className="text-ink hover:text-brand-deep mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0"
+                        >
+                          Премахни
+                          <span className="sr-only">
+                            {" "}
+                            {product?.name ?? name}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                    {!withdrawn && !soldOut && (
+                      <p className="shrink-0 font-semibold tabular-nums">
+                        {product.priceCents > 0
+                          ? formatPrice(product.priceCents * quantity)
+                          : "TODO: цена"}
+                      </p>
                     )}
-                    {(unavailable.has(slug) ||
-                      !product ||
-                      product.stock === "NONE") && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSummaryOpen(true);
-                          onRemove(slug);
-                        }}
-                        className="text-ink hover:text-brand-deep mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0"
-                      >
-                        Премахни
-                        <span className="sr-only">
-                          {" "}
-                          {product?.name ?? slug}
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                  <p className="shrink-0 font-semibold tabular-nums">
-                    {product && product.priceCents > 0
-                      ? formatPrice(product.priceCents * quantity)
-                      : "TODO: цена"}
-                  </p>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
 
             <p className="mt-4 flex items-center justify-between">

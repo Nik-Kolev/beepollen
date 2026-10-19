@@ -1,11 +1,15 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { WITHDRAWN_LINES } from "@/lib/checkout-messages";
+import { formatPrice } from "@/lib/money";
 
 import { seedCart } from "./seed-cart";
 
 const POLLEN_SLUG = "pchelen-prashets-500g";
 const POLLEN_NAME = "Пчелен прашец 500 г";
+const POLLEN_PRICE_CENTS = 2450;
+const WITHDRAWN_SLUG = "no-such-product";
+const WITHDRAWN_NAME = "Пчелен прашец 2 кг";
 const SECOND_SLUG = "pchelen-prashets-1kg";
 const SECOND_NAME = "Пчелен прашец 1 кг";
 
@@ -99,8 +103,8 @@ test("changing a quantity in the cart leaves the bee still", async ({
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   await page.goto("/cart");
 
@@ -138,10 +142,10 @@ test("the cart survives a reload", async ({ page }) => {
 
 test("the cart page lists a line per product", async ({ page }) => {
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: POLLEN_SLUG, quantity: 2 },
-      { slug: SECOND_SLUG, quantity: 1 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 1 },
     ],
   });
   await page.goto("/cart");
@@ -155,8 +159,8 @@ test("the cart page lists a line per product", async ({ page }) => {
 
 test("the stepper changes a line's quantity", async ({ page }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   await page.goto("/cart");
 
@@ -180,10 +184,10 @@ test("the stepper changes a line's quantity", async ({ page }) => {
 
 test("removing a line leaves the others", async ({ page }) => {
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: POLLEN_SLUG, quantity: 2 },
-      { slug: SECOND_SLUG, quantity: 1 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 1 },
     ],
   });
   await page.goto("/cart");
@@ -202,8 +206,8 @@ test("emptying the cart shows the way back to the catalogue", async ({
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   await page.goto("/cart");
 
@@ -218,33 +222,35 @@ test("emptying the cart shows the way back to the catalogue", async ({
   await expect(page).toHaveURL("/");
 });
 
-test("a product that is no longer sold can still be removed", async ({
+test("a product that is no longer sold is named, left out of the total and removable", async ({
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: POLLEN_SLUG, quantity: 1 },
-      { slug: "no-such-product", quantity: 1 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 },
+      { slug: WITHDRAWN_SLUG, name: WITHDRAWN_NAME, quantity: 3 },
     ],
   });
   await page.goto("/cart");
 
-  const withdrawn = cartRows(page).filter({
-    hasText: "Продуктът вече не се предлага",
-  });
+  const withdrawn = cartRows(page).filter({ hasText: WITHDRAWN_NAME });
 
   const toCheckout = page.getByRole("link", { name: "Към поръчката" });
 
-  await expect(withdrawn).toBeVisible();
-  await expect(withdrawn).not.toContainText("no-such-product");
+  await expect(
+    withdrawn.getByRole("heading", { name: WITHDRAWN_NAME, exact: true }),
+  ).toBeVisible();
+  await expect(withdrawn).toContainText("Вече не се предлага");
+  await expect(withdrawn).not.toContainText(WITHDRAWN_SLUG);
+  await expect(page.getByText("Общо:")).toHaveText(
+    `Общо: ${formatPrice(POLLEN_PRICE_CENTS)}`,
+  );
   await expect(page.getByText(WITHDRAWN_LINES)).toBeVisible();
   await expect(toCheckout).toHaveCount(0);
 
   await withdrawn
-    .getByRole("button", {
-      name: "Премахни продукта, който вече не се предлага",
-    })
+    .getByRole("button", { name: `Премахни ${WITHDRAWN_NAME}` })
     .click();
 
   await expect(cartRows(page)).toHaveCount(1);
@@ -263,7 +269,7 @@ test("an unreadable stored cart is discarded", async ({ page }) => {
 test("a cart stored by a later version is discarded", async ({ page }) => {
   await seedCart(page, {
     version: 9,
-    items: [{ slug: POLLEN_SLUG, quantity: 1 }],
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
   });
   await page.goto("/cart");
 
@@ -275,8 +281,8 @@ test("a cart line stops at the maximum, says why and keeps focus", async ({
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 98 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 98 }],
   });
   await page.goto("/cart");
 
@@ -297,8 +303,8 @@ test("the add button stops at the maximum, says why and keeps focus", async ({
   page,
 }) => {
   await seedCart(page, {
-    version: 1,
-    items: [{ slug: POLLEN_SLUG, quantity: 98 }],
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 98 }],
   });
   await page.goto(`/products/${POLLEN_SLUG}`);
 
@@ -329,8 +335,8 @@ test("the add button stops at the maximum, says why and keeps focus", async ({
 for (const quantity of [0, -1, 1.5, 100]) {
   test(`a stored quantity of ${quantity} is discarded`, async ({ page }) => {
     await seedCart(page, {
-      version: 1,
-      items: [{ slug: POLLEN_SLUG, quantity }],
+      version: 2,
+      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity }],
     });
     await page.goto("/cart");
 
@@ -341,10 +347,10 @@ for (const quantity of [0, -1, 1.5, 100]) {
 
 test("the same product stored twice becomes one line", async ({ page }) => {
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: POLLEN_SLUG, quantity: 2 },
-      { slug: POLLEN_SLUG, quantity: 3 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 3 },
     ],
   });
   await page.goto("/cart");
@@ -366,12 +372,16 @@ test("a second tab sees the change without reloading", async ({ context }) => {
 
 for (const [state, items, shown] of [
   ["an empty", [], "Количката е празна."],
-  ["a filled", [{ slug: POLLEN_SLUG, quantity: 1 }], "Към поръчката"],
+  [
+    "a filled",
+    [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+    "Към поръчката",
+  ],
 ] as const) {
   test(`${state} cart does not shift the page once it has been read`, async ({
     page,
   }) => {
-    await seedCart(page, { version: 1, items: [...items] });
+    await seedCart(page, { version: 2, items: [...items] });
     await page.addInitScript(() => {
       const shifts: PerformanceEntry[] = [];
       const observer = new PerformanceObserver((list) => {

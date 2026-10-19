@@ -24,10 +24,14 @@ function badge(card: Locator, label: string) {
 
 async function placeOrder(page: Page, email: string) {
   await seedCart(page, {
-    version: 1,
+    version: 2,
     items: [
-      { slug: "pchelen-prashets-500g", quantity: 2 },
-      { slug: "pchelen-prashets-1kg", quantity: 1 },
+      {
+        slug: "pchelen-prashets-500g",
+        name: "Пчелен прашец 500 г",
+        quantity: 2,
+      },
+      { slug: "pchelen-prashets-1kg", name: "Пчелен прашец 1 кг", quantity: 1 },
     ],
   });
   await page.goto("/checkout");

@@ -1,3 +1,4 @@
+import { isPurchasable } from "@/lib/cart";
 import type { PlaceOrderResult } from "@/lib/orders";
 import type { CartProduct } from "@/lib/products";
 
@@ -53,9 +54,7 @@ type CheckoutLine = { product?: Pick<CartProduct, "priceCents" | "stock"> };
 
 export function blockedReason(lines: CheckoutLine[]) {
   if (lines.some((line) => !line.product)) return WITHDRAWN_LINES;
-  if (lines.some((line) => line.product?.stock === "NONE")) {
-    return SOLD_OUT_LINES;
-  }
+  if (lines.some((line) => !isPurchasable(line))) return SOLD_OUT_LINES;
   if (lines.some((line) => (line.product?.priceCents ?? 0) <= 0)) {
     return MISSING_PRICE;
   }

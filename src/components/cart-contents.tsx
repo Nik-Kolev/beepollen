@@ -6,7 +6,7 @@ import { useId } from "react";
 
 import { EmptyCart } from "@/components/empty-cart";
 import { useCart } from "@/hooks/use-cart";
-import { MAX_LINE_QUANTITY } from "@/lib/cart";
+import { isPurchasable, MAX_LINE_QUANTITY, purchasableTotal } from "@/lib/cart";
 import { blockedReason } from "@/lib/checkout-messages";
 import { formatPrice } from "@/lib/money";
 import type { CartProduct } from "@/lib/products";
@@ -25,51 +25,46 @@ export function CartContents({ products }: { products: CartProduct[] }) {
   if (!ready) return <div aria-hidden="true" />;
   if (cart.items.length === 0) return <EmptyCart />;
 
-  const totalCents = cart.items.reduce((total, item) => {
-    const product = catalogue.get(item.slug);
-
-    return total + (product?.priceCents ?? 0) * item.quantity;
-  }, 0);
-  const everyPriceKnown = cart.items.every(
-    (item) => (catalogue.get(item.slug)?.priceCents ?? 0) > 0,
-  );
-  const blocked = blockedReason(
-    cart.items.map((item) => ({ product: catalogue.get(item.slug) })),
-  );
+  const lines = cart.items.map((item) => ({
+    ...item,
+    product: catalogue.get(item.slug),
+  }));
+  const totalCents = purchasableTotal(lines);
+  const blocked = blockedReason(lines);
 
   return (
     <div className="pt-6">
       <ul role="list" className="border-line divide-line divide-y border-y">
-        {cart.items.map(({ slug, quantity }, index) => {
-          const product = catalogue.get(slug);
+        {lines.map((line, index) => {
+          if (!isPurchasable(line)) {
+            const name = line.product?.name ?? line.name;
 
-          if (!product) {
             return (
               <li
-                key={slug}
+                key={line.slug}
                 className="flex flex-wrap items-center gap-4 py-5 sm:flex-nowrap"
               >
-                <p className="min-w-0 flex-1 font-medium">
-                  Продуктът вече не се предлага
-                </p>
+                <div className="min-w-0 flex-1">
+                  <h2 className="font-medium">{name}</h2>
+                  <p className="text-ink-soft mt-1 text-sm">
+                    {line.product ? "Изчерпан" : "Вече не се предлага"}
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => remove(slug)}
+                  onClick={() => remove(line.slug)}
                   className={REMOVE_BUTTON}
                 >
                   Премахни
-                  <span className="sr-only">
-                    {" "}
-                    продукта, който вече не се предлага
-                  </span>
+                  <span className="sr-only"> {name}</span>
                 </button>
               </li>
             );
           }
 
+          const { slug, quantity, product } = line;
           const [image] = product.images;
-          const atLimit =
-            quantity >= MAX_LINE_QUANTITY && product.stock !== "NONE";
+          const atLimit = quantity >= MAX_LINE_QUANTITY;
           const limitLineId = `${limitId}-${slug}`;
 
           return (
@@ -113,9 +108,6 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                     </span>
                   </p>
                 )}
-                {product.stock === "NONE" && (
-                  <p className="text-ink-soft mt-1 text-sm">Изчерпан</p>
-                )}
                 <p
                   id={limitLineId}
                   role="status"
@@ -143,7 +135,6 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                     type="button"
                     aria-label={`Увеличи количеството на ${product.name}`}
                     onClick={() => setQuantity(slug, quantity + 1)}
-                    disabled={product.stock === "NONE"}
                     aria-disabled={atLimit}
                     aria-describedby={atLimit ? limitLineId : undefined}
                     className={STEP_BUTTON}
@@ -170,7 +161,7 @@ export function CartContents({ products }: { products: CartProduct[] }) {
         <p className="text-lg font-semibold">
           Общо:{" "}
           <span className="text-brand-deep">
-            {everyPriceKnown ? formatPrice(totalCents) : "TODO: цена"}
+            {totalCents === null ? "TODO: цена" : formatPrice(totalCents)}
           </span>
         </p>
 

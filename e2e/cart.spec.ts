@@ -10,6 +10,8 @@ const POLLEN_NAME = "Пчелен прашец 500 г";
 const POLLEN_PRICE_CENTS = 2450;
 const WITHDRAWN_SLUG = "no-such-product";
 const WITHDRAWN_NAME = "Пчелен прашец 2 кг";
+const SECOND_WITHDRAWN_SLUG = "no-such-product-either";
+const SECOND_WITHDRAWN_NAME = "Пчелен прашец 3 кг";
 const SECOND_SLUG = "pchelen-prashets-1kg";
 const SECOND_NAME = "Пчелен прашец 1 кг";
 
@@ -200,6 +202,29 @@ test("removing a line leaves the others", async ({ page }) => {
   await expect(cartRows(page)).toHaveCount(1);
   await expect(cartRows(page)).toContainText(POLLEN_NAME);
   await expect(cartLink(page)).toHaveAccessibleName("Количка, 2 бр.");
+  await expect(
+    page.getByRole("button", { name: `Премахни ${POLLEN_NAME}` }),
+  ).toBeFocused();
+});
+
+test("removing a line moves focus to the next line's remove button", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 1 },
+    ],
+  });
+  await page.goto("/cart");
+
+  await page.getByRole("button", { name: `Премахни ${POLLEN_NAME}` }).click();
+
+  await expect(cartRows(page)).toHaveCount(1);
+  await expect(
+    page.getByRole("button", { name: `Премахни ${SECOND_NAME}` }),
+  ).toBeFocused();
 });
 
 test("emptying the cart shows the way back to the catalogue", async ({
@@ -215,7 +240,9 @@ test("emptying the cart shows the way back to the catalogue", async ({
     .getByRole("button", { name: /Премахни/ })
     .click();
 
-  await expect(page.getByText("Количката е празна.")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Количката е празна." }),
+  ).toBeFocused();
   await expect(cartLink(page)).toHaveAccessibleName("Количка, празна");
 
   await page.getByRole("link", { name: "Към продуктите" }).click();
@@ -255,7 +282,31 @@ test("a product that is no longer sold is named, left out of the total and remov
 
   await expect(cartRows(page)).toHaveCount(1);
   await expect(cartLink(page)).toHaveAccessibleName("Количка, 1 бр.");
-  await expect(toCheckout).toBeVisible();
+  await expect(toCheckout).toBeFocused();
+});
+
+test("removing one of two unavailable lines keeps focus in the list", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 },
+      { slug: WITHDRAWN_SLUG, name: WITHDRAWN_NAME, quantity: 3 },
+      { slug: SECOND_WITHDRAWN_SLUG, name: SECOND_WITHDRAWN_NAME, quantity: 1 },
+    ],
+  });
+  await page.goto("/cart");
+
+  await page
+    .getByRole("button", { name: `Премахни ${WITHDRAWN_NAME}` })
+    .click();
+
+  await expect(cartRows(page)).toHaveCount(2);
+  await expect(page.getByText(WITHDRAWN_LINES)).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: `Премахни ${SECOND_WITHDRAWN_NAME}` }),
+  ).toBeFocused();
 });
 
 test("an unreadable stored cart is discarded", async ({ page }) => {

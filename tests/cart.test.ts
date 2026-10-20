@@ -10,6 +10,7 @@ import {
   parseCart,
   purchasableTotal,
   serializeCart,
+  setItemQuantity,
   type Cart,
 } from "@/lib/cart";
 
@@ -258,6 +259,32 @@ test("adding a product leaves the other lines untouched", () => {
     name: POLLEN_250,
     quantity: 4,
   });
+});
+
+test("setting a quantity below one keeps the line at one", () => {
+  const cart = cartOf([
+    { slug: "pchelen-prashets-500g", name: POLLEN_500, quantity: 1 },
+  ]);
+
+  assert.equal(
+    setItemQuantity(cart, "pchelen-prashets-500g", 0).items[0].quantity,
+    1,
+  );
+  assert.equal(
+    setItemQuantity(cart, "pchelen-prashets-500g", -5).items[0].quantity,
+    1,
+  );
+});
+
+test("setting a quantity above the line limit keeps the line at 99", () => {
+  const cart = cartOf([
+    { slug: "pchelen-prashets-500g", name: POLLEN_500, quantity: 99 },
+  ]);
+
+  assert.equal(
+    setItemQuantity(cart, "pchelen-prashets-500g", 100).items[0].quantity,
+    MAX_LINE_QUANTITY,
+  );
 });
 
 test("collapsing plain slug-and-quantity items sums each slug and caps it at 99", () => {

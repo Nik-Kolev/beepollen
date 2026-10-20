@@ -444,16 +444,15 @@ test("every order appears in exactly the filter its status names, and in the ope
 });
 
 test("hiding closed orders lists only the open ones, newest first", async () => {
-  await placedIn("returned");
+  const returned = await placedIn("returned");
   await placedIn("paid");
-  await placedIn("new");
+  const fresh = await placedIn("new");
   await placedIn("cancelled");
-  await placedIn("sent");
+  const sent = await placedIn("sent");
 
   const listed = await listOrders(orderView("all", true), 9999);
-  const times = listed.map((order) => order.createdAt.getTime());
+  const references = listed.map((order) => order.reference);
 
-  assert.ok(listed.length > 0);
   for (const order of listed) {
     assert.ok(
       ["new", "sent", "returned"].includes(orderStatus(order)),
@@ -461,8 +460,10 @@ test("hiding closed orders lists only the open ones, newest first", async () => 
     );
   }
   assert.deepEqual(
-    times,
-    [...times].sort((a, b) => b - a),
+    references.filter((reference) =>
+      [returned, fresh, sent].includes(reference),
+    ),
+    [sent, fresh, returned],
   );
 });
 

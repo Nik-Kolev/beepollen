@@ -593,7 +593,7 @@ function FilledCheckout({
                   <input
                     type="checkbox"
                     name="acceptsTerms"
-                    required
+                    aria-required
                     checked={answers.acceptsTerms}
                     onChange={onAnswerChange("acceptsTerms")}
                     className={CHECKBOX}

@@ -297,6 +297,26 @@ test("an order with nothing left to buy totals zero, with no delivery charge", a
   await expect(confirmation(page)).toContainText("Общо0,00 €");
 });
 
+test("the unticked terms box is not reported invalid before a submission", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+
+  const terms = page.getByRole("checkbox", {
+    name: CONSENT_WORDING.TERMS,
+    exact: true,
+  });
+  await expect(terms).toBeEnabled();
+
+  expect(await terms.evaluate((box) => box.matches(":invalid"))).toBe(false);
+  await expect(terms).not.toHaveAttribute("aria-invalid");
+  await expect(terms).toHaveAttribute("aria-required", "true");
+});
+
 test("the consent wording is rendered as it will be stored", async ({
   page,
 }) => {

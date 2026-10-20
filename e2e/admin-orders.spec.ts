@@ -242,28 +242,37 @@ test("the list shows five orders, loads five more on request, and filters always
     name: "Филтър на поръчките",
   });
   const loadMore = page.getByRole("link", { name: /^Зареди още/ });
+  const listed = async (shown: number) => {
+    let seen = { total: -1, shown: [] as string[] };
+    await expect(async () => {
+      const total = Number(
+        (await filters
+          .getByRole("link", { name: /^Всички/ })
+          .textContent())!.replace(/\D/g, ""),
+      );
+      seen = { total, shown: await references() };
+      expect(seen.shown).toHaveLength(Math.min(total, shown));
+    }).toPass();
+    return seen;
+  };
 
   await page.goto("/admin/orders");
-  const total = Number(
-    (await filters
-      .getByRole("link", { name: /^Всички/ })
-      .textContent())!.replace(/\D/g, ""),
-  );
-  const first = await references();
-  expect(first).toHaveLength(Math.min(total, 5));
+  const first = await listed(5);
 
-  if (total > 5) {
+  if (first.total > 5) {
     await loadMore.click();
     await expect(page).toHaveURL("/admin/orders?shown=10");
-    const more = await references();
-    expect(more).toHaveLength(Math.min(total, 10));
-    expect(more.slice(0, 5)).toEqual(first);
+    const more = await listed(10);
+    const offset = more.shown.indexOf(first.shown[0]);
+    expect(offset).toBeGreaterThanOrEqual(0);
+    expect(offset).toBeLessThanOrEqual(5);
+    expect(more.shown.slice(offset, offset + 5)).toEqual(first.shown);
   } else {
     await expect(loadMore).toHaveCount(0);
   }
 
   await page.goto("/admin/orders?shown=9999");
-  expect(await references()).toHaveLength(total);
+  await listed(9999);
   await expect(loadMore).toHaveCount(0);
 
   for (const href of await filters

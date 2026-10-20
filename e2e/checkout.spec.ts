@@ -8,6 +8,8 @@ const POLLEN_SLUG = "pchelen-prashets-500g";
 const POLLEN_NAME = "Пчелен прашец 500 г";
 const SECOND_SLUG = "pchelen-prashets-1kg";
 const SECOND_NAME = "Пчелен прашец 1 кг";
+const WITHDRAWN_NAME = "Пчелен прашец 2 кг";
+const SECOND_WITHDRAWN_NAME = "Пчелен прашец 3 кг";
 
 function cartLink(page: Page) {
   return page.getByRole("banner").getByRole("link", { name: /Количка/ });
@@ -207,6 +209,57 @@ test("a withdrawn product is named and left out of the total", async ({
   await expect(
     page.getByRole("button", { name: "Поръчай с плащане при доставка" }),
   ).toBeEnabled();
+  await expect(
+    page.getByRole("heading", { name: /^Вашата поръчка/ }),
+  ).toBeFocused();
+});
+
+for (const [removed, focused] of [
+  [WITHDRAWN_NAME, SECOND_WITHDRAWN_NAME],
+  [SECOND_WITHDRAWN_NAME, WITHDRAWN_NAME],
+] as const) {
+  test(`removing ${removed} moves focus to the remove button of ${focused}`, async ({
+    page,
+  }) => {
+    await seedCart(page, {
+      version: 2,
+      items: [
+        { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 },
+        { slug: "no-such-product", name: WITHDRAWN_NAME, quantity: 3 },
+        {
+          slug: "no-such-product-either",
+          name: SECOND_WITHDRAWN_NAME,
+          quantity: 1,
+        },
+      ],
+    });
+    await page.goto("/checkout");
+
+    await page.getByRole("button", { name: `Премахни ${removed}` }).click();
+
+    await expect(summaryRows(page)).toHaveCount(2);
+    await expect(
+      page.getByRole("button", { name: `Премахни ${focused}` }),
+    ).toBeFocused();
+  });
+}
+
+test("removing the last line moves focus to the empty cart", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: "no-such-product", name: WITHDRAWN_NAME, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+
+  await page
+    .getByRole("button", { name: `Премахни ${WITHDRAWN_NAME}` })
+    .click();
+
+  await expect(
+    page.getByRole("heading", { name: "Количката е празна." }),
+  ).toBeFocused();
 });
 
 test("an order with nothing left to buy totals zero, with no delivery charge", async ({

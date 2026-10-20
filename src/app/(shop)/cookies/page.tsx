@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/container";
 import { CookieChoice } from "@/components/cookie-choice";
+import { Section } from "@/components/legal-section";
 import { CART_STORAGE_KEY } from "@/lib/cart";
 import { COOKIE_CONSENT_KEY } from "@/lib/cookie-consent";
 
@@ -53,9 +54,6 @@ const ENTRIES: Entry[] = [
   },
 ];
 
-const SECTION = "flex flex-col gap-3";
-const HEADING = "text-lg font-semibold";
-
 export default function CookiesPage() {
   return (
     <Container>
@@ -69,33 +67,24 @@ export default function CookiesPage() {
           </p>
         </header>
 
-        <section aria-labelledby="choice" className={SECTION}>
-          <h2 id="choice" className={HEADING}>
-            Вашият избор
-          </h2>
+        <Section id="choice" title="Вашият избор">
           <p>
             Можете да промените избора си по всяко време — тук или от връзката
             „Бисквитки“ в долната част на всяка страница.
           </p>
           <CookieChoice />
-        </section>
+        </Section>
 
-        <section aria-labelledby="what" className={SECTION}>
-          <h2 id="what" className={HEADING}>
-            Какво са бисквитките
-          </h2>
+        <Section id="what" title="Какво са бисквитките">
           <p>
             Бисквитките са малки файлове, които сайтът записва в браузъра ви.
             Същото правило важи и за другите записи в браузъра, като
             localStorage. Без вашето съгласие записваме само това, без което
             сайтът не може да изпълни нещо, което сте поискали.
           </p>
-        </section>
+        </Section>
 
-        <section aria-labelledby="list" className={SECTION}>
-          <h2 id="list" className={HEADING}>
-            Какво записваме
-          </h2>
+        <Section id="list" title="Какво записваме">
           <ul role="list" className="flex flex-col gap-4">
             {ENTRIES.map((entry) => (
               <li
@@ -123,34 +112,25 @@ export default function CookiesPage() {
             него бисквитки се изтриват. Магазинът работи еднакво и в двата
             случая.
           </p>
-        </section>
+        </Section>
 
-        <section aria-labelledby="google" className={SECTION}>
-          <h2 id="google" className={HEADING}>
-            Google Analytics
-          </h2>
+        <Section id="google" title="Google Analytics">
           <p>
             Ползваме Google Analytics, за да знаем колко хора разглеждат сайта и
             откъде идват. Google може да обработва тези данни в САЩ. Преносът е
             разрешен от решението на Европейската комисия от 10 юли 2023 г. за
             Рамката за защита на данните между ЕС и САЩ.
           </p>
-        </section>
+        </Section>
 
-        <section aria-labelledby="other" className={SECTION}>
-          <h2 id="other" className={HEADING}>
-            Какво не записваме
-          </h2>
+        <Section id="other" title="Какво не записваме">
           <p>
             Не ползваме рекламни бисквитки. Картата с офисите на Еконт зарежда
             изображения от OpenStreetMap и не записва бисквитки.
           </p>
-        </section>
+        </Section>
 
-        <section aria-labelledby="who" className={SECTION}>
-          <h2 id="who" className={HEADING}>
-            Кой отговаря за данните
-          </h2>
+        <Section id="who" title="Кой отговаря за данните">
           <p>
             Кой сме, как да се свържете с нас и какви са правата ви пише в{" "}
             <Link
@@ -161,7 +141,7 @@ export default function CookiesPage() {
             </Link>
             .
           </p>
-        </section>
+        </Section>
       </article>
     </Container>
   );

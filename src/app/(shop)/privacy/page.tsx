@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
 
 import { Container } from "@/components/container";
+import { Section } from "@/components/legal-section";
 
 export const metadata: Metadata = {
   title: "Политика за поверителност",
@@ -96,28 +96,6 @@ const RIGHTS = [
   "да възразите срещу обработване на основание законен интерес",
   "да оттеглите съгласие по всяко време, без това да засяга обработването дотогава",
 ];
-
-const SECTION = "flex flex-col gap-3";
-const HEADING = "text-lg font-semibold";
-
-function Section({
-  id,
-  title,
-  children,
-}: {
-  id: string;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section aria-labelledby={id} className={SECTION}>
-      <h2 id={id} className={HEADING}>
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
 
 export default function PrivacyPage() {
   return (

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import type { ReactNode } from "react";
 
 import { Container } from "@/components/container";
+import { Section } from "@/components/legal-section";
 import { OWNER_PHONE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -40,28 +40,7 @@ const FORM_LINES = [
   "Дата:",
 ];
 
-const SECTION = "flex flex-col gap-3";
-const HEADING = "text-lg font-semibold";
 const LINK = "underline underline-offset-4 hover:no-underline";
-
-function Section({
-  id,
-  title,
-  children,
-}: {
-  id: string;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section aria-labelledby={id} className={SECTION}>
-      <h2 id={id} className={HEADING}>
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
 
 export default function TermsPage() {
   return (

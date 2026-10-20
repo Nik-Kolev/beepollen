@@ -349,8 +349,16 @@ function FilledCheckout({
 
         startTransition(() => formAction(submitted));
       }}
-      className="mt-6"
+      className="mt-4"
     >
+      <Link
+        href="/cart"
+        className="text-ink hover:text-brand-deep mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold underline underline-offset-4"
+      >
+        <span aria-hidden="true">←</span>
+        Обратно към количката
+      </Link>
+
       <input
         type="hidden"
         name="items"

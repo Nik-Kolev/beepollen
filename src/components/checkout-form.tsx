@@ -49,6 +49,8 @@ const LEGAL_LINK = "underline underline-offset-4 hover:no-underline";
 
 const CARD = "bg-surface ring-line rounded-xl p-5 shadow-sm ring-1 sm:p-6";
 
+type FocusTarget = () => HTMLElement | null | undefined;
+
 function StepCard({
   step,
   title,
@@ -203,9 +205,11 @@ function FilledCheckout({
   result: PlaceOrderResult | null;
   pending: boolean;
   formAction: (formData: FormData) => void;
-  onRemove: (slug: string) => void;
+  onRemove: (slug: string, focusTarget: FocusTarget) => void;
 }) {
   const idempotencyKey = useRef<string | null>(null);
+  const removeButtons = useRef(new Map<string, HTMLButtonElement>());
+  const summaryHeading = useRef<HTMLHeadingElement>(null);
   const catalogue = new Map(products.map((product) => [product.slug, product]));
   const lines = items.map((item) => ({
     ...item,
@@ -257,6 +261,32 @@ function FilledCheckout({
     reported.filter((field) => !correctedFields.has(field)),
   );
   const stillUnavailable = lines.some((line) => unavailable.has(line.slug));
+  const removable = lines.filter(
+    ({ slug, product }) =>
+      !product || unavailable.has(slug) || product.stock === "NONE",
+  );
+
+  function removeLine(slug: string) {
+    const index = removable.findIndex((line) => line.slug === slug);
+    const rest = removable.filter((line) => line.slug !== slug);
+    const next = rest[index] ?? rest[index - 1];
+
+    onRemove(
+      slug,
+      next
+        ? () => removeButtons.current.get(next.slug)
+        : () => summaryHeading.current,
+    );
+  }
+
+  function removeButtonRef(slug: string) {
+    return (button: HTMLButtonElement) => {
+      removeButtons.current.set(slug, button);
+      return () => {
+        removeButtons.current.delete(slug);
+      };
+    };
+  }
   const linesShown = summaryOpen || unavailable.size > 0 || blocked !== null;
   const summary = summaryError(
     result,
@@ -337,7 +367,11 @@ function FilledCheckout({
         <section
           className={`${CARD} lg:sticky lg:top-4 lg:order-last lg:w-80 lg:shrink-0`}
         >
-          <h2 className="text-lg font-semibold">
+          <h2
+            ref={summaryHeading}
+            tabIndex={-1}
+            className="text-lg font-semibold focus:outline-none"
+          >
             <button
               type="button"
               aria-expanded={linesShown}
@@ -381,12 +415,13 @@ function FilledCheckout({
                             ? "Изчерпан"
                             : `${quantity} бр.`}
                       </p>
-                      {(withdrawn || soldOut) && (
+                      {removable.some((line) => line.slug === slug) && (
                         <button
+                          ref={removeButtonRef(slug)}
                           type="button"
                           onClick={() => {
                             setSummaryOpen(true);
-                            onRemove(slug);
+                            removeLine(slug);
                           }}
                           className="text-ink hover:text-brand-deep mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0"
                         >
@@ -648,10 +683,23 @@ export function CheckoutForm({
   const [corrected, setCorrected] = useState(NOTHING_CORRECTED);
   const [result, formAction, pending] = useActionState(submitOrder, null);
   const placed = result?.ok ? result.order : null;
+  const emptyHeading = useRef<HTMLHeadingElement>(null);
+  const focusAfterRemove = useRef<FocusTarget | null>(null);
 
   useEffect(() => {
     if (placed) clear();
   }, [placed, clear]);
+
+  useEffect(() => {
+    focusAfterRemove.current?.()?.focus();
+    focusAfterRemove.current = null;
+  }, [cart.items]);
+
+  function removeLine(slug: string, focusTarget: FocusTarget) {
+    focusAfterRemove.current =
+      cart.items.length === 1 ? () => emptyHeading.current : focusTarget;
+    remove(slug);
+  }
 
   if (placed) {
     return (
@@ -661,7 +709,9 @@ export function CheckoutForm({
       />
     );
   }
-  if (ready && cart.items.length === 0) return <EmptyCart />;
+  if (ready && cart.items.length === 0) {
+    return <EmptyCart headingRef={emptyHeading} />;
+  }
 
   return (
     <FilledCheckout
@@ -678,7 +728,7 @@ export function CheckoutForm({
       result={result}
       pending={pending}
       formAction={formAction}
-      onRemove={remove}
+      onRemove={removeLine}
     />
   );
 }

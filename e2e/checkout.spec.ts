@@ -71,6 +71,26 @@ test("the cart leads to the checkout page", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("the checkout leads back to the cart with its lines intact", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 }],
+  });
+  await page.goto("/checkout");
+
+  await page.getByRole("link", { name: "Обратно към количката" }).click();
+
+  await expect(page).toHaveURL("/cart");
+  await expect(
+    page.getByRole("button", {
+      name: `Намали количеството на ${POLLEN_NAME}`,
+    }),
+  ).toBeVisible();
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 2 бр.");
+});
+
 test("the form is prerendered, disabled until the cart has been read", async ({
   page,
 }) => {

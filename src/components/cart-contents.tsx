@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useId } from "react";
+import { useEffect, useId, useRef } from "react";
 
 import { EmptyCart } from "@/components/empty-cart";
 import { useCart } from "@/hooks/use-cart";
@@ -21,9 +21,20 @@ export function CartContents({ products }: { products: CartProduct[] }) {
   const { cart, ready, setQuantity, remove } = useCart();
   const limitId = useId();
   const catalogue = new Map(products.map((product) => [product.slug, product]));
+  const removeButtons = useRef(new Map<string, HTMLButtonElement>());
+  const checkoutLink = useRef<HTMLAnchorElement>(null);
+  const emptyHeading = useRef<HTMLHeadingElement>(null);
+  const focusAfterRemove = useRef<
+    (() => HTMLElement | null | undefined) | null
+  >(null);
+
+  useEffect(() => {
+    focusAfterRemove.current?.()?.focus();
+    focusAfterRemove.current = null;
+  }, [cart.items]);
 
   if (!ready) return <div aria-hidden="true" />;
-  if (cart.items.length === 0) return <EmptyCart />;
+  if (cart.items.length === 0) return <EmptyCart headingRef={emptyHeading} />;
 
   const lines = cart.items.map((item) => ({
     ...item,
@@ -31,6 +42,27 @@ export function CartContents({ products }: { products: CartProduct[] }) {
   }));
   const totalCents = purchasableTotal(lines);
   const blocked = blockedReason(lines);
+
+  function removeLine(index: number) {
+    const rest = lines.filter((_, other) => other !== index);
+    const next = rest[index] ?? rest[index - 1];
+
+    focusAfterRemove.current = !next
+      ? () => emptyHeading.current
+      : blocked && !blockedReason(rest)
+        ? () => checkoutLink.current
+        : () => removeButtons.current.get(next.slug);
+    remove(lines[index].slug);
+  }
+
+  function removeButtonRef(slug: string) {
+    return (button: HTMLButtonElement) => {
+      removeButtons.current.set(slug, button);
+      return () => {
+        removeButtons.current.delete(slug);
+      };
+    };
+  }
 
   return (
     <div className="pt-6">
@@ -51,8 +83,9 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                   </p>
                 </div>
                 <button
+                  ref={removeButtonRef(line.slug)}
                   type="button"
-                  onClick={() => remove(line.slug)}
+                  onClick={() => removeLine(index)}
                   className={REMOVE_BUTTON}
                 >
                   Премахни
@@ -144,8 +177,9 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                 </div>
 
                 <button
+                  ref={removeButtonRef(slug)}
                   type="button"
-                  onClick={() => remove(slug)}
+                  onClick={() => removeLine(index)}
                   className={REMOVE_BUTTON}
                 >
                   Премахни
@@ -171,6 +205,7 @@ export function CartContents({ products }: { products: CartProduct[] }) {
           </p>
         ) : (
           <Link
+            ref={checkoutLink}
             href="/checkout"
             className="bg-action text-action-ink hover:bg-action-hover inline-flex min-h-14 w-full items-center justify-center rounded-full px-8 text-lg font-semibold transition-colors sm:w-auto"
           >

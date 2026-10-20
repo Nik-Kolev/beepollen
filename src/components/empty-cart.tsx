@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { type Ref, useState } from "react";
 
 import { Bee } from "@/components/art/bee";
 
@@ -11,7 +11,11 @@ const LINES = [
   "Тук още е празно — изберете продукт.",
 ] as const;
 
-export function EmptyCart() {
+export function EmptyCart({
+  headingRef,
+}: {
+  headingRef?: Ref<HTMLHeadingElement>;
+}) {
   const [line] = useState(() => Math.floor(Math.random() * LINES.length));
 
   return (
@@ -21,7 +25,13 @@ export function EmptyCart() {
         <Bee className="text-bee-dark w-14 rotate-6" />
         <Bee className="text-bee-dark w-9 scale-x-[-1] -rotate-6" />
       </div>
-      <h2 className="text-xl font-semibold">Количката е празна.</h2>
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-xl font-semibold focus:outline-none"
+      >
+        Количката е празна.
+      </h2>
       <p className="text-ink-soft max-w-prose">{LINES[line]}</p>
       <Link
         href="/"

@@ -182,6 +182,12 @@ test("the stepper changes a line's quantity", async ({ page }) => {
   await decrease.click();
   await expect(cartLink(page)).toHaveAccessibleName("Количка, 1 бр.");
   await expect(decrease).toBeDisabled();
+  await expect(decrease).toBeFocused();
+
+  await decrease.press("Enter");
+  await expect(cartLink(page)).toHaveAccessibleName("Количка, 1 бр.");
+  await expect(cartRows(page)).toHaveCount(1);
+  await expect(decrease).toBeFocused();
 });
 
 test("removing a line leaves the others", async ({ page }) => {

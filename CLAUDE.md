@@ -304,6 +304,14 @@ The answers, and the set of fields corrected since the last refusal, live in
 `CheckoutForm`, which never unmounts — `FilledCheckout` is swapped out whenever
 the cart empties, and state kept there dies with it.
 
+The contact fields, the Попово box, the city and the office are also kept in
+`sessionStorage` under `beepollen.checkout`, so leaving for the cart and coming
+back loses nothing. The consents are never kept: each order is agreed to afresh.
+The draft is restored during the first render after the cart is read, never in
+an effect, which `react-hooks/set-state-in-effect` refuses, and the office
+picker is keyed on that restore, since its city and office are its own state
+seeded from props. Only an accepted order clears it.
+
 The form is in the prerendered HTML inside a `fieldset` that stays disabled
 until the cart has been read; only the lines and the total wait for the browser.
 Rendered after the read instead, the page stayed empty until hydration and the

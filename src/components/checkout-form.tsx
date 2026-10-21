@@ -32,6 +32,7 @@ import {
   FIELD_ERROR,
   summaryError,
 } from "@/lib/checkout-messages";
+import { clearDraft, readDraft, writeDraft } from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
 import { deliveryPrice, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import type { EcontOffice } from "@/lib/econt";
@@ -182,6 +183,9 @@ function FilledCheckout({
   offices,
   office,
   setOffice,
+  city,
+  setCity,
+  restored,
   answers,
   setAnswers,
   corrected,
@@ -197,6 +201,9 @@ function FilledCheckout({
   offices: EcontOffice[];
   office: EcontOffice | null;
   setOffice: Dispatch<SetStateAction<EcontOffice | null>>;
+  city: string | null;
+  setCity: Dispatch<SetStateAction<string | null>>;
+  restored: boolean;
   answers: Answers;
   setAnswers: Dispatch<SetStateAction<Answers>>;
   corrected: Corrected;
@@ -330,6 +337,7 @@ function FilledCheckout({
 
     markCorrected("officeCode");
     setOffice(null);
+    setCity(null);
     setAnswers((current) => ({ ...current, localDelivery: checked }));
   }
 
@@ -567,7 +575,11 @@ function FilledCheckout({
             {!answers.localDelivery && (
               <div className="mt-6">
                 <OfficeCityPicker
+                  key={restored ? "restored" : "initial"}
                   offices={offices}
+                  initialCity={city}
+                  initialOfficeCode={office?.code ?? null}
+                  onCityChange={setCity}
                   error={
                     invalid.has("officeCode")
                       ? {
@@ -686,15 +698,81 @@ export function CheckoutForm({
 }) {
   const { cart, ready, remove, clear } = useCart();
   const [office, setOffice] = useState<EcontOffice | null>(null);
+  const [city, setCity] = useState<string | null>(null);
   const [answers, setAnswers] = useState(EMPTY_ANSWERS);
   const [corrected, setCorrected] = useState(NOTHING_CORRECTED);
+  const [restored, setRestored] = useState(false);
   const [result, formAction, pending] = useActionState(submitOrder, null);
   const placed = result?.ok ? result.order : null;
   const emptyHeading = useRef<HTMLHeadingElement>(null);
   const focusAfterRemove = useRef<FocusTarget | null>(null);
 
+  if (ready && !restored) {
+    const draft = readDraft();
+
+    setRestored(true);
+    if (draft) {
+      const storedOffice = draft.localDelivery
+        ? null
+        : (offices.find(
+            (candidate) =>
+              candidate.code === draft.officeCode &&
+              candidate.city === draft.city,
+          ) ?? null);
+
+      setAnswers((current) => ({
+        ...current,
+        name: draft.name,
+        email: draft.email,
+        phone: draft.phone,
+        localDelivery: draft.localDelivery,
+      }));
+      setCity(
+        !draft.localDelivery &&
+          offices.some((candidate) => candidate.city === draft.city)
+          ? draft.city
+          : null,
+      );
+      setOffice(storedOffice);
+    }
+  }
+
   useEffect(() => {
-    if (placed) clear();
+    if (!restored || placed) return;
+
+    const draft = {
+      name: answers.name,
+      email: answers.email,
+      phone: answers.phone,
+      localDelivery: answers.localDelivery,
+      city: answers.localDelivery ? null : city,
+      officeCode: answers.localDelivery ? null : (office?.code ?? null),
+    };
+    const empty =
+      !draft.name &&
+      !draft.email &&
+      !draft.phone &&
+      !draft.localDelivery &&
+      !draft.city;
+
+    if (empty) clearDraft();
+    else writeDraft(draft);
+  }, [
+    restored,
+    placed,
+    answers.name,
+    answers.email,
+    answers.phone,
+    answers.localDelivery,
+    city,
+    office,
+  ]);
+
+  useEffect(() => {
+    if (!placed) return;
+
+    clearDraft();
+    clear();
   }, [placed, clear]);
 
   useEffect(() => {
@@ -728,6 +806,9 @@ export function CheckoutForm({
       offices={offices}
       office={office}
       setOffice={setOffice}
+      city={city}
+      setCity={setCity}
+      restored={restored}
       answers={answers}
       setAnswers={setAnswers}
       corrected={corrected}

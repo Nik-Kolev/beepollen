@@ -1,4 +1,4 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import { WITHDRAWN_LINES } from "@/lib/checkout-messages";
 import { formatPrice } from "@/lib/money";
@@ -461,5 +461,93 @@ for (const [state, items, shown] of [
     );
     expect(cls).toBeDefined();
     expect(cls).toBeLessThan(0.01);
+  });
+}
+
+async function box(locator: Locator) {
+  const rect = await locator.boundingBox();
+
+  if (!rect) throw new Error("The element has no layout box.");
+
+  return rect;
+}
+
+async function footerTop(page: Page) {
+  return (await box(page.getByRole("contentinfo"))).y;
+}
+
+for (const [state, items] of [
+  ["an empty", []],
+  ["a one-line", [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }]],
+  [
+    "a two-line",
+    [
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 3 },
+    ],
+  ],
+] as const) {
+  for (const width of [null, 320, 639, 640]) {
+    test(`${state} cart reserves its own height before it is read${width ? ` at ${width}px` : ""}`, async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(
+        width !== null && !isMobile,
+        "The mobile project alone covers the fixed widths.",
+      );
+      if (width) await page.setViewportSize({ width, height: 800 });
+
+      await seedCart(page, { version: 2, items: [...items] });
+      await page.addInitScript(() => {
+        Math.random = () => 0;
+      });
+
+      let blocked = 0;
+
+      await page.route("**/_next/static/chunks/**/*.js", (route) => {
+        blocked += 1;
+        return route.abort();
+      });
+      await page.goto("/cart");
+      await expect(
+        page.locator("main [aria-hidden='true']:has(> script)"),
+      ).toBeAttached();
+      expect(blocked).toBeGreaterThan(0);
+      const reserved = await footerTop(page);
+
+      await page.unrouteAll();
+      await page.reload();
+      await expect(
+        cartRows(page).or(page.getByText("Количката е празна.")),
+      ).not.toHaveCount(0);
+      const read = await footerTop(page);
+
+      expect(read).toBeCloseTo(reserved, 0);
+    });
+  }
+}
+
+const MAX_TRAILING_SPACE = 120;
+
+for (const [state, items, last] of [
+  ["an empty", [], "Към продуктите"],
+  [
+    "a one-line",
+    [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+    "Към поръчката",
+  ],
+] as const) {
+  test(`${state} cart leaves no gap above the footer`, async ({ page }) => {
+    await seedCart(page, { version: 2, items: [...items] });
+    await page.goto("/cart");
+
+    const end = await box(
+      page.getByRole("main").getByRole("link", { name: last, exact: true }),
+    );
+
+    expect((await footerTop(page)) - (end.y + end.height)).toBeLessThan(
+      MAX_TRAILING_SPACE,
+    );
   });
 }

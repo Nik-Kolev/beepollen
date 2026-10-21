@@ -4,7 +4,7 @@ import type { CartProduct } from "@/lib/products";
 
 export const CART_STORAGE_KEY = "beepollen.cart";
 
-const CART_VERSION = 2;
+export const CART_VERSION = 2;
 
 export const MAX_LINE_QUANTITY = 99;
 

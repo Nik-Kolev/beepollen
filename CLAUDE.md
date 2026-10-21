@@ -490,7 +490,11 @@ library on purpose: `scripts/test-unit.mjs` points `DATABASE_URL` at its own
 `data/test.db`, deletes it, migrates and seeds it on every run, so the real
 constraints fire and nothing can touch `data/dev.db`. Files run one at a time,
 since they share that database. It runs npm through a fixed shell string because
-Node 24 will not spawn Windows' `npm.cmd` without a shell. The last test in
+Node 24 will not spawn Windows' `npm.cmd` without a shell. On Windows libsql
+can crash a file's process at teardown with `0xC0000005` after every test in it
+passed (tursodatabase/libsql-js#231); when that crash is the run's only failure,
+the script reads the TAP report it writes to `data/test-unit.tap`, rebuilds the
+database and re-runs just those files once. The last test in
 `tests/orders/reference.test.ts` blocks the day's numbering until its own
 cleanup, so it stays last.
 

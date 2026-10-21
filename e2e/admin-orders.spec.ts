@@ -222,6 +222,9 @@ test("a step the server fails to save says so, a returned parcel shows in the er
   await card.getByRole("button", { name: "Прибрана" }).click();
 
   await expect(page).toHaveURL("/admin/login");
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders");
+  await expect(badge(card, "Върната — за прибиране")).toBeVisible();
 });
 
 test("the list shows five orders, loads five more on request, and filters always start from five", async ({
@@ -323,6 +326,7 @@ test("undo and cancel ask first, naming the order and what will change, and undo
   await undo.click();
   await dialog.getByRole("button", { name: "Да, върни" }).click();
   await expect(badge(card, "Чака плащане")).toBeVisible();
+  await expect(card).toContainText(/Изпратена преди \d+ дни/);
 
   await undo.click();
   await dialog.getByRole("button", { name: "Да, върни" }).click();

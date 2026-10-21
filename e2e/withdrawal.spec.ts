@@ -105,9 +105,11 @@ test("a withdrawal is refused for a mismatched email, then confirmed, repeated w
     (button as HTMLButtonElement).click();
   });
 
+  await expect.poll(() => posts.length).toBeGreaterThan(0);
+  await page.waitForLoadState("networkidle");
+  expect(posts).toHaveLength(1);
   const received = page.getByRole("heading", { name: "Отказът е получен" });
   await expect(received).toBeFocused();
-  expect(posts).toHaveLength(1);
   await expect(page.getByText(reference, { exact: true })).toBeVisible();
   const time = page.getByRole("main").locator("time");
   const firstTime = await time.getAttribute("datetime");

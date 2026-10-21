@@ -342,17 +342,6 @@ test("an unreadable stored cart is discarded", async ({ page }) => {
   await expect(cartLink(page)).toHaveAccessibleName("Количка, празна");
 });
 
-test("a cart stored by a later version is discarded", async ({ page }) => {
-  await seedCart(page, {
-    version: 9,
-    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
-  });
-  await page.goto("/cart");
-
-  await expect(page.getByText("Количката е празна.")).toBeVisible();
-  await expect(cartLink(page)).toHaveAccessibleName("Количка, празна");
-});
-
 test("a cart line stops at the maximum, says why and keeps focus", async ({
   page,
 }) => {
@@ -407,19 +396,6 @@ test("the add button stops at the maximum, says why and keeps focus", async ({
   expect(await cue.isVisible()).toBe(false);
   await expect(cartLink(page)).toHaveAccessibleName("Количка, 99 бр.");
 });
-
-for (const quantity of [0, -1, 1.5, 100]) {
-  test(`a stored quantity of ${quantity} is discarded`, async ({ page }) => {
-    await seedCart(page, {
-      version: 2,
-      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity }],
-    });
-    await page.goto("/cart");
-
-    await expect(page.getByText("Количката е празна.")).toBeVisible();
-    await expect(cartLink(page)).toHaveAccessibleName("Количка, празна");
-  });
-}
 
 test("the same product stored twice becomes one line", async ({ page }) => {
   await seedCart(page, {

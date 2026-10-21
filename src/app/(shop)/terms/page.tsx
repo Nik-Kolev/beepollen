@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/container";
 import { Section } from "@/components/legal-section";
+import { TEXT_LINK } from "@/components/link-styles";
 import { OWNER_PHONE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -39,8 +40,6 @@ const FORM_LINES = [
   "Подпис на потребителя/ите (само в случай, че настоящият формуляр е на хартия):",
   "Дата:",
 ];
-
-const LINK = "underline underline-offset-4 hover:no-underline";
 
 export default function TermsPage() {
   return (
@@ -126,7 +125,7 @@ export default function TermsPage() {
           <ul role="list" className="flex list-disc flex-col gap-2 pl-5">
             <li>
               с функцията{" "}
-              <Link href="/withdraw" className={LINK}>
+              <Link href="/withdraw" className={TEXT_LINK}>
                 „Откажете се от договора тук“
               </Link>{" "}
               в долната част на всяка страница — получавате потвърждение по
@@ -166,11 +165,11 @@ export default function TermsPage() {
         <Section id="data" title="Лични данни">
           <p>
             Как обработваме данните ви пише в{" "}
-            <Link href="/privacy" className={LINK}>
+            <Link href="/privacy" className={TEXT_LINK}>
               политиката за поверителност
             </Link>
             , а за бисквитките — в{" "}
-            <Link href="/cookies" className={LINK}>
+            <Link href="/cookies" className={TEXT_LINK}>
               политиката за бисквитките
             </Link>
             .

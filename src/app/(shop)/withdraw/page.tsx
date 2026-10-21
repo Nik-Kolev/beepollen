@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Container } from "@/components/container";
+import { TEXT_LINK } from "@/components/link-styles";
 import { WithdrawalForm } from "@/components/withdrawal-form";
 
 export const metadata: Metadata = {
@@ -22,10 +23,7 @@ export default function WithdrawPage() {
           Можете да се откажете от поръчката без да посочвате причина в срок от
           14 дни от деня, в който получите стоката. Попълнете данните, с които
           сте поръчали. Повече има в{" "}
-          <Link
-            href="/terms#withdrawal"
-            className="underline underline-offset-4 hover:no-underline"
-          >
+          <Link href="/terms#withdrawal" className={TEXT_LINK}>
             общите условия
           </Link>
           .

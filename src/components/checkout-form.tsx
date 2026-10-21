@@ -24,6 +24,7 @@ import {
   INPUT_ERROR_TEXT,
   LABEL,
 } from "@/components/form-styles";
+import { TEXT_LINK } from "@/components/link-styles";
 import { useCart } from "@/hooks/use-cart";
 import { isPurchasable, purchasableTotal, type CartItem } from "@/lib/cart";
 import {
@@ -44,8 +45,6 @@ const CHECKBOX = "accent-action size-5 shrink-0";
 const CHECKBOX_LABEL = "flex min-h-11 items-center gap-3 text-sm";
 
 const CONSENT_BOX = "border-line bg-ground rounded-lg border px-4 py-2";
-
-const LEGAL_LINK = "underline underline-offset-4 hover:no-underline";
 
 const CARD = "bg-surface ring-line rounded-xl p-5 shadow-sm ring-1 sm:p-6";
 
@@ -605,7 +604,7 @@ function FilledCheckout({
                       href="/terms"
                       target="_blank"
                       aria-describedby="new-tab-note"
-                      className={LEGAL_LINK}
+                      className={TEXT_LINK}
                     >
                       общите условия
                     </Link>
@@ -625,7 +624,7 @@ function FilledCheckout({
                   href="/privacy"
                   target="_blank"
                   aria-describedby="new-tab-note"
-                  className={LEGAL_LINK}
+                  className={TEXT_LINK}
                 >
                   Политика за поверителност
                 </Link>

@@ -15,12 +15,14 @@ after(async () => {
 
 const SLUG = "pchelen-prashets-1kg";
 
-async function withRestoredProduct(run: () => Promise<void>) {
+async function withRestoredProduct(
+  run: (before: { priceCents: number; stock: string }) => Promise<void>,
+) {
   const before = await prisma.product.findUniqueOrThrow({
     where: { slug: SLUG },
   });
   try {
-    await run();
+    await run(before);
   } finally {
     await prisma.product.update({
       where: { slug: SLUG },
@@ -103,11 +105,7 @@ test("an edit stores the new price and stock on that product only", async () => 
 });
 
 test("a refused price leaves the product unchanged", async () => {
-  await withRestoredProduct(async () => {
-    const before = await prisma.product.findUniqueOrThrow({
-      where: { slug: SLUG },
-    });
-
+  await withRestoredProduct(async (before) => {
     const result = await editProduct({ slug: SLUG, price: "-5", stock: "LOW" });
 
     assert.deepEqual(result, { ok: false, code: "INVALID_PRICE" });
@@ -127,7 +125,7 @@ test("an unknown slug is answered as an unknown product", async () => {
 });
 
 test("a crafted edit with an unknown stock level or a non-string field is refused", async () => {
-  await withRestoredProduct(async () => {
+  await withRestoredProduct(async (before) => {
     const valid = { slug: SLUG, price: "10", stock: "LOW" };
     for (const crafted of [
       { ...valid, stock: "MANY" },
@@ -148,6 +146,7 @@ test("a crafted edit with an unknown stock level or a non-string field is refuse
     const unchanged = await prisma.product.findUniqueOrThrow({
       where: { slug: SLUG },
     });
-    assert.notEqual(unchanged.stock, "LOW");
+    assert.equal(unchanged.priceCents, before.priceCents);
+    assert.equal(unchanged.stock, before.stock);
   });
 });

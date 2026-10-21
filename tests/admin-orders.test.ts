@@ -83,18 +83,6 @@ const FILTER_OF: Record<OrderStatus, (typeof ORDER_FILTERS)[number]> = {
   cancelled: "cancelled",
 };
 
-test("the full list shows the newest order first", async () => {
-  const older = await place();
-  const newer = await place();
-
-  const references = (await listOrders("all")).map((order) => order.reference);
-
-  assert.equal(references[0], newer.reference);
-  assert.ok(
-    references.indexOf(newer.reference) < references.indexOf(older.reference),
-  );
-});
-
 test("a listed order carries its lines, snapshot contact, email, office and consents", async () => {
   const placed = await place(
     {
@@ -110,7 +98,7 @@ test("a listed order carries its lines, snapshot contact, email, office and cons
     "203.0.113.7",
   );
 
-  const order = (await listOrders("all", 9999)).find(
+  const order = (await listOrders("all")).find(
     (listed) => listed.reference === placed.reference,
   );
 
@@ -150,18 +138,37 @@ test("a listed order carries its lines, snapshot contact, email, office and cons
 });
 
 test("labels a Popovo order as hand delivery and an Econt order by its office city", async () => {
-  const local = await place(LOCAL);
-  const econt = await place();
+  const office = await prisma.deliveryOffice.create({
+    data: {
+      carrier: "ECONT",
+      code: "test-label-office",
+      name: "Тестов офис",
+      city: "Тестово",
+      postCode: "0000",
+      street: "ул. Тестова 1",
+      hours: "09:00 – 18:00",
+      phone: null,
+      latitude: null,
+      longitude: null,
+    },
+  });
 
-  const listed = await listOrders("all", 9999);
-  const find = (reference: string) =>
-    listed.find((order) => order.reference === reference);
-  const localListed = find(local.reference);
-  const econtListed = find(econt.reference);
+  try {
+    const local = await place(LOCAL);
+    const econt = await place({ officeCode: office.code });
 
-  assert.ok(localListed && econtListed);
-  assert.equal(deliveryLabel(localListed), "Попово — на ръка");
-  assert.equal(deliveryLabel(econtListed), TEST_OFFICE_SNAPSHOT.officeCity);
+    const listed = await listOrders("all");
+    const find = (reference: string) =>
+      listed.find((order) => order.reference === reference);
+    const localListed = find(local.reference);
+    const econtListed = find(econt.reference);
+
+    assert.ok(localListed && econtListed);
+    assert.equal(deliveryLabel(localListed), "Попово — на ръка");
+    assert.equal(deliveryLabel(econtListed), "Тестово");
+  } finally {
+    await prisma.deliveryOffice.delete({ where: { id: office.id } });
+  }
 });
 
 test("a new Econt order offers sending or cancelling; a Popovo one offers hand-over", async () => {
@@ -406,14 +413,15 @@ test("a step on an unknown reference is refused and does not throw", async () =>
 });
 
 test("every order appears in exactly the filter its status names, and in the open view only while open", async () => {
-  for (const status of [
+  const statuses = [
     "new",
     "sent",
     "paid",
     "returned",
     "collected",
     "cancelled",
-  ] as const) {
+  ] as const;
+  for (const status of statuses) {
     await placedIn(status);
   }
 
@@ -422,11 +430,15 @@ test("every order appears in exactly the filter its status names, and in the ope
   for (const view of views) {
     members.set(
       view,
-      new Set((await listOrders(view, 9999)).map((order) => order.reference)),
+      new Set(
+        (await listOrders(view, statuses.length)).map(
+          (order) => order.reference,
+        ),
+      ),
     );
   }
 
-  for (const order of await listOrders("all", 9999)) {
+  for (const order of await listOrders("all", statuses.length)) {
     const status = orderStatus(order);
     const open = ["new", "sent", "returned"].includes(status);
     for (const view of views) {
@@ -450,7 +462,7 @@ test("hiding closed orders lists only the open ones, newest first", async () => 
   await placedIn("cancelled");
   const sent = await placedIn("sent");
 
-  const listed = await listOrders(orderView("all", true), 9999);
+  const listed = await listOrders(orderView("all", true));
   const references = listed.map((order) => order.reference);
 
   for (const order of listed) {

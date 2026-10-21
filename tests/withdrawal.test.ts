@@ -287,7 +287,7 @@ test("the summary names a missing order, a refusal and a field the form cannot s
     withdrawalSummaryError({
       ok: false,
       code: "VALIDATION_ERROR",
-      fields: ["website"],
+      fields: ["email", "website"],
     }),
     INCOMPLETE_WITHDRAWAL,
   );

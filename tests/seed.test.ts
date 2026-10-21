@@ -8,8 +8,8 @@ after(async () => {
   await prisma.$disconnect();
 });
 
-function runSeed() {
-  execFileSync(process.execPath, ["--import", "tsx", "prisma/seed.ts"], {
+function runScript(path: string) {
+  execFileSync(process.execPath, ["--import", "tsx", path], {
     env: process.env,
     stdio: "ignore",
   });
@@ -25,7 +25,7 @@ test("re-seeding keeps the price and stock set in the admin, and restores the se
   });
 
   try {
-    runSeed();
+    runScript("prisma/seed.ts");
 
     const reseeded = await prisma.product.findUniqueOrThrow({
       where: { slug },
@@ -36,7 +36,12 @@ test("re-seeding keeps the price and stock set in the admin, and restores the se
   } finally {
     await prisma.product.update({
       where: { slug },
-      data: { priceCents: seeded.priceCents, stock: seeded.stock },
+      data: {
+        priceCents: seeded.priceCents,
+        stock: seeded.stock,
+        name: seeded.name,
+      },
     });
+    runScript("scripts/seed-test-fixtures.ts");
   }
 });

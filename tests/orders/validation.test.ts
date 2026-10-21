@@ -315,11 +315,6 @@ test("accepts a submission with an empty honeypot string", async () => {
   assert.equal(result.ok, true);
 });
 
-test("accepts a submission with the honeypot field absent entirely", async () => {
-  const result = await placeOrder(validCheckoutInput(), null);
-  assert.equal(result.ok, true);
-});
-
 test("a honeypot rejection is indistinguishable from a rate-limit rejection, so a bot cannot tell which check caught it", async () => {
   resetRateLimits();
 

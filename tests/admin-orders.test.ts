@@ -9,9 +9,11 @@ import {
   deliveryLabel,
   formatOrderTime,
   listOrders,
+  nextOrderShown,
   nextOrderSteps,
   ORDER_FILTERS,
   orderListHref,
+  ORDERS_MAX,
   ORDERS_STEP,
   orderStatus,
   type OrderStatus,
@@ -489,12 +491,15 @@ test("the closed-orders switch applies to the full list only", () => {
   }
 });
 
-test("each view's count matches the orders it lists when all are shown", async () => {
+test("each view's count matches the orders it lists, up to the cap", async () => {
   const counts = await countOrdersByView();
 
   for (const view of [...ORDER_FILTERS, "open"] as const) {
     const shown = parseOrderShown(String(counts[view]), counts[view]);
-    assert.equal(counts[view], (await listOrders(view, shown)).length);
+    assert.equal(
+      Math.min(counts[view], ORDERS_MAX),
+      (await listOrders(view, shown)).length,
+    );
   }
 });
 
@@ -518,12 +523,14 @@ test("the full list shows the newest orders first, and showing more extends it w
   );
 });
 
-test("the shown count starts at one step, never drops below it and never passes the total", () => {
+test("the shown count starts at one step, never drops below it and never passes the total or the cap", () => {
   assert.equal(parseOrderShown("10", 23), 10);
   assert.equal(parseOrderShown("23", 23), 23);
   assert.equal(parseOrderShown("100", 23), 23);
   assert.equal(parseOrderShown("2", 23), ORDERS_STEP);
   assert.equal(parseOrderShown("100", 2), ORDERS_STEP);
+  assert.equal(parseOrderShown(String(ORDERS_MAX), 5000), ORDERS_MAX);
+  assert.equal(parseOrderShown("9999", 5000), ORDERS_MAX);
   for (const crafted of [
     "0",
     "-1",
@@ -541,6 +548,15 @@ test("the shown count starts at one step, never drops below it and never passes 
       JSON.stringify(crafted),
     );
   }
+});
+
+test("loading more adds one step, stops at the total and never passes the cap", () => {
+  assert.equal(nextOrderShown(ORDERS_STEP, 23), ORDERS_STEP * 2);
+  assert.equal(nextOrderShown(20, 23), 25);
+  assert.equal(nextOrderShown(23, 23), null);
+  assert.equal(nextOrderShown(3, 3), null);
+  assert.equal(nextOrderShown(ORDERS_MAX - 2, 5000), ORDERS_MAX);
+  assert.equal(nextOrderShown(ORDERS_MAX, 5000), null);
 });
 
 test("a list link keeps the filter and leaves the default filter and first step out of the address", () => {

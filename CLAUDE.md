@@ -432,7 +432,9 @@ like its neighbours.
 An unknown `/products/[slug]` returns `notFoundMetadata` from
 `generateMetadata`: a title built from the param would name the missing product
 on the 404, and `{}` falls back to the root title. Orders have no page of their
-own; their details expand in place on `/admin/orders`.
+own; their details expand in place on `/admin/orders`, which lists at most
+`ORDERS_MAX`: past roughly a thousand orders the nested items and consents query
+exceeds SQLite's bound-parameter limit.
 
 An order's state is four nullable timestamps — `sentAt`, `paidAt`,
 `cancelledAt`, `collectedAt` — and its status is derived from them by

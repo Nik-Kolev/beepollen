@@ -302,13 +302,23 @@ export const CONSENT_LABEL: Record<ConsentKind, string> = {
 };
 
 export const ORDERS_STEP = 5;
+export const ORDERS_MAX = 100;
 
 export function parseOrderShown(value: unknown, total: number) {
   if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) {
     return ORDERS_STEP;
   }
   const shown = Number(value);
-  return Math.min(Math.max(shown, ORDERS_STEP), Math.max(total, ORDERS_STEP));
+  return Math.min(
+    Math.max(shown, ORDERS_STEP),
+    Math.max(total, ORDERS_STEP),
+    ORDERS_MAX,
+  );
+}
+
+export function nextOrderShown(shown: number, total: number) {
+  const next = Math.min(shown + ORDERS_STEP, ORDERS_MAX);
+  return Math.min(next, total) > shown ? next : null;
 }
 
 export function orderListHref(
@@ -328,7 +338,7 @@ export function listOrders(view: OrderView = "all", shown = ORDERS_STEP) {
   return prisma.order.findMany({
     where: ORDER_VIEW_WHERE[view],
     orderBy: { id: "desc" },
-    take: shown,
+    take: Math.min(shown, ORDERS_MAX),
     select: ORDER_DETAIL,
   });
 }

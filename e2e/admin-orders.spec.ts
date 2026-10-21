@@ -275,7 +275,7 @@ test("the list shows five orders, loads five more on request, and filters always
   }
 
   await page.goto("/admin/orders?shown=9999");
-  await listed(9999);
+  await listed(100);
   await expect(loadMore).toHaveCount(0);
 
   for (const href of await filters

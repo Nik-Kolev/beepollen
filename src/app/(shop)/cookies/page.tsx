@@ -6,6 +6,7 @@ import { CookieChoice } from "@/components/cookie-choice";
 import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
 import { CART_STORAGE_KEY } from "@/lib/cart";
+import { CHECKOUT_DRAFT_KEY } from "@/lib/checkout-draft";
 import { COOKIE_CONSENT_KEY } from "@/lib/cookie-consent";
 
 export const metadata: Metadata = {
@@ -38,6 +39,15 @@ const ENTRIES: Entry[] = [
       "Пази продуктите в количката ви. Не се изпраща никъде, докато не направите поръчка.",
     duration: "Докато не го изтриете от браузъра",
     consent: "Не изисква съгласие — без него количката не може да работи.",
+  },
+  {
+    name: CHECKOUT_DRAFT_KEY,
+    provider: "Този сайт, запис в паметта на раздела (sessionStorage)",
+    purpose:
+      "Пази попълнените име, имейл, телефон, град и офис или доставката в Попово, ако се върнете от поръчката към количката. Съгласията не се пазят. Не се изпраща никъде, докато не направите поръчка.",
+    duration:
+      "Докато трае сесията на раздела — браузърът може да я върне, ако възстанови затворен раздел — или до приемане на поръчката",
+    consent: "Не изисква съгласие — служи само да не попълвате формата отново.",
   },
   {
     name: "_ga",

@@ -91,6 +91,206 @@ test("the checkout leads back to the cart with its lines intact", async ({
   await expect(cartLink(page)).toHaveAccessibleName("Количка, 2 бр.");
 });
 
+function offersBox(page: Page) {
+  return page.getByRole("checkbox", {
+    name: CONSENT_WORDING.OFFERS,
+    exact: true,
+  });
+}
+
+function termsBox(page: Page) {
+  return page.getByRole("checkbox", {
+    name: CONSENT_WORDING.TERMS,
+    exact: true,
+  });
+}
+
+function chosenOffice(page: Page) {
+  return page.getByText("Избран офис", { exact: true }).locator("xpath=..");
+}
+
+async function expectContactKept(page: Page) {
+  await expect(page.getByLabel("Име и фамилия")).toHaveValue("Мария Иванова");
+  await expect(emailField(page)).toHaveValue("maria.ivanova@example.com");
+  await expect(page.getByLabel("Телефон", { exact: true })).toHaveValue(
+    "0899777888",
+  );
+}
+
+async function roundTripThroughCart(page: Page) {
+  await page.getByRole("link", { name: "Обратно към количката" }).click();
+  await expect(page).toHaveURL("/cart");
+  await page.getByRole("link", { name: "Към поръчката" }).click();
+  await expect(page).toHaveURL("/checkout");
+}
+
+test("answers survive a round trip to the cart, while both consents come back unticked", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+
+  await fillContact(page, "maria.ivanova@example.com");
+  await offersBox(page).check();
+  await chooseOffice(page);
+  await roundTripThroughCart(page);
+
+  await expectContactKept(page);
+  await expect(chosenOffice(page)).toContainText(OFFICE_HEADING);
+  await expect(termsBox(page)).not.toBeChecked();
+  await expect(offersBox(page)).not.toBeChecked();
+});
+
+test("answers survive a reload of the checkout", async ({ page }) => {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+
+  await fillContact(page, "maria.ivanova@example.com");
+  await chooseOffice(page);
+  await page.reload();
+
+  await expectContactKept(page);
+  await expect(chosenOffice(page)).toContainText(OFFICE_HEADING);
+});
+
+test("a chosen city with no office yet is kept, and so is local delivery", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+
+  await page.getByLabel("Град", { exact: true }).fill(OFFICE_CITY);
+  await page.getByRole("option", { name: OFFICE_CITY, exact: true }).click();
+  await roundTripThroughCart(page);
+
+  await expect(
+    page.getByRole("button", { name: `Промени града ${OFFICE_CITY}` }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Град", { exact: true })).toHaveCount(0);
+
+  await page.getByLabel(/Поръчката е за гр\. Попово/).check();
+  await roundTripThroughCart(page);
+
+  await expect(page.getByLabel(/Поръчката е за гр\. Попово/)).toBeChecked();
+});
+
+async function seedDraft(page: Page, city: string, officeCode: string) {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.addInitScript(
+    (stored) => sessionStorage.setItem("beepollen.checkout", stored),
+    JSON.stringify({
+      version: 1,
+      name: "Мария Иванова",
+      email: "maria.ivanova@example.com",
+      phone: "0899777888",
+      localDelivery: false,
+      city,
+      officeCode,
+    }),
+  );
+}
+
+test("a kept city no longer in the list is dropped with its office", async ({
+  page,
+}) => {
+  await seedDraft(page, "Несъществуващ", "99999");
+  await page.goto("/checkout");
+
+  await expectContactKept(page);
+  await expect(page.getByLabel("Град", { exact: true })).toBeVisible();
+  await expect(chosenOffice(page)).toHaveCount(0);
+});
+
+test("a kept office no longer in the list is dropped while its city stays", async ({
+  page,
+}) => {
+  await seedDraft(page, OFFICE_CITY, "99999");
+  await page.goto("/checkout");
+
+  await expectContactKept(page);
+  await expect(
+    page.getByRole("button", { name: `Промени града ${OFFICE_CITY}` }),
+  ).toBeVisible();
+  await expect(chosenOffice(page)).toHaveCount(0);
+});
+
+test("a form left empty keeps nothing in the browser", async ({ page }) => {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+  await page.getByLabel("Име и фамилия").fill("М");
+  await page.getByLabel("Име и фамилия").fill("");
+  await page.reload();
+  await expect(emailField(page)).toBeEnabled();
+
+  expect(
+    await page.evaluate(() => sessionStorage.getItem("beepollen.checkout")),
+  ).toBeNull();
+});
+
+test("blocked browser storage leaves the checkout working", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+
+  page.on("pageerror", (error) => errors.push(error.message));
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.addInitScript(() => {
+    const refuse = () => {
+      throw new DOMException("blocked", "SecurityError");
+    };
+
+    Object.defineProperty(window, "sessionStorage", { get: refuse });
+  });
+  await page.goto("/checkout");
+
+  await expect(emailField(page)).toBeEnabled();
+  await fillContact(page, "maria.ivanova@example.com");
+  await chooseOffice(page);
+
+  await expect(emailField(page)).toHaveValue("maria.ivanova@example.com");
+  await expect(chosenOffice(page)).toContainText(OFFICE_HEADING);
+  expect(errors).toEqual([]);
+});
+
+test("a new tab starts with an empty form", async ({ page, context }) => {
+  const cart = {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  };
+
+  await seedCart(page, cart);
+  await page.goto("/checkout");
+  await fillContact(page, "maria.ivanova@example.com");
+  await page.reload();
+  await expect(emailField(page)).toHaveValue("maria.ivanova@example.com");
+
+  const other = await context.newPage();
+  await seedCart(other, cart);
+  await other.goto("/checkout");
+
+  await expect(emailField(other)).toBeEnabled();
+  await expect(emailField(other)).toHaveValue("");
+  await expect(other.getByLabel("Име и фамилия")).toHaveValue("");
+});
+
 test("the form is prerendered, disabled until the cart has been read", async ({
   page,
 }) => {
@@ -457,6 +657,11 @@ test.describe("placing an order", () => {
       "aria-invalid",
       "true",
     );
+
+    await page.reload();
+
+    await expect(page.getByLabel("Име и фамилия")).toHaveValue("Мария Иванова");
+    await expect(emailField(page)).toHaveValue("not-an-email");
   });
 
   test("an order with no office chosen is refused and says which field", async ({
@@ -575,5 +780,29 @@ test.describe("placing an order", () => {
     ).toBeVisible();
     await expect(page.getByText(/BP\d{7,}/)).toBeVisible();
     await expect(cartLink(page)).toHaveAccessibleName("Количка, празна");
+  });
+
+  test("an accepted order clears the kept answers", async ({ page }) => {
+    await seedCart(page, {
+      version: 2,
+      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+    });
+    await page.goto("/checkout");
+
+    await fillContact(page, "maria.ivanova@example.com");
+    await chooseOffice(page);
+    await page
+      .getByRole("button", { name: "Поръчай с плащане при доставка" })
+      .click();
+    await expect(
+      page.getByRole("heading", { name: "Поръчката е приета" }),
+    ).toBeVisible();
+
+    await page.goto("/checkout");
+
+    await expect(emailField(page)).toBeEnabled();
+    await expect(emailField(page)).toHaveValue("");
+    await expect(page.getByLabel("Име и фамилия")).toHaveValue("");
+    await expect(page.getByLabel("Град", { exact: true })).toBeVisible();
   });
 });

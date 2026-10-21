@@ -85,16 +85,22 @@ function ChangeButton({
 export function OfficeCityPicker({
   offices,
   error = null,
+  initialCity = null,
+  initialOfficeCode = null,
   onSelect,
+  onCityChange,
 }: {
   offices: EcontOffice[];
   error?: { id: string; message: string } | null;
+  initialCity?: string | null;
+  initialOfficeCode?: string | null;
   onSelect?: (office: EcontOffice | null) => void;
+  onCityChange?: (city: string | null) => void;
 }) {
   const [cityQuery, setCityQuery] = useState("");
   const [officeQuery, setOfficeQuery] = useState("");
-  const [city, setCity] = useState<string | null>(null);
-  const [selectedCode, setSelectedCode] = useState<string | null>(null);
+  const [city, setCity] = useState(initialCity);
+  const [selectedCode, setSelectedCode] = useState(initialOfficeCode);
   const [cityOpen, setCityOpen] = useState(false);
   const [activeCity, setActiveCity] = useState(-1);
   const [browsing, setBrowsing] = useState(false);
@@ -155,6 +161,7 @@ export function OfficeCityPicker({
     setActiveCity(-1);
     focusTargetRef.current = "offices";
     onSelect?.(null);
+    onCityChange?.(name);
   }
 
   function clearCity() {
@@ -167,6 +174,7 @@ export function OfficeCityPicker({
     setActiveCity(-1);
     focusTargetRef.current = "city";
     onSelect?.(null);
+    onCityChange?.(null);
   }
 
   function chooseOffice(code: string) {

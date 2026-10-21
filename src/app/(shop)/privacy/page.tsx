@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { Container } from "@/components/container";
 import { Section } from "@/components/legal-section";
+import { TEXT_LINK } from "@/components/link-styles";
 
 export const metadata: Metadata = {
   title: "Политика за поверителност",
@@ -170,10 +171,7 @@ export default function PrivacyPage() {
           <p>
             За всяко от тях ни пишете на TODO: имейл. Отговаряме до един месец.
             Съгласието за бисквитките променяте от{" "}
-            <Link
-              href="/cookies"
-              className="underline underline-offset-4 hover:no-underline"
-            >
+            <Link href="/cookies" className={TEXT_LINK}>
               политиката за бисквитките
             </Link>
             .
@@ -181,10 +179,7 @@ export default function PrivacyPage() {
           <p>
             Можете да подадете жалба до Комисията за защита на личните данни:
             София 1592, бул. „Проф. Цветан Лазаров“ № 2,{" "}
-            <a
-              href="https://cpdp.bg/"
-              className="underline underline-offset-4 hover:no-underline"
-            >
+            <a href="https://cpdp.bg/" className={TEXT_LINK}>
               cpdp.bg
             </a>
             .

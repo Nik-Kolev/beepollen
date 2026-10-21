@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 import { Container } from "@/components/container";
+import { TEXT_LINK } from "@/components/link-styles";
 import { chooseCookies, useCookieConsent } from "@/hooks/use-cookie-consent";
 
 const CHOICE =
@@ -50,10 +51,7 @@ export function CookieBanner() {
           <p className="text-center text-sm md:text-left">
             Ползваме бисквитки на Google Analytics само ако ги приемете — за да
             знаем колко хора разглеждат сайта и откъде идват.{" "}
-            <Link
-              href="/cookies"
-              className="underline underline-offset-4 hover:no-underline"
-            >
+            <Link href="/cookies" className={TEXT_LINK}>
               Политика за бисквитките
             </Link>
           </p>

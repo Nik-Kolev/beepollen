@@ -24,7 +24,11 @@ export function placeLocalOrder(email: string, phone: string) {
     });
   `;
   return execFileSync(process.execPath, ["--import", "tsx", "-e", script], {
-    env: { ...process.env, DATABASE_URL: "file:./data/e2e.db" },
+    env: {
+      ...process.env,
+      DATABASE_URL: "file:./data/e2e.db",
+      ORDERING_OPEN: "true",
+    },
     encoding: "utf8",
   });
 }

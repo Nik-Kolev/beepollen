@@ -31,6 +31,8 @@ export const MISSING_PRICE =
 export const REFUSED =
   "Поръчката не може да бъде приета в момента. Опитайте по-късно.";
 
+export const ORDERING_CLOSED = "Поръчките все още не се приемат.";
+
 export function summaryError(
   result: PlaceOrderResult | null,
   stillUnavailable: boolean,
@@ -38,6 +40,7 @@ export function summaryError(
 ) {
   if (!result || result.ok) return null;
   if (result.code === "REJECTED") return REFUSED;
+  if (result.code === "ORDERING_CLOSED") return ORDERING_CLOSED;
   if (result.code === "UNKNOWN_OFFICE") {
     return officeCorrected ? null : UNKNOWN_OFFICE;
   }

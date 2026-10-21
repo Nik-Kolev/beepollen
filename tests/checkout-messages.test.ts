@@ -5,6 +5,7 @@ import {
   blockedReason,
   INCOMPLETE_ORDER,
   MISSING_PRICE,
+  ORDERING_CLOSED,
   REFUSED,
   SOLD_OUT_LINES,
   summaryError,
@@ -110,4 +111,11 @@ test("a sold-out line is named before a missing price", () => {
 
 test("an unpriced line blocks the order", () => {
   assert.equal(blockedReason([IN_STOCK, UNPRICED]), MISSING_PRICE);
+});
+
+test("a closed shop is named as such, not as a generic refusal", () => {
+  assert.equal(
+    summaryError({ ok: false, code: "ORDERING_CLOSED" }, false, false),
+    ORDERING_CLOSED,
+  );
 });

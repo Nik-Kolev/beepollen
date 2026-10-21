@@ -125,6 +125,8 @@ another tab's write never sets it off. The add button's green window is locked b
 its timer ref rather than its state, which clicks landing in one tick read stale,
 and marked `aria-disabled` rather than `disabled`, which would grey it and drop
 focus. The same holds at the 99 limit, for that button and the cart's „+“.
+Such a control dims its border and glyph, never the whole button: `opacity` dims
+the focus ring with it, which measured 2.42:1 on the ground.
 
 The cart glyph is a modified Material Symbols path. Its attribution comment is a
 condition of the Apache 2.0 licence, not a note.

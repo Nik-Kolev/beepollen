@@ -566,6 +566,13 @@ lhci asks `puppeteer-core` for a browser it never downloaded, and that throws.
 SQLite through Prisma 7 and `@prisma/adapter-libsql`, reached through
 `DATABASE_URL`.
 
+`src/lib/prisma.ts` gives the adapter a 5 s busy timeout. libsql's default is
+none, so a write that met another process's lock — an e2e helper, the seed —
+failed at once with `SQLITE_BUSY`, which Prisma reports as "Operation has timed
+out". The wait blocks the whole process, so a lock held by a second client in
+the same process can never be released during it; `tests/busy-timeout.test.ts`
+holds its lock from a child process for that reason.
+
 **Migrations are authored on the host and applied in the container.** Compose
 syncs one way, host→container, so a migration created inside the container writes
 its SQL to a filesystem that dies with the container and never reaches git. Run

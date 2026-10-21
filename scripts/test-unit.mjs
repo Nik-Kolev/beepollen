@@ -1,7 +1,11 @@
 import { execFileSync, execSync } from "node:child_process";
 import { existsSync, readFileSync, rmSync } from "node:fs";
 
-const env = { ...process.env, DATABASE_URL: "file:./data/test.db" };
+const env = {
+  ...process.env,
+  DATABASE_URL: "file:./data/test.db",
+  ORDERING_OPEN: "true",
+};
 const REPORT = "data/test-unit.tap";
 const ACCESS_VIOLATION = 3221225477;
 

@@ -60,6 +60,7 @@ export default defineConfig({
       AUTH_TRUST_HOST: "true",
       ADMIN_EMAILS: TEST_ADMIN_EMAIL,
       ADMIN_WITHOUT_SIGN_IN: "false",
+      ORDERING_OPEN: "true",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

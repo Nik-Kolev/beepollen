@@ -214,6 +214,16 @@ reader see it. Nothing at runtime opens that file.
 Vercel noindexes preview deployments but not production ones. **Remove it when
 the real production host and domain go live.**
 
+Until ordering opens, the site is a showcase: `ShowcaseBanner` sits above the
+header of every shop page, and `placeOrder` refuses everything unless
+`ORDERING_OPEN` is exactly `"true"`, before validation and before the rate
+limiter. Only the tests set it — Playwright's `webServer.env`, the e2e
+helper that places orders and `scripts/test-unit.mjs` — so every host starts
+closed, and a reused local server started without it fails every checkout spec.
+The checkout reads it at build time to swap its submit button for a notice, and
+the order service at request time. **Delete the banner, the variable and both
+checks together at launch**; they are not a switch to keep.
+
 `SITE_URL` in `src/lib/site.ts` is that same demo origin and `metadataBase`
 resolves every canonical and Open Graph URL against it, so **it changes with the
 domain, in the same pass as the header above.**

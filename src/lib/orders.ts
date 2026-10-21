@@ -8,6 +8,7 @@ import {
   deliveryPrice,
   LOCAL_DELIVERY_CITY,
 } from "@/lib/delivery";
+import { orderingOpen } from "@/lib/ordering";
 import prisma from "@/lib/prisma";
 import { takeToken } from "@/lib/rate-limit";
 
@@ -82,7 +83,8 @@ export type PlaceOrderResult =
   | { ok: false; code: "VALIDATION_ERROR"; fields: string[] }
   | { ok: false; code: "UNAVAILABLE_ITEMS"; slugs: string[] }
   | { ok: false; code: "UNKNOWN_OFFICE" }
-  | { ok: false; code: "REJECTED" };
+  | { ok: false; code: "REJECTED" }
+  | { ok: false; code: "ORDERING_CLOSED" };
 
 const REFERENCE_ATTEMPTS = 5;
 
@@ -141,6 +143,8 @@ export async function placeOrder(
   raw: unknown,
   ipAddress: string | null,
 ): Promise<PlaceOrderResult> {
+  if (!orderingOpen()) return { ok: false, code: "ORDERING_CLOSED" };
+
   const parsed = checkoutInputSchema.safeParse(raw);
 
   if (!parsed.success) {

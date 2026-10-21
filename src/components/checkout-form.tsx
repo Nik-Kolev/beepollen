@@ -30,6 +30,7 @@ import { isPurchasable, purchasableTotal, type CartItem } from "@/lib/cart";
 import {
   blockedReason,
   FIELD_ERROR,
+  ORDERING_CLOSED,
   summaryError,
 } from "@/lib/checkout-messages";
 import { clearDraft, readDraft, writeDraft } from "@/lib/checkout-draft";
@@ -194,6 +195,7 @@ function FilledCheckout({
   pending,
   formAction,
   onRemove,
+  orderingOpen,
 }: {
   ready: boolean;
   items: CartItem[];
@@ -212,6 +214,7 @@ function FilledCheckout({
   pending: boolean;
   formAction: (formData: FormData) => void;
   onRemove: (slug: string, focusTarget: FocusTarget) => void;
+  orderingOpen: boolean;
 }) {
   const idempotencyKey = useRef<string | null>(null);
   const removeButtons = useRef(new Map<string, HTMLButtonElement>());
@@ -662,13 +665,26 @@ function FilledCheckout({
               <span className="text-brand-deep">{totalText}</span>
             </p>
 
-            <button
-              type="submit"
-              disabled={pending || blocked !== null}
-              className="bg-action text-action-ink hover:bg-action-hover disabled:bg-placeholder disabled:text-ink-soft mt-4 min-h-14 w-full rounded-full px-6 py-3 text-base leading-snug font-semibold disabled:cursor-not-allowed sm:px-8 sm:text-lg"
-            >
-              {pending ? "Изпращане…" : "Поръчай с плащане при доставка"}
-            </button>
+            {orderingOpen ? (
+              <button
+                type="submit"
+                disabled={pending || blocked !== null}
+                className="bg-action text-action-ink hover:bg-action-hover disabled:bg-placeholder disabled:text-ink-soft mt-4 min-h-14 w-full rounded-full px-6 py-3 text-base leading-snug font-semibold disabled:cursor-not-allowed sm:px-8 sm:text-lg"
+              >
+                {pending ? "Изпращане…" : "Поръчай с плащане при доставка"}
+              </button>
+            ) : (
+              <p className="border-ink mt-4 border-l-4 pl-4 font-medium">
+                {ORDERING_CLOSED} Ако искате да поръчате, обадете се на{" "}
+                <a
+                  href={OWNER_PHONE.href}
+                  className="text-brand-deep whitespace-nowrap underline underline-offset-4"
+                >
+                  {OWNER_PHONE.display}
+                </a>
+                .
+              </p>
+            )}
 
             {blocked && <p className={ERROR_TEXT}>{blocked}</p>}
           </StepCard>
@@ -692,9 +708,11 @@ function FilledCheckout({
 export function CheckoutForm({
   products,
   offices,
+  orderingOpen,
 }: {
   products: CartProduct[];
   offices: EcontOffice[];
+  orderingOpen: boolean;
 }) {
   const { cart, ready, remove, clear } = useCart();
   const [office, setOffice] = useState<EcontOffice | null>(null);
@@ -817,6 +835,7 @@ export function CheckoutForm({
       pending={pending}
       formAction={formAction}
       onRemove={removeLine}
+      orderingOpen={orderingOpen}
     />
   );
 }

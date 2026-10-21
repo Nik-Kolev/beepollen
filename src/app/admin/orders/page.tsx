@@ -16,6 +16,7 @@ import {
   deliveryLabel,
   formatOrderTime,
   listOrders,
+  nextOrderShown,
   nextOrderSteps,
   ORDER_FILTER_LABEL,
   ORDER_FILTERS,
@@ -136,7 +137,7 @@ export default async function AdminOrders({
   const counts = await countOrdersByView();
   const shown = parseOrderShown(params.shown, counts[view]);
   const orders = await listOrders(view, shown);
-  const remaining = counts[view] - orders.length;
+  const next = nextOrderShown(orders.length, counts[view]);
   const now = new Date();
 
   return (
@@ -477,15 +478,17 @@ export default async function AdminOrders({
         )}
       </section>
 
-      {remaining > 0 && (
+      {orders.length < counts[view] && (
         <div className="mt-6 flex flex-col items-center gap-2">
-          <Link
-            href={orderListHref(filter, shown + ORDERS_STEP, hideClosed)}
-            scroll={false}
-            className="border-line bg-surface hover:border-brand-deep inline-flex min-h-11 items-center rounded-md border-2 px-6 font-semibold shadow-sm transition-colors"
-          >
-            Зареди още {Math.min(ORDERS_STEP, remaining)}
-          </Link>
+          {next !== null && (
+            <Link
+              href={orderListHref(filter, next, hideClosed)}
+              scroll={false}
+              className="border-line bg-surface hover:border-brand-deep inline-flex min-h-11 items-center rounded-md border-2 px-6 font-semibold shadow-sm transition-colors"
+            >
+              Зареди още {Math.min(next, counts[view]) - orders.length}
+            </Link>
+          )}
           <p className="text-ink-soft text-sm tabular-nums">
             Показани {orders.length} от {counts[view]}
           </p>

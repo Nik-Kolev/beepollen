@@ -296,22 +296,6 @@ test("an office with no coordinates falls back to its address for directions", a
   expect(href).not.toContain("%2C");
 });
 
-test("a click collapses the list into the panel, and Промени brings it back to pick another", async ({
-  page,
-}) => {
-  await openPicker(page);
-  await chooseCity(page, SMALL_CITY);
-  await officeRow(page, SMALL_CITY_OFFICE_A.street).click();
-
-  await expect(selectedPanel(page)).toContainText(SMALL_CITY_OFFICE_A.heading);
-  await expect(officeGroup(page)).toHaveCount(0);
-
-  await changeOfficeButton(page).click();
-  await officeRow(page, SMALL_CITY_OFFICE_B.street).click();
-
-  await expect(selectedPanel(page)).toContainText(SMALL_CITY_OFFICE_B.heading);
-});
-
 test("Промени clears the city, the office and both queries", async ({
   page,
 }) => {

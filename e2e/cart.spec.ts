@@ -190,6 +190,25 @@ test("the stepper changes a line's quantity", async ({ page }) => {
   await expect(decrease).toBeFocused();
 });
 
+test("a stepper at its limit keeps its focus ring at full strength", async ({
+  page,
+}) => {
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.goto("/cart");
+
+  const decrease = page.getByRole("button", {
+    name: `Намали количеството на ${POLLEN_NAME}`,
+  });
+  await expect(decrease).toBeDisabled();
+  await decrease.focus();
+
+  await expect(decrease).toHaveCSS("outline-style", "solid");
+  await expect(decrease).toHaveCSS("opacity", "1");
+});
+
 test("removing a line leaves the others", async ({ page }) => {
   await seedCart(page, {
     version: 2,

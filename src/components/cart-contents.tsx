@@ -12,7 +12,7 @@ import { formatPrice } from "@/lib/money";
 import type { CartProduct } from "@/lib/products";
 
 const STEP_BUTTON =
-  "border-ink-soft text-ink hover:border-ink grid size-11 place-items-center rounded-full border-2 text-lg leading-none transition-colors aria-disabled:cursor-not-allowed aria-disabled:opacity-40 sm:size-9";
+  "border-ink-soft text-ink hover:border-ink grid size-11 place-items-center rounded-full border-2 text-lg leading-none transition-colors aria-disabled:cursor-not-allowed aria-disabled:border-ink-soft/40 aria-disabled:text-ink/40 sm:size-9";
 
 const REMOVE_BUTTON =
   "text-ink hover:text-brand-deep inline-flex min-h-11 items-center px-2 text-sm font-semibold underline underline-offset-4 sm:min-h-0 sm:px-0";

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default function WithdrawPage() {
   return (
     <Container>
-      <div className="max-w-xl py-8 sm:py-12">
+      <div className="mx-auto max-w-2xl py-8 sm:py-12">
         <h1 className="text-2xl font-semibold sm:text-3xl">
           Отказ от договора
         </h1>

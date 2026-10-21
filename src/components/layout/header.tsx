@@ -6,7 +6,7 @@ import { CartLink } from "@/components/layout/cart-link";
 
 export function Header() {
   return (
-    <header className="bg-nav text-nav-ink relative overflow-hidden">
+    <header className="bg-nav text-nav-ink sticky top-0 z-30 overflow-hidden shadow-[0_2px_8px_rgb(0_0_0/0.08)] [view-transition-name:site-header]">
       <Container>
         <div className="relative flex flex-wrap items-center gap-y-3 py-3 sm:h-16 sm:flex-nowrap sm:py-0">
           <Bee

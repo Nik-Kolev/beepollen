@@ -6,7 +6,14 @@ import { useEffect, useId, useRef } from "react";
 
 import { EmptyCart } from "@/components/empty-cart";
 import { useCart } from "@/hooks/use-cart";
-import { isPurchasable, MAX_LINE_QUANTITY, purchasableTotal } from "@/lib/cart";
+import {
+  CART_STORAGE_KEY,
+  CART_VERSION,
+  isPurchasable,
+  MAX_LINE_QUANTITY,
+  MAX_LINES,
+  purchasableTotal,
+} from "@/lib/cart";
 import { blockedReason } from "@/lib/checkout-messages";
 import { formatPrice } from "@/lib/money";
 import type { CartProduct } from "@/lib/products";
@@ -16,6 +23,19 @@ const STEP_BUTTON =
 
 const REMOVE_BUTTON =
   "text-ink hover:text-brand-deep inline-flex min-h-11 items-center px-2 text-sm font-semibold underline underline-offset-4 sm:min-h-0 sm:px-0";
+
+const RESERVED_HEIGHT =
+  "[--cart-empty:315.3px] [--cart-first:41.8px] [--cart-row:197px] sm:[--cart-empty:291.3px] sm:[--cart-first:-9.3px] sm:[--cart-row:169px] h-[calc(var(--cart-empty)_+_min(var(--cart-lines,0),1)_*_var(--cart-first)_+_max(var(--cart-lines,0)_-_1,0)_*_var(--cart-row))]";
+
+const RESERVE_LINES = `try {
+  const cart = JSON.parse(localStorage.getItem(${JSON.stringify(CART_STORAGE_KEY)}));
+  const lines = cart && cart.version === ${CART_VERSION} && Array.isArray(cart.items)
+    ? Math.min(new Set(cart.items.map((item) => item && item.slug)).size, ${MAX_LINES})
+    : 0;
+  const style = document.createElement("style");
+  style.textContent = ":root{--cart-lines:" + lines + "}";
+  document.head.append(style);
+} catch {}`;
 
 export function CartContents({ products }: { products: CartProduct[] }) {
   const { cart, ready, setQuantity, remove } = useCart();
@@ -33,7 +53,13 @@ export function CartContents({ products }: { products: CartProduct[] }) {
     focusAfterRemove.current = null;
   }, [cart.items]);
 
-  if (!ready) return <div aria-hidden="true" />;
+  if (!ready) {
+    return (
+      <div aria-hidden="true" className={RESERVED_HEIGHT}>
+        <script dangerouslySetInnerHTML={{ __html: RESERVE_LINES }} />
+      </div>
+    );
+  }
   if (cart.items.length === 0) return <EmptyCart headingRef={emptyHeading} />;
 
   const lines = cart.items.map((item) => ({

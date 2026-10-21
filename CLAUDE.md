@@ -118,6 +118,16 @@ Each line also stores the product's name, only so a withdrawn product can still
 be named: the catalogue's name wins while the product exists, and the checkout
 sends the order service slug and quantity alone.
 
+Until the cart is read, `/cart` shows a placeholder whose inline script counts
+the stored lines into `--cart-lines`, and the placeholder's row heights turn that
+into the height the read cart will take. Those heights are measured, not
+derived: a change to a cart row or to the empty state moves them, and the
+reserve tests in `e2e/cart.spec.ts` are what notice. The script writes a
+`<style>` into `<head>` because an attribute it set would be a hydration
+mismatch, and it sits inside the placeholder so React never creates it on a
+client navigation, where the cart is already read. A withdrawn line or one at
+the 99 limit is shorter or taller than the reserve and still shifts a little.
+
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That
 claim holds only while the list is complete, so a new key joins the page in the

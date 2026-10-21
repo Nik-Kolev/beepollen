@@ -19,9 +19,7 @@ export default async function CartPage() {
       <div className="py-8 sm:py-12">
         <h1 className="text-2xl font-semibold sm:text-3xl">Количка</h1>
 
-        <div className="min-h-[calc(100svh-8rem)]">
-          <CartContents products={products} />
-        </div>
+        <CartContents products={products} />
       </div>
     </Container>
   );

@@ -86,6 +86,11 @@ container that stops growing at `max-w-6xl`, so past that width the page margin
 is the only thing absorbing the difference — size both for the narrowest width in
 each tier, where that margin is zero, or the artwork lands on the last column.
 
+The sticky header's height is written into three other places: `scroll-pt-24
+sm:scroll-pt-20` on `<html>`, which keeps anchor targets and focused fields out
+from under it, and the checkout summary's `lg:top-20`. A taller header needs all
+three raised with it, or a focused field hides beneath it with no warning.
+
 Every font family must ship a `cyrillic` subset, checked in
 `node_modules/next/dist/compiled/@next/font/dist/google/font-data.json` before
 use — a family without one renders the whole site in a substituted system font

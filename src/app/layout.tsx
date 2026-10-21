@@ -16,7 +16,10 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="bg" className={`${FONT_VARIABLES} h-full antialiased`}>
+    <html
+      lang="bg"
+      className={`${FONT_VARIABLES} h-full scroll-pt-24 antialiased sm:scroll-pt-20`}
+    >
       <body className="bg-ground text-ink flex min-h-full flex-col font-sans lining-nums">
         {children}
       </body>

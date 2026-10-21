@@ -372,7 +372,7 @@ function FilledCheckout({
         className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:gap-8"
       >
         <section
-          className={`${CARD} lg:sticky lg:top-4 lg:order-last lg:w-80 lg:shrink-0`}
+          className={`${CARD} lg:sticky lg:top-20 lg:order-last lg:w-80 lg:shrink-0`}
         >
           <h2
             ref={summaryHeading}

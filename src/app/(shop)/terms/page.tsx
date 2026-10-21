@@ -44,7 +44,7 @@ const FORM_LINES = [
 export default function TermsPage() {
   return (
     <Container>
-      <article className="flex max-w-prose flex-col gap-8 py-8 sm:py-12">
+      <article className="mx-auto flex max-w-2xl flex-col gap-8 py-8 sm:py-12">
         <header className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold sm:text-3xl">Общи условия</h1>
           <p className="text-ink-soft text-sm">

@@ -47,7 +47,7 @@ test("an order item survives its product being deleted, keeping its snapshot wit
 test("deleting an order cascades its items and consents down to zero rows", async () => {
   const result = await placeOrder(
     validCheckoutInput({ acceptsOffers: true }),
-    "192.0.2.50",
+    null,
   );
   assert.equal(result.ok, true);
   if (!result.ok) return;

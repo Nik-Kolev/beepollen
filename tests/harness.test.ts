@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { after, test } from "node:test";
 
 import prisma from "@/lib/prisma";
+
+after(async () => {
+  await prisma.$disconnect();
+});
 
 test("the test suite is pointed at the throwaway test database, not the developer's own", () => {
   assert.equal(process.env.DATABASE_URL, "file:./data/test.db");
@@ -27,6 +31,4 @@ test("the test fixtures add the lorem-ipsum draft, unpublished and priced at zer
   });
 
   assert.deepEqual(draft, { isPublished: false, priceCents: 0 });
-
-  await prisma.$disconnect();
 });

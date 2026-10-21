@@ -59,7 +59,7 @@ test("caps a collapsed duplicate quantity at MAX_LINE_QUANTITY rather than summi
   assert.equal(result.order.itemsCents, MAX_LINE_QUANTITY * 2450);
 });
 
-test("always writes a TERMS consent with the exact wording and the caller's IP address", async () => {
+test("without acceptsOffers writes only the TERMS consent, with its exact wording and the caller's IP address", async () => {
   const ipAddress = "203.0.113.5";
   const result = await placeOrder(
     validCheckoutInput({ acceptsOffers: false }),
@@ -82,7 +82,7 @@ test("always writes a TERMS consent with the exact wording and the caller's IP a
 test("writes an OFFERS consent only when acceptsOffers is true", async () => {
   const result = await placeOrder(
     validCheckoutInput({ acceptsOffers: true }),
-    "203.0.113.6",
+    null,
   );
 
   assert.equal(result.ok, true);

@@ -115,7 +115,7 @@ test("orders the list by city, then by office name, in Bulgarian", () => {
 test("strips a repeated city prefix from the street line, and nothing else", () => {
   assert.equal(streetLine("София ул. Тестова 1", "София"), "ул. Тестова 1");
   assert.equal(streetLine("ул. Тестова 1", "София"), "ул. Тестова 1");
-  assert.equal(streetLine("Софийско шосе 2", "София"), "Софийско шосе 2");
+  assert.equal(streetLine("Бургаско шосе 5", "Бургас"), "Бургаско шосе 5");
 });
 
 test("reads a round-the-clock window as Денонощно", () => {

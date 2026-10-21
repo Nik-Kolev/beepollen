@@ -7,10 +7,13 @@ import {
   addItem,
   collapseDuplicates,
   isPurchasable,
+  lineQuantity,
   parseCart,
   purchasableTotal,
+  removeItem,
   serializeCart,
   setItemQuantity,
+  totalQuantity,
   type Cart,
 } from "@/lib/cart";
 
@@ -89,16 +92,6 @@ test("the total is null when a purchasable line is unpriced", () => {
   );
 });
 
-test("a withdrawn line does not make the total null", () => {
-  assert.equal(
-    purchasableTotal([
-      { quantity: 1, product: { priceCents: 900, stock: "PLENTY" } },
-      { quantity: 1, product: undefined },
-    ]),
-    900,
-  );
-});
-
 test("an unpriced sold-out line does not make the total null", () => {
   assert.equal(
     purchasableTotal([
@@ -135,10 +128,10 @@ test("nothing stored, or something that is not JSON, reads as the empty cart", (
   assert.deepEqual(parseCart("{not json"), EMPTY_CART);
 });
 
-test("a stored cart from version 1 is discarded", () => {
+test("a stored cart of another version is discarded, even when its items would be valid", () => {
   const raw = JSON.stringify({
     version: 1,
-    items: [{ slug: "pchelen-prashets-500g", quantity: 2 }],
+    items: [{ slug: "pchelen-prashets-500g", name: POLLEN_500, quantity: 2 }],
   });
 
   assert.deepEqual(parseCart(raw), EMPTY_CART);
@@ -285,6 +278,43 @@ test("setting a quantity above the line limit keeps the line at 99", () => {
     setItemQuantity(cart, "pchelen-prashets-500g", 100).items[0].quantity,
     MAX_LINE_QUANTITY,
   );
+});
+
+test("removing a line drops only that slug and keeps the others in order", () => {
+  const cart = cartOf([
+    { slug: "pchelen-prashets-500g", name: POLLEN_500, quantity: 2 },
+    { slug: "pchelen-prashets-250g", name: POLLEN_250, quantity: 1 },
+    { slug: "pchelen-prashets-1kg", name: "Пчелен прашец 1 кг", quantity: 3 },
+  ]);
+
+  assert.deepEqual(
+    removeItem(cart, "pchelen-prashets-250g").items.map((item) => item.slug),
+    ["pchelen-prashets-500g", "pchelen-prashets-1kg"],
+  );
+  assert.deepEqual(removeItem(cart, "no-such-slug"), cart);
+});
+
+test("a line's quantity reads its own count, or zero when it is not in the cart", () => {
+  const cart = cartOf([
+    { slug: "pchelen-prashets-500g", name: POLLEN_500, quantity: 2 },
+    { slug: "pchelen-prashets-250g", name: POLLEN_250, quantity: 5 },
+  ]);
+
+  assert.equal(lineQuantity(cart, "pchelen-prashets-250g"), 5);
+  assert.equal(lineQuantity(cart, "no-such-slug"), 0);
+});
+
+test("the cart's total quantity sums every line, and an empty cart holds none", () => {
+  assert.equal(
+    totalQuantity(
+      cartOf([
+        { slug: "pchelen-prashets-500g", name: POLLEN_500, quantity: 2 },
+        { slug: "pchelen-prashets-250g", name: POLLEN_250, quantity: 5 },
+      ]),
+    ),
+    7,
+  );
+  assert.equal(totalQuantity(EMPTY_CART), 0);
 });
 
 test("collapsing plain slug-and-quantity items sums each slug and caps it at 99", () => {

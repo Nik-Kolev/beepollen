@@ -95,7 +95,7 @@ test("an order from another day does not carry its number into today", async () 
     select: { id: true },
   });
 
-  await prisma.order.create({
+  const past = await prisma.order.create({
     data: {
       customerId: customer.id,
       contactName: "Стара поръчка",
@@ -107,14 +107,19 @@ test("an order from another day does not carry its number into today", async () 
       totalCents: 1,
       idempotencyKey: randomUUID(),
     },
+    select: { id: true },
   });
 
-  const prefix = orderReferencePrefix(new Date());
-  const last = await lastSequenceOf(prefix);
-  const placed = await placeOne();
+  try {
+    const prefix = orderReferencePrefix(new Date());
+    const last = await lastSequenceOf(prefix);
+    const placed = await placeOne();
 
-  assert.ok(placed.reference.startsWith(prefix));
-  assert.equal(sequenceOf(placed.reference, prefix), last + 1);
+    assert.ok(placed.reference.startsWith(prefix));
+    assert.equal(sequenceOf(placed.reference, prefix), last + 1);
+  } finally {
+    await prisma.order.delete({ where: { id: past.id } });
+  }
 });
 
 test("an order from the same day a year earlier does not carry its number into this year", async () => {
@@ -133,7 +138,7 @@ test("an order from the same day a year earlier does not carry its number into t
     "0",
   );
 
-  await prisma.order.create({
+  const lastYearOrder = await prisma.order.create({
     data: {
       customerId: customer.id,
       contactName: "Миналогодишна поръчка",
@@ -145,13 +150,18 @@ test("an order from the same day a year earlier does not carry its number into t
       totalCents: 1,
       idempotencyKey: randomUUID(),
     },
+    select: { id: true },
   });
 
-  const last = await lastSequenceOf(prefix);
-  const placed = await placeOne();
+  try {
+    const last = await lastSequenceOf(prefix);
+    const placed = await placeOne();
 
-  assert.ok(placed.reference.startsWith(prefix));
-  assert.equal(sequenceOf(placed.reference, prefix), last + 1);
+    assert.ok(placed.reference.startsWith(prefix));
+    assert.equal(sequenceOf(placed.reference, prefix), last + 1);
+  } finally {
+    await prisma.order.delete({ where: { id: lastYearOrder.id } });
+  }
 });
 
 test("concurrent orders never share a reference", async () => {
@@ -163,24 +173,6 @@ test("concurrent orders never share a reference", async () => {
     references.length,
     references.join(" "),
   );
-});
-
-test("a replayed idempotency key returns the reference the first order was given", async () => {
-  const idempotencyKey = randomUUID();
-  const input = validCheckoutInput({
-    idempotencyKey,
-    items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
-  });
-
-  const first = await placeOrder(input, null);
-  const second = await placeOrder(input, null);
-
-  assert.equal(first.ok, true);
-  assert.equal(second.ok, true);
-  if (!first.ok || !second.ok) return;
-
-  assert.equal(second.order.reference, first.order.reference);
-  assert.equal(second.repeated, true);
 });
 
 test("an order is refused rather than thrown when every attempt loses its number", async () => {

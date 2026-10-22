@@ -36,7 +36,11 @@ test("the catalogue renders published products from the database", async ({
 }) => {
   await page.goto("/");
 
-  const cards = page.getByRole("main").getByRole("listitem");
+  const cards = page
+    .getByRole("main")
+    .getByRole("list")
+    .first()
+    .getByRole("listitem");
   await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThan(1);
 

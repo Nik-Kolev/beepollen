@@ -1,3 +1,6 @@
+import { copyFileSync, existsSync } from "node:fs";
+import path from "node:path";
+
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { PrismaClient } from "@/generated/prisma/client";
 
@@ -7,7 +10,21 @@ if (!url) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const adapter = new PrismaLibSql({ url, timeout: 5000 });
+function writableUrl(url: string) {
+  if (
+    process.env.VERCEL !== "1" ||
+    process.env.CI ||
+    !url.startsWith("file:")
+  ) {
+    return url;
+  }
+  const bundled = path.resolve(url.slice("file:".length));
+  const copy = path.join("/tmp", path.basename(bundled));
+  if (!existsSync(copy)) copyFileSync(bundled, copy);
+  return `file:${copy}`;
+}
+
+const adapter = new PrismaLibSql({ url: writableUrl(url), timeout: 5000 });
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 

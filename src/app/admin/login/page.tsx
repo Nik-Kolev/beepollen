@@ -14,6 +14,8 @@ export const metadata: Metadata = {
 export default async function AdminLogin({
   searchParams,
 }: PageProps<"/admin/login">) {
+  if (process.env.ADMIN_WITHOUT_SIGN_IN === "true") redirect("/admin");
+
   const [{ error }, session] = await Promise.all([searchParams, auth()]);
   if (isAdminEmail(session?.user?.email)) redirect("/admin");
 

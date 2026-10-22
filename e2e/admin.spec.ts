@@ -54,7 +54,7 @@ test("an allowed admin opening /admin lands on the order list", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: "Поръчки" }),
   ).toBeVisible();
-  await expect(page.getByText(TEST_ADMIN_EMAIL)).toBeVisible();
+  await expect(page.getByText(TEST_ADMIN_EMAIL, { exact: true })).toBeVisible();
 });
 
 test("the admin pages render without the shop's header and footer", async ({

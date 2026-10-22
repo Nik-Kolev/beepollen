@@ -18,6 +18,7 @@ import {
   listOrders,
   nextOrderShown,
   nextOrderSteps,
+  ORDER_EVENT_LABEL,
   ORDER_FILTER_LABEL,
   ORDER_FILTERS,
   ORDER_STATUS_LABEL,
@@ -467,6 +468,29 @@ export default async function AdminOrders({
                               Без съгласие за оферти по имейл.
                             </p>
                           )}
+                        </section>
+
+                        <section className="sm:col-span-2">
+                          <h3 className={DETAIL_HEADING}>История</h3>
+                          <ol role="list" className="mt-1 flex flex-col gap-1">
+                            {order.events.map((event) => (
+                              <li key={event.id}>
+                                <time
+                                  dateTime={event.createdAt.toISOString()}
+                                  className="tabular-nums"
+                                >
+                                  {formatOrderTime(event.createdAt)}
+                                </time>{" "}
+                                · {ORDER_EVENT_LABEL[event.kind]}
+                                {event.adminEmail && (
+                                  <span className="text-ink-soft break-all">
+                                    {" "}
+                                    · {event.adminEmail}
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ol>
                         </section>
                       </div>
                     </details>

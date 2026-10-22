@@ -121,6 +121,14 @@ test("an order placed through checkout appears in the order list and expands in 
   await expect(details).toContainText(CONSENT_WORDING.TERMS);
   await expect(details).toContainText("Без съгласие за оферти по имейл.");
 
+  const history = details
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "История" }) })
+    .getByRole("listitem");
+  await expect(history).toHaveCount(2);
+  await expect(history.nth(0)).toContainText("Получена");
+  await expect(history.nth(1)).toContainText(`Изпратена · ${TEST_ADMIN_EMAIL}`);
+
   await expectNoAxeViolations(page);
 });
 

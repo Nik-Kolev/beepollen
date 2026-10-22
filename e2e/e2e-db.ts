@@ -48,6 +48,10 @@ export function backdateOrderSteps(reference: string, hoursAgo: number) {
           .map((field) => [field, at]),
       ),
     });
+    await prisma.orderEvent.updateMany({
+      where: { orderId: order.id },
+      data: { createdAt: at },
+    });
   `);
 }
 

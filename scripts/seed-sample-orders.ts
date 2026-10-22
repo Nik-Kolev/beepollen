@@ -154,6 +154,12 @@ async function main() {
           consents: {
             updateMany: { where: {}, data: { createdAt: placedAt } },
           },
+          events: {
+            updateMany: {
+              where: { kind: "PLACED" },
+              data: { createdAt: placedAt },
+            },
+          },
         },
       });
     }

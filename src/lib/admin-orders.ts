@@ -1,7 +1,11 @@
 import { z } from "zod";
 
 import type { Prisma } from "@/generated/prisma/client";
-import type { Carrier, ConsentKind } from "@/generated/prisma/enums";
+import type {
+  Carrier,
+  ConsentKind,
+  OrderEventKind,
+} from "@/generated/prisma/enums";
 import { DeliveryMethod, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import prisma from "@/lib/prisma";
 
@@ -145,16 +149,28 @@ export type OrderStepResult =
 
 const DISPATCH_STEPS: readonly OrderStep[] = ["send", "handOver"];
 
+const STEP_EVENT: Record<OrderStep, OrderEventKind> = {
+  send: "SEND",
+  handOver: "HAND_OVER",
+  pay: "PAY",
+  cancel: "CANCEL",
+  return: "RETURN",
+  collect: "COLLECT",
+  undo: "UNDO",
+};
+
 export async function applyOrderStep(
   reference: string,
   step: OrderStep,
   expected: OrderStatus,
   now = new Date(),
   confirmed = false,
+  adminEmail: string | null = null,
 ): Promise<OrderStepResult> {
   const order = await prisma.order.findUnique({
     where: { reference },
     select: {
+      id: true,
       deliveryMethod: true,
       sentAt: true,
       paidAt: true,
@@ -172,17 +188,30 @@ export async function applyOrderStep(
   const data = stepData(order, step, now);
   if (!data) return { ok: false, reason: "refused" };
 
-  const { count } = await prisma.order.updateMany({
-    where: {
-      reference,
-      sentAt: order.sentAt,
-      paidAt: order.paidAt,
-      cancelledAt: order.cancelledAt,
-      collectedAt: order.collectedAt,
-    },
-    data,
+  const applied = await prisma.$transaction(async (tx) => {
+    const { count } = await tx.order.updateMany({
+      where: {
+        reference,
+        sentAt: order.sentAt,
+        paidAt: order.paidAt,
+        cancelledAt: order.cancelledAt,
+        collectedAt: order.collectedAt,
+      },
+      data,
+    });
+    if (count !== 1) return false;
+
+    await tx.orderEvent.create({
+      data: {
+        orderId: order.id,
+        kind: STEP_EVENT[step],
+        adminEmail,
+        createdAt: now,
+      },
+    });
+    return true;
   });
-  return count === 1 ? { ok: true } : { ok: false, reason: "stale" };
+  return applied ? { ok: true } : { ok: false, reason: "stale" };
 }
 
 const sofiaDay = new Intl.DateTimeFormat("en-CA", {
@@ -301,6 +330,18 @@ export const CONSENT_LABEL: Record<ConsentKind, string> = {
   OFFERS: "Оферти по имейл",
 };
 
+export const ORDER_EVENT_LABEL: Record<OrderEventKind, string> = {
+  PLACED: "Получена",
+  SEND: "Изпратена",
+  HAND_OVER: "Предадена и платена",
+  PAY: "Платена",
+  CANCEL: "Отказана",
+  RETURN: "Върната",
+  COLLECT: "Прибрана",
+  UNDO: "Стъпката е отменена",
+  WITHDRAWN: "Заявен отказ от купувача",
+};
+
 export const ORDERS_STEP = 5;
 export const ORDERS_MAX = 100;
 
@@ -378,6 +419,15 @@ const ORDER_DETAIL = {
       kind: true,
       wording: true,
       ipAddress: true,
+      createdAt: true,
+    },
+  },
+  events: {
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      kind: true,
+      adminEmail: true,
       createdAt: true,
     },
   },

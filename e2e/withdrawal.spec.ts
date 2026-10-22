@@ -129,7 +129,9 @@ test("a withdrawal is refused for a mismatched email, then confirmed, repeated w
     has: page.getByRole("heading", { name: reference, exact: true }),
   });
   await expect(card.getByText(/^Заявен отказ · /)).toBeVisible();
-  await expect(card.locator(`time[datetime="${firstTime}"]`)).toBeVisible();
+  await expect(
+    card.getByText(/^Заявен отказ · /).locator(`time[datetime="${firstTime}"]`),
+  ).toBeVisible();
 });
 
 test("a withdrawal that lands while the admin is open stops the hand-over until the owner confirms it", async ({

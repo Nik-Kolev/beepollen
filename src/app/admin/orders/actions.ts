@@ -10,7 +10,7 @@ import {
 import { requireAdmin } from "@/lib/admin-session";
 
 export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
-  await requireAdmin();
+  const { email } = await requireAdmin();
   const parsed = orderStepInput.safeParse(input);
   if (!parsed.success) return { ok: false, reason: "refused" };
 
@@ -21,6 +21,7 @@ export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
     expected,
     new Date(),
     confirmed,
+    email ?? null,
   );
   if (result.ok) refresh();
   return result;

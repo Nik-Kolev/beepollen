@@ -82,3 +82,23 @@ export const getPublishedProductBySlug = cache((slug: string) =>
 export type ProductDetail = NonNullable<
   Awaited<ReturnType<typeof getPublishedProductBySlug>>
 >;
+
+export function listPublishedProductsForTodos() {
+  return prisma.product.findMany({
+    where: { isPublished: true },
+    orderBy: { sortOrder: "asc" },
+    select: {
+      slug: true,
+      name: true,
+      summary: true,
+      description: true,
+      variety: true,
+      netWeightGrams: true,
+      composition: true,
+      origin: true,
+      storage: true,
+      bestBefore: true,
+      allergenInfo: true,
+    },
+  });
+}

@@ -35,6 +35,9 @@ export function AdminBar() {
           <Link href="/admin/orders" className={ITEM}>
             Админ панел
           </Link>
+          <Link href="/admin/todo" className={ITEM}>
+            За попълване
+          </Link>
           <form action={signOutOfAdmin}>
             <button type="submit" className={ITEM}>
               Изход

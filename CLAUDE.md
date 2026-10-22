@@ -50,6 +50,14 @@ visitor and traffic-source counts until GA4 is wired, announced as sample number
 on the page, and deleted when the GA4 read replaces it. Ask before inventing a
 number anywhere else.
 
+`/admin/todo` lists everything the owner still owes. Product fields are read
+from the database; the rest is `OWNER_TODOS` in `src/lib/owner-todos.ts`, each
+item naming its files and the exact `TODO` text it stands for.
+`tests/owner-todos.test.ts` fails when a `TODO` under `src/` or in
+`prisma/seed.ts` is covered by no item, or when an item's text is gone from its
+files — so a new `TODO:` joins that list in the same change, and a filled one
+leaves it.
+
 The catalogue is pollen only. Honey and comb were seeded early against borrowed
 free-licensed photographs and removed once the catalogue settled on pollen alone
 — which also retired the Wikimedia attribution and share-alike obligation those

@@ -6,6 +6,7 @@ const SECTIONS = [
   { href: "/admin/orders", label: "Поръчки" },
   { href: "/admin/products", label: "Продукти" },
   { href: "/admin/analytics", label: "Статистика" },
+  { href: "/admin/todo", label: "За попълване" },
 ] as const;
 
 export type AdminSection = (typeof SECTIONS)[number]["href"];
@@ -22,14 +23,14 @@ export function AdminHeader({
   legend: string;
 }) {
   return (
-    <div className="bg-ground border-line sticky top-0 z-10 -mx-4 border-b px-4 pt-2 pb-3 sm:-mx-6 sm:px-6">
+    <div className="bg-ground border-line z-10 sm:sticky sm:top-0 -mx-4 border-b px-4 pt-2 pb-3 sm:-mx-6 sm:px-6">
       <h1 className="sr-only">{title}</h1>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <nav
           aria-label="Админ"
           className="max-md:flex max-md:w-full max-md:justify-center"
         >
-          <ul role="list" className="flex sm:gap-1">
+          <ul role="list" className="flex flex-wrap justify-center sm:gap-1">
             {SECTIONS.map(({ href, label }) => (
               <li key={href}>
                 <Link

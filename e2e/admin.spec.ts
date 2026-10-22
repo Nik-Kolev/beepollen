@@ -18,6 +18,7 @@ test("an anonymous visitor to /admin is sent to the login page", async ({
 for (const [name, path] of [
   ["the order list", "/admin/orders"],
   ["the statistics page", "/admin/analytics"],
+  ["the todo page", "/admin/todo"],
 ] as const) {
   test(`an anonymous visitor to ${name} is sent to the login page`, async ({
     page,

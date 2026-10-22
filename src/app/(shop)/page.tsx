@@ -1,12 +1,39 @@
+import type { Metadata } from "next";
+
 import { Container } from "@/components/container";
 import { ProductCard } from "@/components/product-card";
+import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import { listPublishedProducts } from "@/lib/products";
+import { OWNER_PHONE, SITE_URL } from "@/lib/site";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
+const SHOP_JSON_LD = {
+  "@context": "https://schema.org",
+  "@type": "OnlineStore",
+  name: "Пчелни продукти Д & Н Димитрови",
+  url: SITE_URL,
+  telephone: OWNER_PHONE.href.replace("tel:", ""),
+  address: {
+    "@type": "PostalAddress",
+    addressLocality: LOCAL_DELIVERY_CITY,
+    addressCountry: "BG",
+  },
+};
 
 export default async function Home() {
   const products = await listPublishedProducts();
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(SHOP_JSON_LD).replace(/</g, "\\u003c"),
+        }}
+      />
       <section>
         <Container>
           <div className="pt-10 pb-12 sm:pt-14 sm:pb-16">

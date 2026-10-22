@@ -1,4 +1,5 @@
 import { readOfficeSnapshot } from "@/lib/econt-snapshot";
+import { assertPublishable } from "@/lib/food-information";
 import prisma from "@/lib/prisma";
 
 const SUMMARY = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
@@ -95,6 +96,8 @@ async function seedOffices() {
 }
 
 async function main() {
+  products.forEach(assertPublishable);
+
   await prisma.product.deleteMany({
     where: { id: { notIn: products.map((product) => product.id) } },
   });

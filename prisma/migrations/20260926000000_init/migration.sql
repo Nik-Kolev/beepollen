@@ -93,6 +93,17 @@ CREATE TABLE "Consent" (
 );
 
 -- CreateTable
+CREATE TABLE "OrderEvent" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "orderId" INTEGER NOT NULL,
+    "kind" TEXT NOT NULL,
+    "adminEmail" TEXT,
+    "emailStatus" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "OrderEvent_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
 CREATE TABLE "DeliveryOffice" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "carrier" TEXT NOT NULL,
@@ -144,6 +155,9 @@ CREATE INDEX "Consent_orderId_idx" ON "Consent"("orderId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Consent_orderId_kind_key" ON "Consent"("orderId", "kind");
+
+-- CreateIndex
+CREATE INDEX "OrderEvent_orderId_idx" ON "OrderEvent"("orderId");
 
 -- CreateIndex
 CREATE INDEX "DeliveryOffice_carrier_city_idx" ON "DeliveryOffice"("carrier", "city");

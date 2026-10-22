@@ -467,8 +467,8 @@ An unknown `/products/[slug]` returns `notFoundMetadata` from
 `generateMetadata`: a title built from the param would name the missing product
 on the 404, and `{}` falls back to the root title. Orders have no page of their
 own; their details expand in place on `/admin/orders`, which lists at most
-`ORDERS_MAX`: past roughly a thousand orders the nested items and consents query
-exceeds SQLite's bound-parameter limit.
+`ORDERS_MAX`: past roughly a thousand orders the nested items, consents and events queries
+exceed SQLite's bound-parameter limit.
 
 An order's state is four nullable timestamps — `sentAt`, `paidAt`,
 `cancelledAt`, `collectedAt` — and its status is derived from them by
@@ -479,6 +479,11 @@ moved on, and the write matches all four timestamps as read, so two screens
 cannot both apply one. A returned parcel is `sentAt` plus `cancelledAt` until
 `collectedAt` records that the owner fetched it back. A Попово hand-over writes
 `sentAt` and `paidAt` together. Undo clears the latest timestamp at any age.
+Each step, an undo included, also writes an `OrderEvent` with the admin's
+email, inside the same transaction and only when the compare-and-set wrote, so
+a stale or doubled step leaves no trace; placing and withdrawing write one too.
+The events are the card's history, never its status, which still comes from
+the timestamps.
 Cancel, return and undo open a native `<dialog>` naming the order, the buyer and
 the status it will move to, with the cancel button focused; `undoTarget` is the
 single source for that destination, so the dialog and the server cannot disagree. A failed step does not refresh the page, so the card stays

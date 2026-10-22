@@ -294,6 +294,7 @@ export async function placeOrder(
             idempotencyKey: input.idempotencyKey,
             items: { create: lines },
             consents: { create: consents },
+            events: { create: { kind: "PLACED" } },
           },
           select: {
             id: true,

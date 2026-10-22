@@ -125,6 +125,8 @@ async function officeIn(city: string) {
 }
 
 async function main() {
+  process.env.ORDERING_OPEN = "true";
+
   for (const sample of samples) {
     const result = await placeOrder(
       {

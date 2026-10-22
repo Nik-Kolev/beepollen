@@ -33,7 +33,12 @@ async function recordViewTransitions(page: Page) {
 test("a catalogue card opens its product page", async ({ page }) => {
   await page.goto("/");
 
-  const card = page.getByRole("main").getByRole("listitem").first();
+  const card = page
+    .getByRole("main")
+    .getByRole("list")
+    .first()
+    .getByRole("listitem")
+    .first();
   const name = await card.getByRole("heading", { level: 3 }).innerText();
 
   await card.getByRole("link").click();
@@ -45,7 +50,12 @@ test("a catalogue card opens its product page", async ({ page }) => {
 test("the whole card is clickable, not just the name", async ({ page }) => {
   await page.goto("/");
 
-  const card = page.getByRole("main").getByRole("listitem").first();
+  const card = page
+    .getByRole("main")
+    .getByRole("list")
+    .first()
+    .getByRole("listitem")
+    .first();
   const href = await card.getByRole("link").getAttribute("href");
 
   await card.click({ position: { x: 20, y: 20 } });
@@ -159,7 +169,12 @@ test("the back link returns to where the catalogue was left", async ({
 }) => {
   await page.goto("/");
 
-  const card = page.getByRole("main").getByRole("listitem").last();
+  const card = page
+    .getByRole("main")
+    .getByRole("list")
+    .first()
+    .getByRole("listitem")
+    .last();
   await card.scrollIntoViewIfNeeded();
   const scrollY = await page.evaluate(() => window.scrollY);
   expect(scrollY).toBeGreaterThan(0);

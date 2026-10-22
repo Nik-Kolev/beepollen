@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AboutProducers } from "@/components/about-producers";
 import { Container } from "@/components/container";
 import { ProductCard } from "@/components/product-card";
 import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
@@ -64,6 +65,7 @@ export default async function Home() {
           </div>
         </Container>
       </section>
+      <AboutProducers />
     </>
   );
 }

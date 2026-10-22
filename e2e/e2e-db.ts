@@ -9,11 +9,16 @@ export function placeEcontOrder(email: string, phone: string) {
   return placeInE2eDb(email, phone, "ECONT_OFFICE", "1127");
 }
 
+export function placeOrderWithOffers(email: string) {
+  return placeInE2eDb(email, "0888123456", "ECONT_OFFICE", "1127", true);
+}
+
 function placeInE2eDb(
   email: string,
   phone: string,
   deliveryMethod: string,
   officeCode: string,
+  acceptsOffers = false,
 ) {
   const input = {
     name: "Отказ Тестов",
@@ -23,7 +28,7 @@ function placeInE2eDb(
     deliveryMethod,
     officeCode,
     acceptsTerms: true,
-    acceptsOffers: false,
+    acceptsOffers,
     idempotencyKey: randomUUID(),
   };
   const script = `
@@ -66,6 +71,41 @@ export function backdateOrderSteps(reference: string, hoursAgo: number) {
       data: { createdAt: at },
     });
   `);
+}
+
+export function offersConsent(reference: string): {
+  id: number;
+  customerId: number;
+  confirmedAt: string | null;
+  withdrawnAt: string | null;
+} {
+  const script = `
+    import("@/lib/prisma").then(async (module) => {
+      const prisma = module.default.default ?? module.default;
+      const consent = await prisma.consent.findFirstOrThrow({
+        where: { kind: "OFFERS", order: { reference: ${JSON.stringify(reference)} } },
+        select: {
+          id: true,
+          confirmedAt: true,
+          withdrawnAt: true,
+          order: { select: { customerId: true } },
+        },
+      });
+      await prisma.$disconnect();
+      process.stdout.write(JSON.stringify({
+        id: consent.id,
+        customerId: consent.order.customerId,
+        confirmedAt: consent.confirmedAt,
+        withdrawnAt: consent.withdrawnAt,
+      }));
+    });
+  `;
+  return JSON.parse(
+    execFileSync(process.execPath, ["--import", "tsx", "-e", script], {
+      env: { ...process.env, DATABASE_URL: "file:./data/e2e.db" },
+      encoding: "utf8",
+    }),
+  );
 }
 
 function runInE2eDb(body: string) {

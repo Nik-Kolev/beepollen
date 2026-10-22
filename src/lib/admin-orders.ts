@@ -452,6 +452,8 @@ const ORDER_DETAIL = {
       kind: true,
       wording: true,
       ipAddress: true,
+      confirmedAt: true,
+      withdrawnAt: true,
       createdAt: true,
     },
   },

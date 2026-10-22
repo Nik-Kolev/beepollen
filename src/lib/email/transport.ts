@@ -17,10 +17,11 @@ export type Outgoing = {
   to: string;
   message: EmailMessage;
   idempotencyKey: string;
+  headers?: Record<string, string>;
 };
 
 export async function sendEmail(
-  { to, message, idempotencyKey }: Outgoing,
+  { to, message, idempotencyKey, headers }: Outgoing,
   env: EmailEnv = process.env,
   client: EmailClient | null = env.RESEND_API_KEY
     ? new Resend(env.RESEND_API_KEY)
@@ -39,6 +40,7 @@ export async function sendEmail(
         subject: message.subject,
         html: message.html,
         text: message.text,
+        headers,
       },
       { idempotencyKey },
     );

@@ -8,6 +8,7 @@ import {
   type OrderEmailData,
   orderSentEmail,
   ownerNotificationEmail,
+  subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { type EmailClient, sendEmail } from "@/lib/email/transport";
@@ -144,6 +145,29 @@ test("the sent email names the office and the sum to pay on collection", () => {
   assert.ok(text.includes(`При получаване платете ${formatPrice(5190)}.`));
 });
 
+test("the confirmation email carries its link and the owner's phone in both versions", () => {
+  const url = `${SITE_URL}/subscription/confirm?token=confirm.1.x`;
+  const message = subscriptionConfirmEmail({
+    reference: ORDER.reference,
+    confirmUrl: url,
+  });
+
+  assert.ok(message.text.includes(url));
+  assert.ok(message.html.includes(`href="${url}"`));
+  assert.ok(message.text.includes(OWNER_PHONE.display));
+  assert.ok(message.html.includes(OWNER_PHONE.display));
+});
+
+test("an accepted order says nothing about a subscription unless given an unsubscribe link", () => {
+  const url = `${SITE_URL}/subscription/unsubscribe?token=unsubscribe.1.x`;
+  const subscribed = orderAcceptedEmail({ ...ORDER, unsubscribeUrl: url });
+
+  assert.doesNotMatch(orderAcceptedEmail(ORDER).text, /Абонирани сте/);
+  assert.match(subscribed.text, /Абонирани сте/);
+  assert.ok(subscribed.text.includes(url));
+  assert.ok(subscribed.html.includes(`href="${url}"`));
+});
+
 test("no field of any email can inject markup, in either design", () => {
   const hostile = `"'><img src=x onerror=alert(1)>`;
   const office = { name: hostile, street: hostile };
@@ -166,6 +190,11 @@ test("no field of any email can inject markup, in either design", () => {
       orderSentEmail({ ...order, office }, design),
       orderCancelledEmail(order, design),
       withdrawalReceivedEmail({ ...WITHDRAWAL, reference: hostile }, design),
+      orderAcceptedEmail({ ...order, unsubscribeUrl: hostile }, design),
+      subscriptionConfirmEmail(
+        { reference: hostile, confirmUrl: hostile },
+        design,
+      ),
     ]) {
       assert.ok(!html.includes("<img src=x"), html);
       assert.ok(!html.includes(`"'>`));
@@ -229,6 +258,18 @@ test("a send carries the sender, reply-to, both versions and the idempotency key
   assert.deepEqual(calls[0].options, {
     idempotencyKey: "order-accepted/BP2210261",
   });
+});
+
+test("a send passes its headers through to Resend", async () => {
+  const { client, calls } = fakeClient(async () => ({
+    data: { id: "1" },
+    error: null,
+  }));
+  const headers = { "List-Unsubscribe": "<https://example.com/u>" };
+
+  await sendEmail({ ...OUTGOING, headers }, ENV, client);
+
+  assert.deepEqual(calls[0].payload.headers, headers);
 });
 
 test("a configured sender replaces the test sender", async () => {

@@ -471,6 +471,33 @@ export default async function AdminOrders({
                                   {consent.ipAddress &&
                                     ` · IP ${consent.ipAddress}`}
                                 </p>
+                                {consent.kind === "OFFERS" && (
+                                  <p className="text-ink-soft">
+                                    {consent.withdrawnAt ? (
+                                      <>
+                                        Отписан на{" "}
+                                        <time
+                                          dateTime={consent.withdrawnAt.toISOString()}
+                                          className="tabular-nums"
+                                        >
+                                          {formatOrderTime(consent.withdrawnAt)}
+                                        </time>
+                                      </>
+                                    ) : consent.confirmedAt ? (
+                                      <>
+                                        Потвърдено на{" "}
+                                        <time
+                                          dateTime={consent.confirmedAt.toISOString()}
+                                          className="tabular-nums"
+                                        >
+                                          {formatOrderTime(consent.confirmedAt)}
+                                        </time>
+                                      </>
+                                    ) : (
+                                      "Не е потвърдено от имейла"
+                                    )}
+                                  </p>
+                                )}
                               </li>
                             ))}
                           </ul>

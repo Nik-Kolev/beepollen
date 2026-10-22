@@ -4,6 +4,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import type {
   Carrier,
   ConsentKind,
+  EmailStatus,
   OrderEventKind,
 } from "@/generated/prisma/enums";
 import { DeliveryMethod, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
@@ -142,6 +143,7 @@ export const orderStepInput = z.object({
   step: z.enum(ORDER_STEPS),
   expected: z.enum(ORDER_STATUSES),
   confirmed: z.boolean().optional(),
+  notify: z.boolean().optional(),
 });
 
 export type OrderStepResult =
@@ -167,6 +169,30 @@ export async function applyOrderStep(
   confirmed = false,
   adminEmail: string | null = null,
 ): Promise<OrderStepResult> {
+  const { result } = await recordOrderStep(
+    reference,
+    step,
+    expected,
+    now,
+    confirmed,
+    adminEmail,
+  );
+  return result;
+}
+
+export async function recordOrderStep(
+  reference: string,
+  step: OrderStep,
+  expected: OrderStatus,
+  now: Date,
+  confirmed: boolean,
+  adminEmail: string | null,
+): Promise<{ result: OrderStepResult; eventId: number | null }> {
+  const refuse = (reason: "stale" | "refused" | "withdrawn") => ({
+    result: { ok: false, reason } as const,
+    eventId: null,
+  });
+
   const order = await prisma.order.findUnique({
     where: { reference },
     select: {
@@ -179,16 +205,16 @@ export async function applyOrderStep(
       withdrawnAt: true,
     },
   });
-  if (!order) return { ok: false, reason: "refused" };
-  if (orderStatus(order) !== expected) return { ok: false, reason: "stale" };
+  if (!order) return refuse("refused");
+  if (orderStatus(order) !== expected) return refuse("stale");
   if (order.withdrawnAt && DISPATCH_STEPS.includes(step) && !confirmed) {
-    return { ok: false, reason: "withdrawn" };
+    return refuse("withdrawn");
   }
 
   const data = stepData(order, step, now);
-  if (!data) return { ok: false, reason: "refused" };
+  if (!data) return refuse("refused");
 
-  const applied = await prisma.$transaction(async (tx) => {
+  const eventId = await prisma.$transaction(async (tx) => {
     const { count } = await tx.order.updateMany({
       where: {
         reference,
@@ -199,19 +225,20 @@ export async function applyOrderStep(
       },
       data,
     });
-    if (count !== 1) return false;
+    if (count !== 1) return null;
 
-    await tx.orderEvent.create({
+    const event = await tx.orderEvent.create({
       data: {
         orderId: order.id,
         kind: STEP_EVENT[step],
         adminEmail,
         createdAt: now,
       },
+      select: { id: true },
     });
-    return true;
+    return event.id;
   });
-  return applied ? { ok: true } : { ok: false, reason: "stale" };
+  return eventId === null ? refuse("stale") : { result: { ok: true }, eventId };
 }
 
 const sofiaDay = new Intl.DateTimeFormat("en-CA", {
@@ -342,6 +369,12 @@ export const ORDER_EVENT_LABEL: Record<OrderEventKind, string> = {
   WITHDRAWN: "Заявен отказ от купувача",
 };
 
+export const EMAIL_STATUS_LABEL: Record<EmailStatus, string> = {
+  SENT: "имейл до купувача изпратен",
+  FAILED: "имейлът до купувача не тръгна",
+  SKIPPED: "имейл не е пратен — изпращането не е настроено",
+};
+
 export const ORDERS_STEP = 5;
 export const ORDERS_MAX = 100;
 
@@ -428,6 +461,7 @@ const ORDER_DETAIL = {
       id: true,
       kind: true,
       adminEmail: true,
+      emailStatus: true,
       createdAt: true,
     },
   },

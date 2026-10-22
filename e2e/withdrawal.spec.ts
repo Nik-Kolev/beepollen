@@ -4,7 +4,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
-import { placeLocalOrder } from "./e2e-db";
+import { placeEcontOrder, placeLocalOrder } from "./e2e-db";
 
 const SUBMIT = "Потвърждавам отказа";
 
@@ -132,6 +132,15 @@ test("a withdrawal is refused for a mismatched email, then confirmed, repeated w
   await expect(
     card.getByText(/^Заявен отказ · /).locator(`time[datetime="${firstTime}"]`),
   ).toBeVisible();
+
+  await card.getByText("Детайли").click();
+  await expect(
+    card
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "История" }) })
+      .getByRole("listitem")
+      .filter({ hasText: "Заявен отказ от купувача" }),
+  ).toContainText("имейл не е пратен — изпращането не е настроено");
 });
 
 test("a withdrawal that lands while the admin is open stops the hand-over until the owner confirms it", async ({
@@ -197,4 +206,47 @@ test("a withdrawal that lands while the admin is open stops the hand-over until 
   await handOver.click();
   await dialog.getByRole("button", { name: "Да, предадена е" }).click();
   await expect(card.getByText("Платена", { exact: true })).toBeVisible();
+});
+
+test("a withdrawal that lands while the send dialog is open stops the parcel", async ({
+  page,
+  context,
+  isMobile,
+}) => {
+  test.skip(
+    !isMobile,
+    "Withdrawals are rate limited per address, so they run in the mobile project only.",
+  );
+
+  const email = `withdraw-${randomUUID()}@example.com`;
+  const reference = placeEcontOrder(email, "0899333555");
+
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders?shown=9999");
+  const card = page.getByRole("article").filter({
+    has: page.getByRole("heading", { name: reference, exact: true }),
+  });
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  await card.getByRole("button", { name: "Изпратена" }).click();
+  await expect(dialog).toContainText("ще се отбележи като изпратена");
+
+  const buyer = await context.newPage();
+  await buyer.goto("/withdraw");
+  await fillWithdrawal(buyer, {
+    reference,
+    name: "Отказ Тестов",
+    phone: "0899333555",
+    email,
+  });
+  await buyer.getByRole("button", { name: SUBMIT }).click();
+  await expect(
+    buyer.getByRole("heading", { name: "Отказът е получен" }),
+  ).toBeVisible();
+  await buyer.close();
+
+  await dialog.getByRole("button", { name: "Да, изпратена е" }).click();
+  await expect(card.getByRole("status")).toHaveText(
+    "Купувачът току-що заяви отказ. Обновете, преди да изпратите.",
+  );
+  await expect(card.getByText("Нова", { exact: true })).toBeVisible();
 });

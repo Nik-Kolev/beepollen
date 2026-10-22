@@ -14,6 +14,7 @@ import {
   countOrdersByView,
   daysAgoLabel,
   deliveryLabel,
+  EMAIL_STATUS_LABEL,
   formatOrderTime,
   listOrders,
   nextOrderShown,
@@ -93,19 +94,29 @@ function stepConfirmations(
     order.withdrawnAt &&
     `Купувачът заяви отказ от ${order.reference} на ${formatOrderTime(order.withdrawnAt)}.`;
   return {
+    send: withdrawal
+      ? {
+          text: `${withdrawal} Изпратете я само ако сте се разбрали с ${order.contactName} по телефона.`,
+          confirm: "Да, изпрати",
+          notify: true,
+          confirmsWithdrawal: true,
+        }
+      : {
+          text: `${subject} ще се отбележи като изпратена.`,
+          confirm: "Да, изпратена е",
+          notify: true,
+        },
     ...(withdrawal && {
-      send: {
-        text: `${withdrawal} Изпратете я само ако сте се разбрали с ${order.contactName} по телефона.`,
-        confirm: "Да, изпрати",
-      },
       handOver: {
         text: `${withdrawal} Предайте я само ако сте се разбрали с ${order.contactName} по телефона.`,
         confirm: "Да, предадена е",
+        confirmsWithdrawal: true,
       },
     }),
     cancel: {
       text: `${subject} ще бъде отказана и няма да се изпраща.`,
       confirm: "Да, откажи",
+      notify: true,
     },
     return: {
       text: `${subject} ще се отбележи като върната. След това трябва да я приберете от офиса и да платите връщането.`,
@@ -486,6 +497,18 @@ export default async function AdminOrders({
                                   <span className="text-ink-soft break-all">
                                     {" "}
                                     · {event.adminEmail}
+                                  </span>
+                                )}
+                                {event.emailStatus && (
+                                  <span
+                                    className={
+                                      event.emailStatus === "FAILED"
+                                        ? "text-error font-medium"
+                                        : "text-ink-soft"
+                                    }
+                                  >
+                                    {" "}
+                                    · {EMAIL_STATUS_LABEL[event.emailStatus]}
                                   </span>
                                 )}
                               </li>

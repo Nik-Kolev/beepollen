@@ -18,6 +18,19 @@ async function expectNoAxeViolations(page: Page) {
   ).toEqual([]);
 }
 
+async function markSent(page: Page, card: Locator, notify = true) {
+  await card.getByRole("button", { name: "Изпратена" }).click();
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  const email = dialog.getByRole("checkbox", {
+    name: "Изпрати имейл на купувача",
+  });
+  await expect(email).toBeChecked();
+  if (!notify) await email.uncheck();
+  await dialog.getByRole("button", { name: "Да, изпратена е" }).click();
+}
+
+const NOT_SENT = "имейл не е пратен — изпращането не е настроено";
+
 function badge(card: Locator, label: string) {
   return card.getByText(label, { exact: true });
 }
@@ -81,7 +94,12 @@ test("an order placed through checkout appears in the order list and expands in 
   await expect(card.getByRole("button", { name: "Платена" })).toHaveCount(0);
   await expectNoAxeViolations(page);
 
-  await card.getByRole("button", { name: "Изпратена" }).click();
+  const step = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" && request.url().includes("/admin/orders"),
+  );
+  await markSent(page, card);
+  expect((await step).postData()).toContain('"notify":true');
   await expect(card).toHaveCount(0);
   await expect(page.getByRole("region", { name: "Поръчки" })).toBeFocused();
 
@@ -126,8 +144,10 @@ test("an order placed through checkout appears in the order list and expands in 
     .filter({ has: page.getByRole("heading", { name: "История" }) })
     .getByRole("listitem");
   await expect(history).toHaveCount(2);
-  await expect(history.nth(0)).toContainText("Получена");
-  await expect(history.nth(1)).toContainText(`Изпратена · ${TEST_ADMIN_EMAIL}`);
+  await expect(history.nth(0)).toContainText(`Получена · ${NOT_SENT}`);
+  await expect(history.nth(1)).toContainText(
+    `Изпратена · ${TEST_ADMIN_EMAIL} · ${NOT_SENT}`,
+  );
 
   await expectNoAxeViolations(page);
 });
@@ -160,13 +180,13 @@ test("a step the server fails to save says so, a returned parcel shows in the er
       ? route.fulfill({ status: 500 })
       : route.continue(),
   );
-  await card.getByRole("button", { name: "Изпратена" }).click();
+  await markSent(page, card);
 
   await expect(notSaved).toBeVisible();
   await expect(badge(card, "Нова")).toBeVisible();
 
   await page.unrouteAll();
-  await card.getByRole("button", { name: "Изпратена" }).click();
+  await markSent(page, card);
   await expect(badge(card, "Чака плащане")).toBeVisible();
   await expect(notSaved).toHaveCount(0);
 
@@ -310,7 +330,12 @@ test("undo and cancel ask first, naming the order and what will change, and undo
     .getByRole("article")
     .filter({ has: page.getByRole("heading", { name: orderReference }) });
 
-  await card.getByRole("button", { name: "Изпратена" }).click();
+  const step = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" && request.url().includes("/admin/orders"),
+  );
+  await markSent(page, card, false);
+  expect((await step).postData()).toContain('"notify":false');
   await card.getByRole("button", { name: "Платена" }).click();
   await expect(badge(card, "Платена")).toBeVisible();
   const undo = card.getByRole("button", { name: "Върни назад" });
@@ -344,9 +369,22 @@ test("undo and cancel ask first, naming the order and what will change, and undo
   await expect(dialog).toContainText(
     `Поръчка ${orderReference} на Админ Тестов ще бъде отказана и няма да се изпраща.`,
   );
+  await expect(
+    dialog.getByRole("checkbox", { name: "Изпрати имейл на купувача" }),
+  ).toBeChecked();
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
   await expect(badge(card, "Нова")).toBeVisible();
+
+  await page.reload();
+  await card.getByText("Детайли").click();
+  const sentLine = card
+    .locator("section")
+    .filter({ has: page.getByRole("heading", { name: "История" }) })
+    .getByRole("listitem")
+    .filter({ hasText: /^.* · Изпратена/ });
+  await expect(sentLine).toHaveCount(1);
+  expect(await sentLine.textContent()).not.toContain("имейл");
 });
 
 test("an order has no page of its own any more, so its old address is the 404 page", async ({

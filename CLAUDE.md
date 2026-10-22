@@ -235,6 +235,13 @@ Metadata inheritance is shallow and per top-level key: a page that omits
 `alternates` inherits its parent's canonical and so declares itself a duplicate
 of it. Every page-level `generateMetadata` sets its own.
 
+`app/sitemap.ts` lists `/`, every published product, `/terms`, `/privacy` and `/cookies`,
+and `app/robots.ts` keeps crawlers out of `/admin`, `/cart` and `/checkout`. Both
+build their URLs from `SITE_URL`. A new public page joins the sitemap's list in
+the same change. The home page's `OnlineStore` JSON-LD carries only facts the
+owner has confirmed — the name, `OWNER_PHONE` and Попово — and gains a field
+only when its value stops being `TODO:`.
+
 The product page's JSON-LD carries no `offers` on purpose. Every price is a
 placeholder until the owner supplies real ones, and a structured price is one
 search engines will publish — which was true of the €0.00 that came before these

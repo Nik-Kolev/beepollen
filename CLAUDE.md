@@ -128,6 +128,17 @@ mismatch, and it sits inside the placeholder so React never creates it on a
 client navigation, where the cart is already read. A withdrawn line or one at
 the 99 limit is shorter or taller than the reserve and still shifts a little.
 
+Google Analytics is mounted by `Analytics` in `ShopFrame` only once the stored
+choice is „Приемам“ and `NEXT_PUBLIC_GA_MEASUREMENT_ID` is set — not merely
+hidden, never loaded before. The ID is inlined at build time, so a host without
+it sends nothing. „Отказвам“ on a page where the tag already runs sets GA's
+`ga-disable-<ID>` flag and sends `consent update` with `analytics_storage`
+denied, then deletes the `_ga*` cookies on the host and each parent domain; a
+returning visitor who refused has strays deleted on load. The e2e build sets a
+fake ID and the consent spec aborts the tag's script, so no hit is ever sent —
+which also means the real tag's reaction to a refusal is untested until a real
+property exists.
+
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That
 claim holds only while the list is complete, so a new key joins the page in the

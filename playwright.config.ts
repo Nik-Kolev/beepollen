@@ -63,6 +63,7 @@ export default defineConfig({
       ORDERING_OPEN: "true",
       RESEND_API_KEY: "",
       OWNER_EMAIL: "",
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: "G-E2ETEST000",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

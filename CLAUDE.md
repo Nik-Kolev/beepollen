@@ -703,10 +703,15 @@ catalogue size a variant table buys nothing, and net quantity is a per-size lega
 label field anyway. `variety` is free text because a batch is a blend, "40%
 акация, 60% липа", not a category.
 
-The food-information fields are nullable so a product can be drafted. All six are
-required before `isPublished`, and nothing enforces that yet — not the database
-and not the application, so the seed publishes rows whose fields hold `TODO:`
-text.
+The food-information fields are nullable so a product can be drafted. A
+published product needs every field owed before purchase — a whole positive
+`netWeightGrams` and non-blank `composition`, `origin`, `storage` and
+`allergenInfo` — and `assertPublishable` in `src/lib/food-information.ts` makes
+the seed throw before it writes anything otherwise. `bestBefore` is owed only on
+delivery, so it is not checked. `TODO:` text counts as filled, because it is on
+the page on purpose. Outside the test fixtures, e2e and unit, which publish
+products without food information on purpose, the seed is the only writer of `isPublished`; a
+future one calls the same check.
 
 ## Agent files
 

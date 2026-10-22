@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 export const CHECKOUT_DRAFT_KEY = "beepollen.checkout";
 

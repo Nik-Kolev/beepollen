@@ -197,6 +197,9 @@ test("a modified click on the back link opens the catalogue in a new tab", async
     .getByRole("link", { name: PUBLISHED_NAME })
     .click();
   await expect(page).toHaveURL(/\/products\//);
+  await page.waitForFunction(
+    () => !document.documentElement.matches(":active-view-transition"),
+  );
 
   const newTab = context.waitForEvent("page");
   await page

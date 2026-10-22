@@ -217,8 +217,9 @@ the real production host and domain go live.**
 Until ordering opens, the site is a showcase: `ShowcaseBanner` sits above the
 header of every shop page, and `placeOrder` refuses everything unless
 `ORDERING_OPEN` is exactly `"true"`, before validation and before the rate
-limiter. Only the tests set it — Playwright's `webServer.env`, the e2e
-helper that places orders and `scripts/test-unit.mjs` — so every host starts
+limiter. Only the tests and `db:sample-orders` set it — Playwright's
+`webServer.env`, the e2e helper that places orders, `scripts/test-unit.mjs`
+and the sample-order script itself — so every host starts
 closed, and a reused local server started without it fails every checkout spec.
 The checkout reads it at build time to swap its submit button for a notice, and
 the order service at request time. **Delete the banner, the variable and both

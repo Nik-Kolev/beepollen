@@ -20,6 +20,7 @@ export type OrderEmailData = {
   deliveryCents: number;
   totalCents: number;
   office: { name: string; street: string } | null;
+  unsubscribeUrl?: string;
 };
 
 export type WithdrawalEmailData = {
@@ -96,6 +97,7 @@ export function orderAcceptedEmail(
   const payment = "Плащате при получаване.";
   const withdrawal =
     "Имате право да се откажете от поръчката в срок от 14 дни от получаването ѝ.";
+  const subscribed = "Абонирани сте за офертите и напомнянията ни по имейл.";
 
   return {
     subject: `Поръчка ${order.reference} е приета`,
@@ -109,6 +111,13 @@ export function orderAcceptedEmail(
         paragraph(
           `${withdrawal} Формулярът за отказ е на ${link(`${SITE_URL}/withdraw`, `${SITE_URL}/withdraw`)}, а условията — на ${link(`${SITE_URL}/terms`, "страницата с общите условия")}.`,
         ),
+        ...(order.unsubscribeUrl
+          ? [
+              paragraph(
+                `${escapeHtml(subscribed)} ${link(order.unsubscribeUrl, "Отписване")}`,
+              ),
+            ]
+          : []),
       ].join("\n"),
     }),
     text: [
@@ -117,6 +126,9 @@ export function orderAcceptedEmail(
       linesText(order),
       `${deliverySentence(order)} ${payment}`,
       `${withdrawal} Формулярът за отказ: ${SITE_URL}/withdraw. Общите условия: ${SITE_URL}/terms.`,
+      ...(order.unsubscribeUrl
+        ? [`${subscribed} Отписване: ${order.unsubscribeUrl}`]
+        : []),
       textFooter(),
     ].join("\n\n"),
   };
@@ -176,6 +188,38 @@ export function withdrawalReceivedEmail(
       ].join("\n"),
     }),
     text: ["Отказът е получен", received, next, textFooter()].join("\n\n"),
+  };
+}
+
+export function subscriptionConfirmEmail(
+  confirmation: { reference: string; confirmUrl: string },
+  design: EmailDesign = DEFAULT_EMAIL_DESIGN,
+): EmailMessage {
+  const asked = `Здравейте! При поръчка ${confirmation.reference} отбелязахте, че искате да получавате оферти и напомняния по имейл.`;
+  const confirm = "Потвърдете абонамента от връзката по-долу.";
+  const ignore =
+    "Ако не сте го искали, не правете нищо — без потвърждение няма да ви пишем.";
+
+  return {
+    subject: "Потвърдете абонамента за офертите",
+    html: renderLayout(design, {
+      preheader: confirm,
+      heading: "Потвърдете абонамента",
+      bodyHtml: [
+        paragraph(escapeHtml(asked)),
+        paragraph(
+          `${escapeHtml(confirm)} ${link(confirmation.confirmUrl, "Потвърждавам абонамента")}`,
+        ),
+        paragraph(escapeHtml(ignore)),
+      ].join("\n"),
+    }),
+    text: [
+      "Потвърдете абонамента",
+      asked,
+      `${confirm} ${confirmation.confirmUrl}`,
+      ignore,
+      textFooter(),
+    ].join("\n\n"),
   };
 }
 

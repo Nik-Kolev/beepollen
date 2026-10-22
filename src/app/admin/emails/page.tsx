@@ -10,6 +10,7 @@ import {
   type OrderEmailData,
   orderSentEmail,
   ownerNotificationEmail,
+  subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { SITE_URL } from "@/lib/site";
@@ -50,6 +51,28 @@ const PREVIEWS: {
     render: (design) =>
       orderAcceptedEmail(
         { ...SAMPLE_ORDER, office: null, deliveryCents: 0, totalCents: 4600 },
+        design,
+      ),
+  },
+  {
+    title: "Приета поръчка от абониран купувач — до купувача",
+    render: (design) =>
+      orderAcceptedEmail(
+        {
+          ...SAMPLE_ORDER,
+          unsubscribeUrl: `${SITE_URL}/subscription/unsubscribe?token=preview`,
+        },
+        design,
+      ),
+  },
+  {
+    title: "Потвърждаване на абонамента — до купувача",
+    render: (design) =>
+      subscriptionConfirmEmail(
+        {
+          reference: SAMPLE_ORDER.reference,
+          confirmUrl: `${SITE_URL}/subscription/confirm?token=preview`,
+        },
         design,
       ),
   },

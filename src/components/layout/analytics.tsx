@@ -1,12 +1,14 @@
 "use client";
 
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 import { useCookieConsent } from "@/hooks/use-cookie-consent";
 import { clearAnalyticsCookies } from "@/lib/analytics-cookies";
 
 const MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const TOKEN_PAGES = "/subscription/";
 
 type AnalyticsWindow = Window & {
   gtag?: (...args: unknown[]) => void;
@@ -15,6 +17,7 @@ type AnalyticsWindow = Window & {
 
 export function Analytics() {
   const { choice } = useCookieConsent();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!choice) return;
@@ -29,7 +32,9 @@ export function Analytics() {
     if (!granted) clearAnalyticsCookies();
   }, [choice]);
 
-  return choice === "accepted" && MEASUREMENT_ID ? (
+  return choice === "accepted" &&
+    MEASUREMENT_ID &&
+    !pathname.startsWith(TOKEN_PAGES) ? (
     <GoogleAnalytics gaId={MEASUREMENT_ID} />
   ) : null;
 }

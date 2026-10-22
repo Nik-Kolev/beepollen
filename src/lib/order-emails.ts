@@ -5,10 +5,17 @@ import {
   type OrderEmailData,
   orderSentEmail,
   ownerNotificationEmail,
+  subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { sendEmail } from "@/lib/email/transport";
 import prisma from "@/lib/prisma";
+import {
+  confirmUrl,
+  isSubscribed,
+  unsubscribeHeaders,
+  unsubscribeUrl,
+} from "@/lib/subscriptions";
 
 export type Send = typeof sendEmail;
 
@@ -32,7 +39,11 @@ async function loadOrder(reference: string) {
       reference: true,
       contactName: true,
       contactPhone: true,
-      customer: { select: { email: true } },
+      customer: { select: { id: true, email: true } },
+      consents: {
+        where: { kind: "OFFERS" },
+        select: { id: true, confirmedAt: true, withdrawnAt: true },
+      },
       items: {
         orderBy: { id: "asc" },
         select: { name: true, quantity: true, unitPriceCents: true },
@@ -71,6 +82,18 @@ async function latestEvent(orderId: number, kind: OrderEventKind) {
   });
 }
 
+function unsubscribeLinks(customerId: number) {
+  try {
+    return {
+      url: unsubscribeUrl(customerId),
+      headers: unsubscribeHeaders(customerId),
+    };
+  } catch (error) {
+    console.error("Unsubscribe link could not be signed:", error);
+    return null;
+  }
+}
+
 async function report(label: string, work: () => Promise<void>) {
   try {
     await work();
@@ -89,11 +112,15 @@ export function sendPlacedEmails(
     const loaded = await loadOrder(reference);
     if (!loaded) return;
     const { order, data } = loaded;
+    const customerId = order.customer.id;
+    const subscribed = await isSubscribed(customerId);
+    const links = subscribed ? unsubscribeLinks(customerId) : null;
 
     const status = await send({
       to: data.email,
-      message: orderAcceptedEmail(data),
+      message: orderAcceptedEmail({ ...data, unsubscribeUrl: links?.url }),
       idempotencyKey: `order-accepted/${reference}`,
+      headers: links?.headers,
     });
     const placed = await latestEvent(order.id, "PLACED");
     if (placed) {
@@ -111,6 +138,20 @@ export function sendPlacedEmails(
         to: ownerEmail,
         message: ownerNotificationEmail(data),
         idempotencyKey: `owner-notification/${reference}`,
+      });
+    }
+
+    const pending = order.consents.find(
+      (consent) => !consent.confirmedAt && !consent.withdrawnAt,
+    );
+    if (!subscribed && pending) {
+      await send({
+        to: data.email,
+        message: subscriptionConfirmEmail({
+          reference,
+          confirmUrl: confirmUrl(pending.id),
+        }),
+        idempotencyKey: `subscription-confirm/${pending.id}`,
       });
     }
   });

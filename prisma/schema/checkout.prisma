@@ -97,9 +97,11 @@ model Consent {
   order   Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   kind    ConsentKind
 
-  wording   String
-  ipAddress String?
-  createdAt DateTime @default(now())
+  wording     String
+  ipAddress   String?
+  confirmedAt DateTime?
+  withdrawnAt DateTime?
+  createdAt   DateTime  @default(now())
 
   @@unique([orderId, kind])
   @@index([orderId])

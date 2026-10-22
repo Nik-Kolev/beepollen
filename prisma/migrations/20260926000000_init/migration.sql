@@ -88,6 +88,8 @@ CREATE TABLE "Consent" (
     "kind" TEXT NOT NULL,
     "wording" TEXT NOT NULL,
     "ipAddress" TEXT,
+    "confirmedAt" DATETIME,
+    "withdrawnAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Consent_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );

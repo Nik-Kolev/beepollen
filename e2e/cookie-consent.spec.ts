@@ -350,6 +350,28 @@ test("Google Analytics loads only after the visitor accepts", async ({
   expect(requests[0]).toContain("id=G-E2ETEST000");
 });
 
+test("a visitor who accepted loads no Google Analytics on a page whose URL carries an email token", async ({
+  page,
+}) => {
+  const requests = await countAnalyticsRequests(page);
+  await page.goto("/");
+  await bar(page).getByRole("button", { name: "Приемам", exact: true }).click();
+  await expect.poll(() => requests.length).toBeGreaterThan(0);
+
+  async function loadAndSettle(path: string) {
+    requests.length = 0;
+    await page.goto(path);
+    await waitForHydration(page);
+    await page.waitForLoadState("networkidle");
+  }
+
+  await loadAndSettle("/");
+  expect(requests.length).toBeGreaterThan(0);
+
+  await loadAndSettle("/subscription/unsubscribe?token=unsubscribe.1.x");
+  expect(requests).toEqual([]);
+});
+
 test("a visitor who refused never loads Google Analytics", async ({ page }) => {
   const requests = await countAnalyticsRequests(page);
   await page.goto("/");

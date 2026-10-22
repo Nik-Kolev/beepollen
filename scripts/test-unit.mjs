@@ -5,6 +5,7 @@ const env = {
   ...process.env,
   DATABASE_URL: "file:./data/test.db",
   ORDERING_OPEN: "true",
+  EMAIL_TOKEN_SECRET: "unit-only-email-token-secret-never-used-outside-tests",
 };
 const REPORT = "data/test-unit.tap";
 const ACCESS_VIOLATION = 3221225477;

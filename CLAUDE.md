@@ -289,6 +289,21 @@ hears only about new orders, at `OWNER_EMAIL`. „Изпратена“ and „�
 open the dialog, whose email box starts ticked; only a withdrawal warning in it
 passes `confirmed`, so an ordinary send can never wave a withdrawal through.
 
+The offers list is double opt-in. A ticked box writes an `OFFERS` consent with
+no `confirmedAt`; only a consent with a `confirmedAt` and no `withdrawnAt` makes
+a buyer a subscriber, which is what `countSubscribers` counts. A buyer who is not
+yet subscribed gets a confirmation email keyed on that consent; one who is gets
+no second confirmation, and their order email says „Абонирани сте“ with an
+unsubscribe link and the RFC 8058 `List-Unsubscribe` headers. Unsubscribing
+withdraws every offers consent of that customer, and a withdrawn consent can
+never be confirmed again. The checkout answers the same whatever address is
+typed, so no page reveals whether an address is subscribed. The links carry an
+HMAC token signed with `EMAIL_TOKEN_SECRET`, naming its purpose so a
+confirmation token cannot unsubscribe. Opening `/subscription/confirm` or
+`/subscription/unsubscribe` changes nothing: mail scanners fetch every link, so
+only the page's button, a form post, acts. The one-click header points at
+`POST /api/unsubscribe`, which mail clients call themselves.
+
 `/admin/emails` shows each email in two designs side by side for choosing
 between them; the shop sends design A. **Delete the page and the losing design
 once one is chosen.**

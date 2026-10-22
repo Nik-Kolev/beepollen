@@ -1,6 +1,10 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { TEST_ADMIN_EMAIL, TEST_AUTH_SECRET } from "./e2e/admin-env";
+import {
+  TEST_ADMIN_EMAIL,
+  TEST_AUTH_SECRET,
+  TEST_EMAIL_TOKEN_SECRET,
+} from "./e2e/admin-env";
 import { COOKIE_CONSENT_KEY } from "./src/lib/cookie-consent";
 
 const port = process.env.E2E_PORT ?? "3000";
@@ -63,6 +67,7 @@ export default defineConfig({
       ORDERING_OPEN: "true",
       RESEND_API_KEY: "",
       OWNER_EMAIL: "",
+      EMAIL_TOKEN_SECRET: TEST_EMAIL_TOKEN_SECRET,
       NEXT_PUBLIC_GA_MEASUREMENT_ID: "G-E2ETEST000",
     },
     reuseExistingServer: !process.env.CI,

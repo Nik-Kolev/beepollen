@@ -260,6 +260,17 @@ refuses to send without `EMAIL_REPLY_TO`. Resend reports a rejected email as
 Without a verified domain, the default test sender delivers only to the Resend
 account's own address.
 
+Sending runs in `after()` from the checkout, withdrawal and admin step actions,
+so a slow or failed send never delays or fails what the buyer or owner did, and
+the outcome is written onto that step's `OrderEvent`. `src/lib/order-emails.ts`
+swallows and logs every error, since nothing awaits it. A replayed order
+resends the buyer's confirmation under the same idempotency key, so Resend
+delivers it only if the first attempt never went through; a step email is
+keyed on its event, so sending again after an undo is a new email. The owner
+hears only about new orders, at `OWNER_EMAIL`. „Изпратена“ and „Откажи“ always
+open the dialog, whose email box starts ticked; only a withdrawal warning in it
+passes `confirmed`, so an ordinary send can never wave a withdrawal through.
+
 `/admin/emails` shows each email in two designs side by side for choosing
 between them; the shop sends design A. **Delete the page and the losing design
 once one is chosen.**

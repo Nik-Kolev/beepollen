@@ -2,13 +2,26 @@ import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
 export function placeLocalOrder(email: string, phone: string) {
+  return placeInE2eDb(email, phone, "LOCAL", "");
+}
+
+export function placeEcontOrder(email: string, phone: string) {
+  return placeInE2eDb(email, phone, "ECONT_OFFICE", "1127");
+}
+
+function placeInE2eDb(
+  email: string,
+  phone: string,
+  deliveryMethod: string,
+  officeCode: string,
+) {
   const input = {
     name: "Отказ Тестов",
     email,
     phone,
     items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
-    deliveryMethod: "LOCAL",
-    officeCode: "",
+    deliveryMethod,
+    officeCode,
     acceptsTerms: true,
     acceptsOffers: false,
     idempotencyKey: randomUUID(),

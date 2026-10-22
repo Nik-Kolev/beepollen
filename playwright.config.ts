@@ -61,6 +61,8 @@ export default defineConfig({
       ADMIN_EMAILS: TEST_ADMIN_EMAIL,
       ADMIN_WITHOUT_SIGN_IN: "false",
       ORDERING_OPEN: "true",
+      RESEND_API_KEY: "",
+      OWNER_EMAIL: "",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

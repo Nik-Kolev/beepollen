@@ -43,7 +43,12 @@ function Spinner() {
   );
 }
 
-export type StepConfirmation = { text: string; confirm: string };
+export type StepConfirmation = {
+  text: string;
+  confirm: string;
+  notify?: boolean;
+  confirmsWithdrawal?: boolean;
+};
 
 export function OrderSteps({
   reference,
@@ -65,6 +70,7 @@ export function OrderSteps({
   );
   const [running, setRunning] = useState<OrderStep | null>(null);
   const [confirming, setConfirming] = useState<OrderStep | null>(null);
+  const [notify, setNotify] = useState(true);
   const [pending, startTransition] = useTransition();
   const saving = useRef(false);
   const advanced = useRef(false);
@@ -79,8 +85,10 @@ export function OrderSteps({
   }, [confirming]);
 
   function request(step: OrderStep) {
-    if (confirmations[step]) setConfirming(step);
-    else run(step);
+    if (confirmations[step]) {
+      setNotify(true);
+      setConfirming(step);
+    } else run(step);
   }
 
   function closeDialog() {
@@ -98,7 +106,7 @@ export function OrderSteps({
     [],
   );
 
-  function run(step: OrderStep, confirmed = false) {
+  function run(step: OrderStep, confirmed = false, notifyBuyer = false) {
     if (saving.current) return;
     saving.current = true;
     setFailure(null);
@@ -111,6 +119,7 @@ export function OrderSteps({
           step,
           expected: status,
           confirmed,
+          notify: notifyBuyer,
         });
         if (result.ok) advanced.current = true;
         else setFailure(result.reason);
@@ -198,6 +207,17 @@ export function OrderSteps({
         <p id={textId} className="mt-2">
           {confirmation?.text}
         </p>
+        {confirmation?.notify && (
+          <label className="mt-4 flex min-h-11 items-center gap-3">
+            <input
+              type="checkbox"
+              checked={notify}
+              onChange={(event) => setNotify(event.target.checked)}
+              className="accent-action size-5 shrink-0"
+            />
+            Изпрати имейл на купувача
+          </label>
+        )}
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
             type="button"
@@ -212,7 +232,13 @@ export function OrderSteps({
             onClick={() => {
               const step = confirming;
               closeDialog();
-              if (step) run(step, true);
+              if (step) {
+                run(
+                  step,
+                  confirmation?.confirmsWithdrawal ?? false,
+                  (confirmation?.notify ?? false) && notify,
+                );
+              }
             }}
             className="bg-error border-error text-action-ink inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors hover:opacity-90"
           >

@@ -227,9 +227,17 @@ anything else.
 
 Vercel serves `develop` at a permanent demo URL and each PR at a temporary one —
 a demo for owner feedback, not the production host. `vercel.json` sets the Build
-Command to `npm run build:demo` so each deploy prerenders from a database it
-seeds itself; keeping it in the repo rather than the dashboard is what lets a
-reader see it. Nothing at runtime opens that file.
+Command to `npm run build:vercel` so each deploy prerenders from a database it
+seeds itself, with the `db:sample-orders` orders in it; keeping it in the repo
+rather than the dashboard is what lets a reader see it. Nothing at runtime opens
+that file. `build:demo` stays without orders, because Playwright builds with it.
+
+A Vercel function's filesystem is read-only outside `/tmp`, and the seeded
+database is not traced into it on its own, so every request-time read failed
+with a 500. On Vercel `next.config.ts` traces the `DATABASE_URL` file into every
+route, and `src/lib/prisma.ts` copies it to `/tmp` once per instance — skipped
+while `CI` is set, so the build's seeding writes the bundled file itself. Writes
+land in that instance's copy and are lost on a cold start.
 
 `next.config.ts` sets `X-Robots-Tag: noindex, nofollow` on every route, because
 Vercel noindexes preview deployments but not production ones. **Remove it when
@@ -532,8 +540,9 @@ exact version, since betas break their API between releases.
 `ADMIN_WITHOUT_SIGN_IN="true"` makes `requireAdmin()` let every request through
 with no session, and `isAdmin()` answer yes for every visitor, so the admin can
 be reviewed before a Google OAuth client exists. It is a stopgap: **delete the variable and its check before launch, once
-the admin is finished and Google sign-in is configured.** Never set it on a host
-anyone else can reach.
+the admin is finished and Google sign-in is configured.** With it set,
+`/admin/login` redirects to `/admin`. The Vercel demo sets it on purpose, to
+show the owner the admin; no other host anyone else can reach ever does.
 
 `ADMIN_EMAILS` is re-read on every admin request by `requireAdmin()`, not only at
 sign-in, so removing an address revokes a session that is still valid. Every

@@ -35,7 +35,11 @@ import {
 } from "@/lib/checkout-messages";
 import { clearDraft, readDraft, writeDraft } from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
-import { deliveryPrice, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import {
+  deliveryPrice,
+  DISPATCH_NOTE,
+  LOCAL_DELIVERY_CITY,
+} from "@/lib/delivery";
 import type { EcontOffice } from "@/lib/econt";
 import { formatPrice } from "@/lib/money";
 import type { PlaceOrderResult, PlacedOrder } from "@/lib/orders";
@@ -103,9 +107,6 @@ const EMPTY_ANSWERS: Answers = {
 type Corrected = { of: PlaceOrderResult | null; fields: Set<string> };
 
 const NOTHING_CORRECTED: Corrected = { of: null, fields: new Set() };
-
-const DISPATCH_NOTE =
-  "Изпращаме в деня на поръчката или на следващия ден. Колко бързо ще пристигне, зависи от куриера. Ако има промяна, ще се свържем с вас.";
 
 function OrderPlaced({
   order,

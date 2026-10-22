@@ -5,6 +5,9 @@ export { DeliveryMethod };
 
 export const LOCAL_DELIVERY_CITY = "Попово";
 
+export const DISPATCH_NOTE =
+  "Изпращаме в деня на поръчката или на следващия ден. Колко бързо ще пристигне, зависи от куриера. Ако има промяна, ще се свържем с вас.";
+
 export function deliveryPrice(method: DeliveryMethod): number {
   return method === DeliveryMethod.LOCAL ? 0 : TODO_ECONT_TARIFF_CENTS;
 }

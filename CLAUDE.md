@@ -240,6 +240,30 @@ placeholder until the owner supplies real ones, and a structured price is one
 search engines will publish — which was true of the €0.00 that came before these
 and is worse now that the numbers look real.
 
+## Email
+
+The order emails are HTML strings built in `src/lib/email/` — tables and
+inline styles, because mail clients drop stylesheets — with a plain-text twin
+for each. Every value that came from a buyer goes through `escapeHtml`, and an
+email to the buyer never repeats the name they typed: the address is
+unverified, so a name like „влезте на evil.example“ would reach a stranger
+under the shop's domain. The
+palette is the site's tokens converted to hex, since mail clients do not read
+`oklch`, so a token change is copied by hand into `EMAIL_COLOR`. The bee is
+`public/email/bee.png` loaded from `SITE_URL`, since Gmail drops SVG: an email
+sent before a deploy shows no bee.
+
+`sendEmail` answers `SENT`, `FAILED` or `SKIPPED` and never throws. With no
+`RESEND_API_KEY` it skips, so dev and the tests send nothing; with a key it
+refuses to send without `EMAIL_REPLY_TO`. Resend reports a rejected email as
+`{ error }` rather than a throw, which is why the result is checked.
+Without a verified domain, the default test sender delivers only to the Resend
+account's own address.
+
+`/admin/emails` shows each email in two designs side by side for choosing
+between them; the shop sends design A. **Delete the page and the losing design
+once one is chosen.**
+
 ## Orders
 
 `placeOrder` in `src/lib/orders.ts` is the trust boundary. Only a slug and a

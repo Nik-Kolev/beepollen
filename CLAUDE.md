@@ -137,7 +137,9 @@ denied, then deletes the `_ga*` cookies on the host and each parent domain; a
 returning visitor who refused has strays deleted on load. The e2e build sets a
 fake ID and the consent spec aborts the tag's script, so no hit is ever sent —
 which also means the real tag's reaction to a refusal is untested until a real
-property exists.
+property exists. Turning on Google Signals or ads features in that property makes
+the tag send to `*.g.doubleclick.net` and `www.google.com` as well, which the
+Content Security Policy blocks until they join `img-src` and `connect-src`.
 
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That
@@ -224,6 +226,17 @@ reader see it. Nothing at runtime opens that file.
 `next.config.ts` sets `X-Robots-Tag: noindex, nofollow` on every route, because
 Vercel noindexes preview deployments but not production ones. **Remove it when
 the real production host and domain go live.**
+
+The same `headers()` sets the security headers, a Content Security Policy
+among them. It allows `'unsafe-inline'` scripts: every prerendered page carries
+Next's own inline payload scripts, different per page, so no hash list can
+cover them, and nonces would render every page on request and lose the
+prerendering. A new external host — a script, an image, a fetch — is added to
+the policy in the same change, or the browser blocks it;
+`e2e/security-headers.spec.ts` walks the pages and fails on any violation. The
+browser's Zod modules import `z` from `src/lib/zod.ts`, which sets `jitless`:
+otherwise Zod probes `new Function` on its first parse, and the policy reports
+that as a blocked `eval`.
 
 Until ordering opens, the site is a showcase: `ShowcaseBanner` sits above the
 header of every shop page, and `placeOrder` refuses everything unless

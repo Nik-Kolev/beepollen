@@ -323,3 +323,122 @@ test("the homepage with the bar showing has no accessibility violations", async 
     violations.map((v) => `${v.id} on ${v.nodes.length}: ${v.help}`),
   ).toEqual([]);
 });
+
+function countAnalyticsRequests(page: Page) {
+  const requests: string[] = [];
+  return page
+    .route("**/www.googletagmanager.com/**", (route) => {
+      requests.push(route.request().url());
+      return route.abort();
+    })
+    .then(() => requests);
+}
+
+test("Google Analytics loads only after the visitor accepts", async ({
+  page,
+}) => {
+  const requests = await countAnalyticsRequests(page);
+  await page.goto("/");
+  await waitForHydration(page);
+  await page.waitForLoadState("networkidle");
+
+  expect(requests).toEqual([]);
+
+  await bar(page).getByRole("button", { name: "Приемам", exact: true }).click();
+
+  await expect.poll(() => requests.length).toBeGreaterThan(0);
+  expect(requests[0]).toContain("id=G-E2ETEST000");
+});
+
+test("a visitor who refused never loads Google Analytics", async ({ page }) => {
+  const requests = await countAnalyticsRequests(page);
+  await page.goto("/");
+  await bar(page)
+    .getByRole("button", { name: "Отказвам", exact: true })
+    .click();
+  await page.reload();
+  await waitForHydration(page);
+  await page.waitForLoadState("networkidle");
+
+  await expect(bar(page)).toBeHidden();
+  expect(requests).toEqual([]);
+});
+
+test("refusing after accepting switches off the tag already in the page, and accepting again switches it back on", async ({
+  page,
+}) => {
+  await countAnalyticsRequests(page);
+  await page.goto("/cookies");
+  await waitForHydration(page);
+
+  const disabled = () =>
+    page.evaluate(
+      () =>
+        (window as unknown as Record<string, unknown>)[
+          "ga-disable-G-E2ETEST000"
+        ],
+    );
+  const lastConsent = () =>
+    page.evaluate(() => {
+      const layer = (window as unknown as { dataLayer?: IArguments[] })
+        .dataLayer;
+      const updates = (layer ?? [])
+        .map((entry) => Array.from(entry))
+        .filter(([kind, action]) => kind === "consent" && action === "update");
+      return updates.at(-1)?.[2] ?? null;
+    });
+
+  await pageChoice(page, "Приемам").click();
+  await expect.poll(disabled).toBe(false);
+
+  await pageChoice(page, "Отказвам").click();
+  await expect.poll(disabled).toBe(true);
+  await expect.poll(lastConsent).toEqual({ analytics_storage: "denied" });
+
+  await pageChoice(page, "Приемам").click();
+  await expect.poll(disabled).toBe(false);
+  await expect.poll(lastConsent).toEqual({ analytics_storage: "granted" });
+});
+
+test("refusing deletes the Google Analytics cookies and nothing else", async ({
+  page,
+  context,
+}) => {
+  await countAnalyticsRequests(page);
+  await context.addCookies(
+    ["_ga", "_ga_E2ETEST000", "keep"].map((name) => ({
+      name,
+      value: "1",
+      domain: "localhost",
+      path: "/",
+    })),
+  );
+  await page.goto("/");
+
+  await bar(page)
+    .getByRole("button", { name: "Отказвам", exact: true })
+    .click();
+
+  await expect
+    .poll(async () => (await context.cookies()).map(({ name }) => name).sort())
+    .toEqual(["keep"]);
+});
+
+test("a returning visitor who refused has stray Google Analytics cookies deleted on load", async ({
+  page,
+  context,
+}) => {
+  await countAnalyticsRequests(page);
+  await page.addInitScript(
+    (key) => localStorage.setItem(key, "rejected"),
+    COOKIE_CONSENT_KEY,
+  );
+  await context.addCookies([
+    { name: "_ga", value: "1", domain: "localhost", path: "/" },
+  ]);
+  await page.goto("/");
+
+  await expect
+    .poll(async () => (await context.cookies()).map(({ name }) => name))
+    .toEqual([]);
+});

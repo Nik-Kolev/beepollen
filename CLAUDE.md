@@ -335,7 +335,9 @@ only the page's button, a form post, acts. The one-click header points at
 
 `/admin/emails` shows each email in two designs side by side for choosing
 between them; the shop sends design A. **Delete the page and the losing design
-once one is chosen.**
+once one is chosen.** The previews themselves stay: `src/lib/email/previews.ts`
+also feeds `/admin/todo`, which shows each email in the sent design beside the
+action that sends it, so a new email joins that list in the same change.
 
 ## Orders
 

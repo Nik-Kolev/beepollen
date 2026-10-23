@@ -14,7 +14,7 @@ test("the email preview shows every email in both designs to an admin", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: "Имейли — два варианта" }),
   ).toBeVisible();
-  await expect(page.locator("iframe")).toHaveCount(16);
+  await expect(page.locator("iframe")).toHaveCount(18);
 
   const accepted = page.frameLocator(
     'iframe[title="Приета поръчка — до купувача, дизайн A"]',

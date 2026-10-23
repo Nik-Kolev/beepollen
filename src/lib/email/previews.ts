@@ -32,14 +32,17 @@ const SAMPLE_ORDER: OrderEmailData = {
 
 export const PREVIEWS: {
   title: string;
+  trigger: string;
   render: (design: EmailDesign) => EmailMessage;
 }[] = [
   {
     title: "Приета поръчка — до купувача",
+    trigger: "Когато купувач завърши поръчка с доставка до офис на Еконт.",
     render: (design) => orderAcceptedEmail(SAMPLE_ORDER, design),
   },
   {
     title: "Приета поръчка за Попово — до купувача",
+    trigger: "Когато купувач завърши поръчка за Попово, с доставка на ръка.",
     render: (design) =>
       orderAcceptedEmail(
         { ...SAMPLE_ORDER, office: null, deliveryCents: 0, totalCents: 4600 },
@@ -48,6 +51,7 @@ export const PREVIEWS: {
   },
   {
     title: "Приета поръчка от абониран купувач — до купувача",
+    trigger: "Когато купувач, вече абониран за офертите, завърши поръчка.",
     render: (design) =>
       orderAcceptedEmail(
         {
@@ -59,6 +63,7 @@ export const PREVIEWS: {
   },
   {
     title: "Потвърждаване на абонамента — до купувача",
+    trigger: "Когато купувач отметне офертите при поръчка и още не е абониран.",
     render: (design) =>
       subscriptionConfirmEmail(
         {
@@ -70,25 +75,46 @@ export const PREVIEWS: {
   },
   {
     title: "Нова поръчка — до собственика",
+    trigger: "До вас, при всяка нова поръчка.",
     render: (design) => ownerNotificationEmail(SAMPLE_ORDER, design),
   },
   {
     title: "Изпратена — до купувача",
+    trigger:
+      "Когато натиснете „Изпратена“ за поръчка до офис на Еконт и отметката за имейл в прозореца остане включена. При „Предадена и платена“ за Попово не се праща имейл.",
     render: (design) =>
       orderSentEmail({ ...SAMPLE_ORDER, office: SAMPLE_OFFICE }, design),
   },
   {
     title: "Отказана — до купувача",
+    trigger:
+      "Когато натиснете „Откажи“ за поръчка и отметката за имейл в прозореца остане включена.",
     render: (design) => orderCancelledEmail(SAMPLE_ORDER, design),
   },
   {
     title: "Получен отказ от договора — до купувача",
+    trigger:
+      "Когато купувач подаде отказ от сайта за поръчка, която още не е нито изпратена, нито предадена.",
     render: (design) =>
       withdrawalReceivedEmail(
         {
           reference: SAMPLE_ORDER.reference,
           withdrawnAt: new Date("2026-10-22T07:30:00Z"),
           sent: false,
+        },
+        design,
+      ),
+  },
+  {
+    title: "Получен отказ от договора след изпращане — до купувача",
+    trigger:
+      "Когато купувач подаде отказ от сайта за поръчка, която вече е изпратена или предадена.",
+    render: (design) =>
+      withdrawalReceivedEmail(
+        {
+          reference: SAMPLE_ORDER.reference,
+          withdrawnAt: new Date("2026-10-22T07:30:00Z"),
+          sent: true,
         },
         design,
       ),

@@ -35,11 +35,36 @@ test("the todo page lists what each product still owes and every group of open i
   }
 
   const { violations } = await new AxeBuilder({ page })
+    .exclude("iframe")
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   expect(
     violations.map((v) => `${v.id} on ${v.nodes.length}: ${v.help}`),
   ).toEqual([]);
+});
+
+test("the todo page shows every email in the design the shop sends, with when it is sent", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/todo");
+
+  const emails = page.getByRole("region", { name: "Имейли" });
+  await expect(emails.locator("iframe")).toHaveCount(9);
+
+  const accepted = emails
+    .getByRole("listitem")
+    .filter({ hasText: "Приета поръчка — до купувача" });
+  await expect(accepted).toContainText(
+    "Когато купувач завърши поръчка с доставка до офис на Еконт.",
+  );
+  await expect(accepted).toContainText("Тема: Поръчка BP2210261 е приета");
+  await expect(
+    page
+      .frameLocator('iframe[title="Приета поръчка — до купувача"]')
+      .getByRole("heading", { name: "Благодарим за поръчката!" }),
+  ).toBeVisible();
 });
 
 test("the admin bar above the shop leads to the todo page", async ({

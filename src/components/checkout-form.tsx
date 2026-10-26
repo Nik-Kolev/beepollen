@@ -25,6 +25,7 @@ import {
   LABEL,
 } from "@/components/form-styles";
 import { TEXT_LINK } from "@/components/link-styles";
+import { Reveal } from "@/components/reveal";
 import { useCart } from "@/hooks/use-cart";
 import { isPurchasable, purchasableTotal, type CartItem } from "@/lib/cart";
 import {
@@ -244,6 +245,8 @@ function FilledCheckout({
       ? "TODO: цена"
       : formatPrice(itemsCents + (itemCount > 0 ? deliveryCents : 0));
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [pickerRound, setPickerRound] = useState(0);
+  const [deliveryTouched, setDeliveryTouched] = useState(false);
   const linesId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const submitting = useRef(false);
@@ -342,6 +345,8 @@ function FilledCheckout({
     markCorrected("officeCode");
     setOffice(null);
     setCity(null);
+    if (!checked) setPickerRound((round) => round + 1);
+    setDeliveryTouched(true);
     setAnswers((current) => ({ ...current, localDelivery: checked }));
   }
 
@@ -559,9 +564,6 @@ function FilledCheckout({
           </StepCard>
 
           <StepCard step={2} title="Доставка">
-            {!answers.localDelivery && (
-              <p className="text-ink-soft mt-2 text-sm">{DISPATCH_NOTE}</p>
-            )}
             <label className={`mt-4 ${CHECKBOX_LABEL}`}>
               <input
                 type="checkbox"
@@ -576,10 +578,11 @@ function FilledCheckout({
               </span>
             </label>
 
-            {!answers.localDelivery && (
-              <div className="mt-6">
+            <Reveal open={!answers.localDelivery} animate={deliveryTouched}>
+              <div className="pt-4">
+                <p className="text-ink-soft mb-6 text-sm">{DISPATCH_NOTE}</p>
                 <OfficeCityPicker
-                  key={restored ? "restored" : "initial"}
+                  key={`${restored ? "restored" : "initial"}-${pickerRound}`}
                   offices={offices}
                   initialCity={city}
                   initialOfficeCode={office?.code ?? null}
@@ -598,7 +601,7 @@ function FilledCheckout({
                   }}
                 />
               </div>
-            )}
+            </Reveal>
           </StepCard>
 
           <StepCard step={3} title="Потвърждение">

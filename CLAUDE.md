@@ -453,7 +453,11 @@ in `CheckoutForm`, which never unmounts, so a refused submission keeps it like
 every other answer.
 
 An order for Попово is delivered by hand and arranged by phone: its checkbox
-drops the picker and the order is stored as `LOCAL` with every office column null.
+folds the picker away and the order is stored as `LOCAL` with every office column
+null. The picker stays mounted, hidden and `inert`, so the fold can animate; it
+is keyed on a counter bumped on untick, because the checkbox clears the city and
+office the picker otherwise still holds. The dispatch note sits below the
+checkbox so that folding it never moves the box under the visitor's finger.
 Попово's own Econt offices are left out of the list and refused by `placeOrder`,
 since a parcel cannot be sent from the town to itself. The match is the exact
 city string, so the villages around it, each under its own name, stay listed.
@@ -464,6 +468,11 @@ the list currently shows rather than for the whole city, because София's 11
 overlap into one blob; pins outside that set are dimmed and ignore clicks. It
 fits to the middle 80% of the points, since a handful of far-flung offices
 otherwise drag Бургас's view out to Поморие.
+
+The map is not mounted, and Leaflet's chunk not loaded, until a city is chosen.
+Drawing all 590 pins at country zoom on load cost the checkout about 130 ms of
+Total Blocking Time and failed the Lighthouse performance gate, for pins that
+were all dimmed and unclickable anyway.
 
 The city field is a combobox: its suggestions are `li role="option"` rather than
 buttons, since a button inside an option is not valid, and the active one is

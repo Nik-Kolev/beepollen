@@ -378,17 +378,26 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
   await showSummary(page, isMobile);
   const dispatchNote = page.getByText(/^Изпращаме в деня на поръчката/);
   await expect(dispatchNote).toBeVisible();
+  await chooseOffice(page);
+  await expect(chosenOffice(page)).toBeVisible();
 
-  await page.getByLabel(/Поръчката е за гр\. Попово/).check();
+  const popovo = page.getByLabel(/Поръчката е за гр\. Попово/);
+  const top = () =>
+    popovo.evaluate((box) => box.getBoundingClientRect().top + window.scrollY);
+  const before = await top();
+  await popovo.check();
 
-  await expect(dispatchNote).toHaveCount(0);
-  await expect(page.getByLabel("Град", { exact: true })).toHaveCount(0);
+  await expect(dispatchNote).toBeHidden();
+  expect(await top()).toBe(before);
+  await expect(page.getByLabel("Град", { exact: true })).toBeHidden();
   await expect(page.getByText("Безплатна", { exact: true })).toBeVisible();
   await expect(confirmation(page)).toContainText("94,90 €");
 
-  await page.getByLabel(/Поръчката е за гр\. Попово/).uncheck();
+  await popovo.uncheck();
 
   await expect(page.getByLabel("Град", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Град", { exact: true })).toHaveValue("");
+  await expect(chosenOffice(page)).toBeHidden();
   await expect(confirmation(page)).toContainText("100,80 €");
 });
 

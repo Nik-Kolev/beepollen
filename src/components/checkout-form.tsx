@@ -28,6 +28,7 @@ import { TEXT_LINK } from "@/components/link-styles";
 import { Reveal } from "@/components/reveal";
 import { useCart } from "@/hooks/use-cart";
 import { isPurchasable, purchasableTotal, type CartItem } from "@/lib/cart";
+import { newIdempotencyKey } from "@/lib/checkout-payload";
 import {
   blockedReason,
   FIELD_ERROR,
@@ -360,7 +361,7 @@ function FilledCheckout({
         submitting.current = true;
 
         const submitted = new FormData(event.currentTarget);
-        idempotencyKey.current ??= crypto.randomUUID();
+        idempotencyKey.current ??= newIdempotencyKey();
         submitted.set("idempotencyKey", idempotencyKey.current);
 
         startTransition(() => formAction(submitted));
@@ -672,7 +673,7 @@ function FilledCheckout({
             {orderingOpen ? (
               <button
                 type="submit"
-                disabled={pending || blocked !== null}
+                disabled={pending || blocked !== null || stillUnavailable}
                 className="bg-action text-action-ink hover:bg-action-hover disabled:bg-placeholder disabled:text-ink-soft mt-4 min-h-14 w-full rounded-full px-6 py-3 text-base leading-snug font-semibold disabled:cursor-not-allowed sm:px-8 sm:text-lg"
               >
                 {pending ? "Изпращане…" : "Поръчай с плащане при доставка"}

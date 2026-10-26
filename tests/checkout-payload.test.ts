@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { checkoutPayload } from "@/lib/checkout-payload";
-import { placeOrder } from "@/lib/orders";
+import { checkoutPayload, newIdempotencyKey } from "@/lib/checkout-payload";
+import { checkoutInputSchema, placeOrder } from "@/lib/orders";
 
 function formDataWith(entries: [string, FormDataEntryValue][]) {
   const formData = new FormData();
@@ -131,4 +131,21 @@ test("a crafted File payload is refused as a validation error, not a crash", asy
 
   assert.equal(result.ok, false);
   assert.equal(result.code, "VALIDATION_ERROR");
+});
+
+test("without randomUUID, as on a plain-http address, the key is still a UUID the order accepts", () => {
+  for (const fill of [0x5a, 0xa5]) {
+    const insecure = {
+      getRandomValues: (bytes: Uint8Array) => bytes.fill(fill),
+    } as unknown as Crypto;
+    const key = newIdempotencyKey(insecure);
+
+    assert.equal(
+      checkoutInputSchema.shape.idempotencyKey.safeParse(key).success,
+      true,
+      key,
+    );
+    assert.equal(key[14], "4", key);
+    assert.match(key[19], /[89ab]/, key);
+  }
 });

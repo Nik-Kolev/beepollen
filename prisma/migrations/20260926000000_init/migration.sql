@@ -50,6 +50,7 @@ CREATE TABLE "Order" (
     "cancelledAt" DATETIME,
     "collectedAt" DATETIME,
     "withdrawnAt" DATETIME,
+    "withdrawalName" TEXT,
     "contactName" TEXT NOT NULL,
     "contactPhone" TEXT NOT NULL,
     "deliveryMethod" TEXT NOT NULL,

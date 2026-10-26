@@ -12,7 +12,7 @@ import type { Outgoing } from "@/lib/email/transport";
 import {
   sendPlacedEmails,
   sendStepEmail,
-  sendWithdrawalEmail,
+  sendWithdrawalEmails,
 } from "@/lib/order-emails";
 import { placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
@@ -132,7 +132,7 @@ test("an unknown order sends nothing and does not throw", async () => {
 
   await sendPlacedEmails("BP0101990", false, send, OWNER);
   await sendStepEmail("BP0101990", "send", 1, send);
-  await sendWithdrawalEmail("BP0101990", send);
+  await sendWithdrawalEmails("BP0101990", send);
 
   assert.equal(sent.length, 0);
 });
@@ -230,7 +230,7 @@ test("a withdrawal is acknowledged to the buyer and recorded on the withdrawal",
   );
   const { sent, send } = recorder();
 
-  await sendWithdrawalEmail(reference, send);
+  await sendWithdrawalEmails(reference, send);
 
   assert.equal(sent.length, 1);
   assert.equal(sent[0].to, input.email);
@@ -239,11 +239,37 @@ test("a withdrawal is acknowledged to the buyer and recorded on the withdrawal",
   assert.equal(await statusOf(reference, "WITHDRAWN"), "SENT");
 });
 
+test("a withdrawal also tells the owner, naming who withdrew and whether the order left", async () => {
+  const { reference, input } = await place();
+  await withdrawFromOrder(
+    {
+      reference,
+      name: "Петър Петров",
+      phone: input.phone,
+      email: input.email,
+    },
+    null,
+  );
+  const { sent, send } = recorder();
+
+  await sendWithdrawalEmails(reference, send, OWNER);
+
+  assert.deepEqual(
+    sent.map(({ to, idempotencyKey }) => ({ to, idempotencyKey })),
+    [
+      { to: input.email, idempotencyKey: `withdrawal/${reference}` },
+      { to: OWNER, idempotencyKey: `owner-withdrawal/${reference}` },
+    ],
+  );
+  assert.ok(sent[1].message.text.includes("Петър Петров"));
+  assert.ok(sent[1].message.text.includes("не я изпращайте"));
+});
+
 test("an order never withdrawn gets no acknowledgement", async () => {
   const { reference } = await place();
   const { sent, send } = recorder();
 
-  await sendWithdrawalEmail(reference, send);
+  await sendWithdrawalEmails(reference, send);
 
   assert.equal(sent.length, 0);
 });

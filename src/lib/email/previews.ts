@@ -6,6 +6,7 @@ import {
   type OrderEmailData,
   orderSentEmail,
   ownerNotificationEmail,
+  ownerWithdrawalEmail,
   subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
@@ -101,6 +102,22 @@ export const PREVIEWS: {
           reference: SAMPLE_ORDER.reference,
           withdrawnAt: new Date("2026-10-22T07:30:00Z"),
           sent: false,
+        },
+        design,
+      ),
+  },
+  {
+    title: "Отказ от договора — до собственика",
+    trigger: "До вас, когато купувач подаде отказ от сайта.",
+    render: (design) =>
+      ownerWithdrawalEmail(
+        {
+          reference: SAMPLE_ORDER.reference,
+          withdrawnAt: new Date("2026-10-22T07:30:00Z"),
+          sent: false,
+          withdrawalName: SAMPLE_ORDER.contactName,
+          contactPhone: SAMPLE_ORDER.contactPhone,
+          email: SAMPLE_ORDER.email,
         },
         design,
       ),

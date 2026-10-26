@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
 import {
@@ -7,6 +8,8 @@ import {
   countOrdersByView,
   daysAgoLabel,
   deliveryLabel,
+  DUPLICATE_WINDOW_MS,
+  findPossibleDuplicates,
   formatOrderTime,
   listOrders,
   nextOrderShown,
@@ -645,4 +648,91 @@ test("shows an order's time in Sofia, across both sides of daylight saving", () 
     formatOrderTime(new Date("2026-01-15T09:05:00Z")),
     "15.01.2026 г., 11:05",
   );
+});
+
+const DUPLICATE_BASE = new Date("2026-03-10T08:00:00Z");
+
+async function placedAt(email: string, offsetMs: number, overrides = {}) {
+  const { reference } = await place({ email, ...overrides });
+  await prisma.order.update({
+    where: { reference },
+    data: { createdAt: new Date(DUPLICATE_BASE.getTime() + offsetMs) },
+  });
+  return reference;
+}
+
+async function duplicatesOf(...references: string[]) {
+  const orders = await prisma.order.findMany({
+    where: { reference: { in: references } },
+    select: {
+      reference: true,
+      customerId: true,
+      createdAt: true,
+      cancelledAt: true,
+    },
+  });
+  return findPossibleDuplicates(orders);
+}
+
+const HOUR = 60 * 60 * 1000;
+
+test("two orders from one email within 24 hours each name the other as a possible duplicate", async () => {
+  const email = `dup-${randomUUID()}@example.com`;
+  const first = await placedAt(email, 0);
+  const second = await placedAt(email.toUpperCase(), 5 * HOUR);
+
+  const duplicates = await duplicatesOf(first, second);
+  assert.equal(duplicates.get(first), second);
+  assert.equal(duplicates.get(second), first);
+});
+
+test("orders 24 hours or more apart are not duplicates, a millisecond less is", async () => {
+  const email = `dup-${randomUUID()}@example.com`;
+  const first = await placedAt(email, 0);
+  const atLimit = await placedAt(email, DUPLICATE_WINDOW_MS);
+  assert.equal((await duplicatesOf(first, atLimit)).size, 0);
+
+  const other = `dup-${randomUUID()}@example.com`;
+  const early = await placedAt(other, 0);
+  const justUnder = await placedAt(other, DUPLICATE_WINDOW_MS - 1);
+  assert.equal((await duplicatesOf(early, justUnder)).get(early), justUnder);
+});
+
+test("orders from different emails at the same moment are not duplicates", async () => {
+  const one = await placedAt(`dup-${randomUUID()}@example.com`, 0);
+  const two = await placedAt(`dup-${randomUUID()}@example.com`, 0);
+  assert.equal((await duplicatesOf(one, two)).size, 0);
+});
+
+test("a cancelled or returned order neither is flagged nor flags another", async () => {
+  for (const path of [["cancel"], ["send", "return"]] as OrderStep[][]) {
+    const email = `dup-${randomUUID()}@example.com`;
+    const live = await placedAt(email, 0);
+    const closed = await placedAt(email, HOUR);
+    await step(closed, ...path);
+
+    const duplicates = await duplicatesOf(live, closed);
+    assert.equal(duplicates.size, 0, path.join(" → "));
+  }
+});
+
+test("the duplicate is found even when the other order is not among those listed", async () => {
+  const email = `dup-${randomUUID()}@example.com`;
+  const listed = await placedAt(email, 0);
+  const hidden = await placedAt(email, 2 * HOUR);
+  await step(hidden, "send");
+
+  assert.equal((await duplicatesOf(listed)).get(listed), hidden);
+});
+
+test("with several duplicates an order names the one placed closest to it", async () => {
+  const email = `dup-${randomUUID()}@example.com`;
+  const early = await placedAt(email, 0);
+  const middle = await placedAt(email, 10 * HOUR);
+  const late = await placedAt(email, 12 * HOUR);
+
+  const duplicates = await duplicatesOf(early, middle, late);
+  assert.equal(duplicates.get(early), middle);
+  assert.equal(duplicates.get(middle), late);
+  assert.equal(duplicates.get(late), middle);
 });

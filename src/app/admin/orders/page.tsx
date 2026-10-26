@@ -15,6 +15,7 @@ import {
   daysAgoLabel,
   deliveryLabel,
   EMAIL_STATUS_LABEL,
+  findPossibleDuplicates,
   formatOrderTime,
   listOrders,
   nextOrderShown,
@@ -150,6 +151,7 @@ export default async function AdminOrders({
   const shown = parseOrderShown(params.shown, counts[view]);
   const orders = await listOrders(view, shown);
   const next = nextOrderShown(orders.length, counts[view]);
+  const duplicates = await findPossibleDuplicates(orders);
   const now = new Date();
 
   return (
@@ -198,6 +200,11 @@ export default async function AdminOrders({
           {ORDER_STEP_LABEL.send}“ и „{ORDER_STEP_LABEL.handOver}“ първо питат
           дали сте сигурни. Ако вече е изпратена, обадете се, за да уговорите
           връщането.
+        </p>
+        <p className="mb-3 text-sm">
+          „Възможен дубликат“ значи, че същият имейл е поръчал още веднъж в
+          рамките на 24 часа. Обадете се, преди да изпратите и двете — може
+          купувачът да е натиснал два пъти.
         </p>
         <p className="mb-3 text-sm">
           „{ORDER_FILTER_LABEL.all}“ показва всички поръчки, най-новите
@@ -255,6 +262,7 @@ export default async function AdminOrders({
                 (consent) => consent.kind === "OFFERS",
               );
               const status = orderStatus(order);
+              const duplicateOf = duplicates.get(order.reference);
 
               return (
                 <li key={order.reference}>
@@ -298,6 +306,12 @@ export default async function AdminOrders({
                         >
                           {formatOrderTime(order.withdrawnAt)}
                         </time>
+                      </p>
+                    )}
+                    {duplicateOf && (
+                      <p className="text-error mt-1 text-sm font-semibold">
+                        Възможен дубликат на{" "}
+                        <span className="tabular-nums">{duplicateOf}</span>
                       </p>
                     )}
                     {status === "sent" && order.sentAt && (

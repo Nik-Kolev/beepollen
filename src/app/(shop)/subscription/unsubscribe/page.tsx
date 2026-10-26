@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: "Отписване от офертите",
   alternates: { canonical: "/subscription/unsubscribe" },
   robots: { index: false, follow: false },
-  referrer: "same-origin",
+  referrer: "strict-origin",
 };
 
 export default async function UnsubscribePage(

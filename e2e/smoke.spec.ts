@@ -44,11 +44,11 @@ test("the catalogue renders published products from the database", async ({
   await expect(cards.first()).toBeVisible();
   expect(await cards.count()).toBeGreaterThan(1);
 
-  await expect(cards.first().getByRole("heading", { level: 3 })).toBeVisible();
+  await expect(cards.first().getByRole("heading", { level: 2 })).toBeVisible();
   await expect(cards.first().getByRole("img")).toBeVisible();
 
   await expect(
-    page.getByRole("heading", { level: 3, name: "Lorem ipsum", exact: true }),
+    page.getByRole("heading", { level: 2, name: "Lorem ipsum", exact: true }),
   ).toHaveCount(0);
 });
 

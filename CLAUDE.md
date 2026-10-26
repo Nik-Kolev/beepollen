@@ -276,7 +276,9 @@ Metadata inheritance is shallow and per top-level key: a page that omits
 of it. Every page-level `generateMetadata` sets its own.
 
 `app/sitemap.ts` lists `/`, every published product, `/terms`, `/privacy` and `/cookies`,
-and `app/robots.ts` keeps crawlers out of `/admin`, `/cart` and `/checkout`. Both
+and `app/robots.ts` keeps crawlers out of `/admin` only. `/cart` and `/checkout`
+stay crawlable on purpose: their `noindex` meta is what keeps them out of search,
+and a crawler barred by `robots.txt` never reads it. Both
 build their URLs from `SITE_URL`. A new public page joins the sitemap's list in
 the same change. The home page's `OnlineStore` JSON-LD carries only facts the
 owner has confirmed — the name, `OWNER_PHONE` and Попово — and gains a field

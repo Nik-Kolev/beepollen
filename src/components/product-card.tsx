@@ -76,7 +76,7 @@ export function ProductCard({
           className="text-brand-deep h-16 w-auto shrink-0 self-start"
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <h3
+          <h2
             className={`text-base leading-snug font-semibold ${decor.cardBee ? "pr-11" : ""}`}
           >
             <Link
@@ -85,7 +85,7 @@ export function ProductCard({
             >
               {product.name}
             </Link>
-          </h3>
+          </h2>
           <p className="text-ink-soft mt-1 line-clamp-3 text-sm">
             {product.summary}
           </p>

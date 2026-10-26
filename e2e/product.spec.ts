@@ -39,7 +39,7 @@ test("a catalogue card opens its product page", async ({ page }) => {
     .first()
     .getByRole("listitem")
     .first();
-  const name = await card.getByRole("heading", { level: 3 }).innerText();
+  const name = await card.getByRole("heading", { level: 2 }).innerText();
 
   await card.getByRole("link").click();
 

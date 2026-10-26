@@ -23,6 +23,20 @@ It needs `AUTH_SECRET` and a Google OAuth client's `AUTH_GOOGLE_ID` and
 `AUTH_GOOGLE_SECRET` in `.env`; without them the shop still runs.
 `AUTH_TRUST_HOST` lets `npm start` accept sign-ins on localhost; a public host
 drops it and sets `AUTH_URL` to its own origin.
+`ADMIN_WITHOUT_SIGN_IN="true"` opens the admin to every visitor with no
+sign-in, for review before a Google client exists.
+
+The rest of `.env`:
+
+| Variable                        | Does                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `ORDERING_OPEN`                 | Only `"true"` accepts orders; anything else shows the shop only; rebuild after changing it                    |
+| `RESEND_API_KEY`                | Sends the emails through Resend; left empty, nothing is sent                                                  |
+| `EMAIL_FROM`                    | Sender address; empty uses Resend's test sender, which delivers only to the Resend account's own address      |
+| `EMAIL_REPLY_TO`                | Where replies go; required once `RESEND_API_KEY` is set                                                       |
+| `OWNER_EMAIL`                   | Receives a notice for every new order                                                                         |
+| `EMAIL_TOKEN_SECRET`            | Signs the subscribe and unsubscribe links; at least 32 characters; empty, no such link is sent and none opens |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics, after cookie consent; read at build time                                                    |
 
 ### With Docker
 
@@ -54,6 +68,7 @@ holds no database, so placing an order in it fails.
 | `npm run dev`              | Development server                        |
 | `npm run build`            | Production build                          |
 | `npm run build:demo`       | Migrate, seed, then build                 |
+| `npm run build:vercel`     | Like `build:demo`, plus sample orders     |
 | `npm start`                | Serve the production build                |
 | `npm run format`           | Prettier, writing in place                |
 | `npm run format:check`     | Prettier, failing on a diff               |

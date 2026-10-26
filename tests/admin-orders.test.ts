@@ -321,6 +321,28 @@ test("an order the buyer withdrew is not sent or handed over until the owner con
   }
 });
 
+test("a withdrawal landing between the step's read and its write refuses the step as stale", async () => {
+  const { reference } = await place();
+  const transaction = prisma.$transaction;
+  prisma.$transaction = (async (...args: Parameters<typeof transaction>) => {
+    await prisma.order.update({
+      where: { reference },
+      data: { withdrawnAt: new Date("2026-10-18T09:30:00Z") },
+    });
+    return transaction.apply(prisma, args);
+  }) as typeof transaction;
+
+  try {
+    assert.deepEqual(await applyOrderStep(reference, "send", "new"), {
+      ok: false,
+      reason: "stale",
+    });
+  } finally {
+    prisma.$transaction = transaction;
+  }
+  assert.equal((await read(reference)).sentAt, null);
+});
+
 test("a withdrawn order can still be cancelled without a confirmation of the withdrawal", async () => {
   const { reference } = await place();
   await prisma.order.update({

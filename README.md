@@ -34,7 +34,7 @@ The rest of `.env`:
 | `RESEND_API_KEY`                | Sends the emails through Resend; left empty, nothing is sent                                                  |
 | `EMAIL_FROM`                    | Sender address; empty uses Resend's test sender, which delivers only to the Resend account's own address      |
 | `EMAIL_REPLY_TO`                | Where replies go; required once `RESEND_API_KEY` is set                                                       |
-| `OWNER_EMAIL`                   | Receives a notice for every new order                                                                         |
+| `OWNER_EMAIL`                   | Receives a notice for every new order and every withdrawal                                                    |
 | `EMAIL_TOKEN_SECRET`            | Signs the subscribe and unsubscribe links; at least 32 characters; empty, no such link is sent and none opens |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics, after cookie consent; read at build time                                                    |
 

@@ -82,29 +82,30 @@ export async function withdrawFromOrder(
     return { ok: false, code: "NOT_FOUND" };
   }
 
-  const sent = order.sentAt !== null;
-
   if (order.withdrawnAt) {
     return {
       ok: true,
       reference: order.reference,
       withdrawnAt: order.withdrawnAt,
       repeated: true,
-      sent,
+      sent: order.sentAt !== null,
     };
   }
 
   const recorded = await prisma.$transaction(async (tx) => {
     const { count } = await tx.order.updateMany({
       where: { reference: order.reference, withdrawnAt: null },
-      data: { withdrawnAt: now },
+      data: { withdrawnAt: now, withdrawalName: input.name },
     });
-    if (count !== 1) return false;
+    if (count !== 1) return null;
 
     await tx.orderEvent.create({
       data: { orderId: order.id, kind: "WITHDRAWN", createdAt: now },
     });
-    return true;
+    return tx.order.findUniqueOrThrow({
+      where: { reference: order.reference },
+      select: { sentAt: true },
+    });
   });
 
   if (recorded) {
@@ -113,7 +114,7 @@ export async function withdrawFromOrder(
       reference: order.reference,
       withdrawnAt: now,
       repeated: false,
-      sent,
+      sent: recorded.sentAt !== null,
     };
   }
 

@@ -51,7 +51,7 @@ test("the todo page shows every email in the design the shop sends, with when it
   await page.goto("/admin/todo");
 
   const emails = page.getByRole("region", { name: "Имейли" });
-  await expect(emails.locator("iframe")).toHaveCount(9);
+  await expect(emails.locator("iframe")).toHaveCount(10);
 
   const accepted = emails
     .getByRole("listitem")

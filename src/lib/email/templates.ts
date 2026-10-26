@@ -191,6 +191,49 @@ export function withdrawalReceivedEmail(
   };
 }
 
+export function ownerWithdrawalEmail(
+  withdrawal: WithdrawalEmailData & {
+    withdrawalName: string | null;
+    contactPhone: string;
+    email: string;
+  },
+  design: EmailDesign = DEFAULT_EMAIL_DESIGN,
+): EmailMessage {
+  const received = `Купувачът заяви отказ от поръчка ${withdrawal.reference} на ${formatWithdrawalTime(withdrawal.withdrawnAt)}.`;
+  const next = withdrawal.sent
+    ? "Поръчката вече е изпратена — уговорете връщането на стоката."
+    : "Поръчката още не е изпратена — не я изпращайте.";
+  const name = withdrawal.withdrawalName ? [withdrawal.withdrawalName] : [];
+
+  return {
+    subject: `Отказ от поръчка ${withdrawal.reference}`,
+    html: renderLayout(design, {
+      preheader: next,
+      heading: `Отказ от поръчка ${withdrawal.reference}`,
+      toOwner: true,
+      bodyHtml: [
+        paragraph(escapeHtml(received)),
+        paragraph(escapeHtml(next)),
+        paragraph(
+          [
+            ...name.map(escapeHtml),
+            link(`tel:${withdrawal.contactPhone}`, withdrawal.contactPhone),
+            link(`mailto:${withdrawal.email}`, withdrawal.email),
+          ].join("<br>"),
+        ),
+        paragraph(link(`${SITE_URL}/admin/orders`, "Отвори поръчките")),
+      ].join("\n"),
+    }),
+    text: [
+      `Отказ от поръчка ${withdrawal.reference}`,
+      received,
+      next,
+      [...name, withdrawal.contactPhone, withdrawal.email].join(", "),
+      `${SITE_URL}/admin/orders`,
+    ].join("\n\n"),
+  };
+}
+
 export function subscriptionConfirmEmail(
   confirmation: { reference: string; confirmUrl: string },
   design: EmailDesign = DEFAULT_EMAIL_DESIGN,

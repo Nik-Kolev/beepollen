@@ -38,11 +38,12 @@ model Order {
   customerId Int
   customer   Customer @relation(fields: [customerId], references: [id])
 
-  sentAt      DateTime?
-  paidAt      DateTime?
-  cancelledAt DateTime?
-  collectedAt DateTime?
-  withdrawnAt DateTime?
+  sentAt         DateTime?
+  paidAt         DateTime?
+  cancelledAt    DateTime?
+  collectedAt    DateTime?
+  withdrawnAt    DateTime?
+  withdrawalName String?
 
   contactName  String
   contactPhone String

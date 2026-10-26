@@ -222,6 +222,7 @@ export async function recordOrderStep(
         paidAt: order.paidAt,
         cancelledAt: order.cancelledAt,
         collectedAt: order.collectedAt,
+        withdrawnAt: order.withdrawnAt,
       },
       data,
     });
@@ -475,6 +476,7 @@ const ORDER_DETAIL = {
   cancelledAt: true,
   collectedAt: true,
   withdrawnAt: true,
+  withdrawalName: true,
   contactName: true,
   contactPhone: true,
   customer: { select: { email: true } },

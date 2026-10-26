@@ -5,6 +5,7 @@ import {
   type OrderEmailData,
   orderSentEmail,
   ownerNotificationEmail,
+  ownerWithdrawalEmail,
   subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
@@ -54,6 +55,7 @@ async function loadOrder(reference: string) {
       officeStreet: true,
       sentAt: true,
       withdrawnAt: true,
+      withdrawalName: true,
     },
   });
   if (!order) return null;
@@ -194,20 +196,21 @@ export function sendStepEmail(
   });
 }
 
-export function sendWithdrawalEmail(reference: string, send: Send = sendEmail) {
+export function sendWithdrawalEmails(
+  reference: string,
+  send: Send = sendEmail,
+  ownerEmail = process.env.OWNER_EMAIL,
+) {
   return report(`withdrawal ${reference}`, async () => {
     const loaded = await loadOrder(reference);
     const withdrawnAt = loaded?.order.withdrawnAt;
     if (!loaded || !withdrawnAt) return;
     const { order, data } = loaded;
+    const withdrawal = { reference, withdrawnAt, sent: order.sentAt !== null };
 
     const status = await send({
       to: data.email,
-      message: withdrawalReceivedEmail({
-        reference,
-        withdrawnAt,
-        sent: order.sentAt !== null,
-      }),
+      message: withdrawalReceivedEmail(withdrawal),
       idempotencyKey: `withdrawal/${reference}`,
     });
     const event = await latestEvent(order.id, "WITHDRAWN");
@@ -215,6 +218,19 @@ export function sendWithdrawalEmail(reference: string, send: Send = sendEmail) {
       await prisma.orderEvent.update({
         where: { id: event.id },
         data: { emailStatus: status },
+      });
+    }
+
+    if (ownerEmail) {
+      await send({
+        to: ownerEmail,
+        message: ownerWithdrawalEmail({
+          ...withdrawal,
+          withdrawalName: order.withdrawalName,
+          contactPhone: data.contactPhone,
+          email: data.email,
+        }),
+        idempotencyKey: `owner-withdrawal/${reference}`,
       });
     }
   });

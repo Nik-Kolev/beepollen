@@ -314,7 +314,7 @@ swallows and logs every error, since nothing awaits it. A replayed order
 resends the buyer's confirmation under the same idempotency key, so Resend
 delivers it only if the first attempt never went through; a step email is
 keyed on its event, so sending again after an undo is a new email. The owner
-hears only about new orders, at `OWNER_EMAIL`. „Изпратена“ and „Откажи“ always
+hears only about new orders and withdrawals, at `OWNER_EMAIL`. „Изпратена“ and „Откажи“ always
 open the dialog, whose email box starts ticked; only a withdrawal warning in it
 passes `confirmed`, so an ordinary send can never wave a withdrawal through.
 
@@ -584,8 +584,9 @@ An order's state is four nullable timestamps — `sentAt`, `paidAt`,
 `orderStatus`, never stored. The admin takes named steps rather than toggling
 marks: the action sends the step and the status the card showed, the server
 refuses a step that status does not allow and answers `stale` when the row has
-moved on, and the write matches all four timestamps as read, so two screens
-cannot both apply one. A returned parcel is `sentAt` plus `cancelledAt` until
+moved on, and the write matches all four timestamps and `withdrawnAt` as read,
+so two screens cannot both apply one and a withdrawal landing mid-step makes it
+`stale`. A returned parcel is `sentAt` plus `cancelledAt` until
 `collectedAt` records that the owner fetched it back. A Попово hand-over writes
 `sentAt` and `paidAt` together. Undo clears the latest timestamp at any age.
 Each step, an undo included, also writes an `OrderEvent` with the admin's

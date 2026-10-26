@@ -77,6 +77,37 @@ test("a withdrawal from an order already sent says so, so the buyer is told abou
   assert.equal(result.ok && result.sent, true);
 });
 
+test("the name the buyer typed on the form is kept on the order", async () => {
+  const input = await placedOrder();
+
+  await withdrawFromOrder({ ...input, name: "  Мария Петрова " }, null);
+
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { reference: input.reference },
+    select: { withdrawalName: true },
+  });
+  assert.equal(order.withdrawalName, "Мария Петрова");
+});
+
+test("an order sent between the withdrawal's read and its write is reported as sent", async () => {
+  const input = await placedOrder();
+  const transaction = prisma.$transaction;
+  prisma.$transaction = (async (...args: Parameters<typeof transaction>) => {
+    await prisma.order.update({
+      where: { reference: input.reference },
+      data: { sentAt: new Date("2026-10-18T09:29:00Z") },
+    });
+    return transaction.apply(prisma, args);
+  }) as typeof transaction;
+
+  try {
+    const result = await withdrawFromOrder(input, null);
+    assert.equal(result.ok && result.sent, true);
+  } finally {
+    prisma.$transaction = transaction;
+  }
+});
+
 test("the reference, phone and email match however the buyer spells them", async () => {
   const input = await placedOrder();
 

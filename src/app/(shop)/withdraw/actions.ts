@@ -3,7 +3,7 @@
 import { after } from "next/server";
 
 import { clientIp } from "@/lib/client-ip";
-import { sendWithdrawalEmail } from "@/lib/order-emails";
+import { sendWithdrawalEmails } from "@/lib/order-emails";
 import { withdrawFromOrder, type WithdrawalResult } from "@/lib/withdrawal";
 import { withdrawalPayload } from "@/lib/withdrawal-payload";
 
@@ -18,7 +18,7 @@ export async function submitWithdrawal(
 
   if (result.ok && !result.repeated) {
     const { reference } = result;
-    after(() => sendWithdrawalEmail(reference));
+    after(() => sendWithdrawalEmails(reference));
   }
   return result;
 }

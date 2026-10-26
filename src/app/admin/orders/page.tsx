@@ -306,6 +306,7 @@ export default async function AdminOrders({
                         >
                           {formatOrderTime(order.withdrawnAt)}
                         </time>
+                        {order.withdrawalName && ` · ${order.withdrawalName}`}
                       </p>
                     )}
                     {duplicateOf && (

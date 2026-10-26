@@ -21,7 +21,9 @@ module.exports = async (browser, { url }) => {
 
   if (target.pathname === "/checkout") {
     await page.goto(url);
-    await page.waitForSelector('input[name="email"]', { timeout: 10_000 });
+    await page.waitForSelector('input[name="email"]:enabled', {
+      timeout: 10_000,
+    });
   }
 
   await page.close();

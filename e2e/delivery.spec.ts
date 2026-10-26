@@ -88,13 +88,22 @@ test("typing in the city field lists matching Bulgarian cities, and reports when
   ).toBeVisible();
 });
 
-test("the city suggestions stay above the map and can be clicked", async ({
-  page,
-  isMobile,
-}) => {
-  test.skip(!isMobile, "the map sits beside the list from lg up");
+test("the map is drawn only once a city is chosen", async ({ page }) => {
+  const mapScripts: string[] = [];
+  const reads: Promise<void>[] = [];
+  page.on("response", (response) => {
+    if (!response.url().endsWith(".js")) return;
+    reads.push(
+      response.text().then((body) => {
+        if (body.includes("leaflet-container")) mapScripts.push(response.url());
+      }),
+    );
+  });
   await openPicker(page);
-  await expect(page.locator(".leaflet-pane").first()).toBeAttached();
+  await page.waitForLoadState("networkidle");
+  await Promise.all(reads);
+  expect(mapScripts).toEqual([]);
+  expect(await page.locator(".leaflet-container").count()).toBe(0);
 
   await cityInput(page).fill("Ва");
   const option = page.getByRole("option").nth(3);
@@ -102,6 +111,9 @@ test("the city suggestions stay above the map and can be clicked", async ({
   await option.click();
 
   await expect(page.getByText(`Град: ${name}`)).toBeVisible();
+  await expect(page.locator(".leaflet-container")).toBeVisible();
+  await Promise.all(reads);
+  expect(mapScripts).not.toEqual([]);
 });
 
 test("Popovo is not offered as an Econt city, since its orders are delivered in person", async ({

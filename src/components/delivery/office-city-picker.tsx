@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { OfficeOption } from "@/components/delivery/office-option";
+import { Reveal } from "@/components/reveal";
 import {
   FIELD,
   FIELD_INVALID,
@@ -104,6 +105,8 @@ export function OfficeCityPicker({
   const [cityOpen, setCityOpen] = useState(false);
   const [activeCity, setActiveCity] = useState(-1);
   const [browsing, setBrowsing] = useState(false);
+  const [mapWanted, setMapWanted] = useState(initialCity !== null);
+  const [mapAppears] = useState(initialCity === null);
 
   const cityId = useId();
   const cityListId = useId();
@@ -153,6 +156,7 @@ export function OfficeCityPicker({
 
   function chooseCity(name: string) {
     setCity(name);
+    setMapWanted(true);
     setCityQuery("");
     setOfficeQuery("");
     setSelectedCode(null);
@@ -489,14 +493,18 @@ export function OfficeCityPicker({
             </div>
           )}
 
-          <div className="isolate">
-            <OfficeMap
-              offices={offices}
-              visible={mapOffices}
-              selectedCode={selectedCode}
-              onSelect={chooseOffice}
-            />
-          </div>
+          {mapWanted && (
+            <Reveal open={city !== null} appear={mapAppears} className="-mt-6">
+              <div className="isolate pt-6">
+                <OfficeMap
+                  offices={offices}
+                  visible={mapOffices}
+                  selectedCode={selectedCode}
+                  onSelect={chooseOffice}
+                />
+              </div>
+            </Reveal>
+          )}
         </div>
       </div>
     </div>

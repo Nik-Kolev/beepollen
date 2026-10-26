@@ -389,6 +389,33 @@ test("undo and cancel ask first, naming the order and what will change, and undo
   expect(await sentLine.textContent()).not.toContain("имейл");
 });
 
+test("the dialog focuses Отказ on a card that arrived through a filter rather than with the page", async ({
+  page,
+  context,
+}) => {
+  const reference = placeEcontOrder(
+    `focus-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders?filter=sent");
+  await page
+    .getByRole("navigation", { name: "Филтър на поръчките" })
+    .getByRole("link", { name: /^Нови/ })
+    .click();
+  await expect(page).toHaveURL("/admin/orders?filter=new");
+
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: reference }) });
+  await card.getByRole("button", { name: "Откажи" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  await expect(dialog.getByRole("button", { name: "Отказ" })).toBeFocused();
+  await page.keyboard.press("Escape");
+});
+
 test("an order has no page of its own any more, so its old address is the 404 page", async ({
   page,
   context,

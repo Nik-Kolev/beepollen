@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { SITE_URL } from "@/lib/site";
 
-test("robots.txt keeps crawlers out of the admin, the cart and the checkout, and names the sitemap", async ({
+test("robots.txt keeps crawlers out of the admin only, and names the sitemap", async ({
   request,
 }) => {
   const response = await request.get("/robots.txt");
@@ -12,9 +12,21 @@ test("robots.txt keeps crawlers out of the admin, the cart and the checkout, and
   const disallowed = [...body.matchAll(/^Disallow: (.*)$/gm)].map(
     ([, path]) => path,
   );
-  expect(disallowed.sort()).toEqual(["/admin", "/cart", "/checkout"]);
+  expect(disallowed).toEqual(["/admin"]);
   expect(body).toMatch(/^Allow: \/$/m);
   expect(body).toContain(`Sitemap: ${SITE_URL}/sitemap.xml`);
+});
+
+test("the cart and the checkout, open to crawlers, tell them not to index the page", async ({
+  page,
+}) => {
+  for (const path of ["/cart", "/checkout"]) {
+    await page.goto(path);
+    await expect(page.locator('meta[name="robots"]'), path).toHaveAttribute(
+      "content",
+      "noindex, follow",
+    );
+  }
 });
 
 test("the sitemap lists the home page, every published product and the legal pages, and nothing else", async ({

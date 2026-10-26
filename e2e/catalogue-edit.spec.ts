@@ -123,12 +123,14 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await saveProduct(adminPage, SEEDED.price, "NONE");
   await admin.close();
 
-  await page
-    .getByRole("button", { name: "Поръчай с плащане при доставка" })
-    .click();
+  const submit = page.getByRole("button", {
+    name: "Поръчай с плащане при доставка",
+  });
+  await submit.click();
 
   const main = page.getByRole("main");
   await expect(main.getByRole("alert")).toHaveText(UNAVAILABLE_LINES);
+  await expect(submit).toBeDisabled();
   await expect(
     page.getByRole("region", { name: "Потвърждение" }),
   ).toContainText("Общо30,40 €");
@@ -137,4 +139,5 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await expect(main.getByText(OTHER_PRODUCT, { exact: true })).toBeVisible();
   await expect(main.getByText(PRODUCT, { exact: true })).toHaveCount(0);
   await expect(main.getByRole("alert")).toHaveCount(0);
+  await expect(submit).toBeEnabled();
 });

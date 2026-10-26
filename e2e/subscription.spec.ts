@@ -89,6 +89,29 @@ test("an unsubscribe link withdraws only once its button is pressed", async ({
   await expectNoAxeViolations(page);
 });
 
+test("a page loaded in full from a link page is told the site, never the token", async ({
+  page,
+  baseURL,
+}) => {
+  for (const path of [
+    "/subscription/confirm?token=confirm.1.x",
+    "/subscription/unsubscribe?token=unsubscribe.1.x",
+  ]) {
+    await page.goto(path);
+    await page.evaluate(() => {
+      const link = document.createElement("a");
+      link.href = "/terms";
+      document.body.append(link);
+      link.click();
+    });
+    await page.waitForURL("**/terms");
+
+    expect(await page.evaluate(() => document.referrer), path).toBe(
+      new URL("/", baseURL).href,
+    );
+  }
+});
+
 test.describe("without JavaScript", () => {
   test.use({ javaScriptEnabled: false });
 

@@ -372,6 +372,32 @@ test("a visitor who accepted loads no Google Analytics on a page whose URL carri
   expect(requests).toEqual([]);
 });
 
+test("a tag loaded elsewhere is switched off on coming back to a page whose URL carries an email token", async ({
+  page,
+}) => {
+  await countAnalyticsRequests(page);
+  await page.goto("/");
+  await bar(page).getByRole("button", { name: "Приемам", exact: true }).click();
+
+  const disabled = () =>
+    page.evaluate(
+      () =>
+        (window as unknown as Record<string, unknown>)[
+          "ga-disable-G-E2ETEST000"
+        ],
+    );
+
+  await page.goto("/subscription/unsubscribe?token=unsubscribe.1.x");
+  await waitForHydration(page);
+  await footerLink(page).click();
+  await expect(page).toHaveURL("/cookies");
+  await expect.poll(disabled).toBe(false);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/subscription\/unsubscribe/);
+  await expect.poll(disabled).toBe(true);
+});
+
 test("a visitor who refused never loads Google Analytics", async ({ page }) => {
   const requests = await countAnalyticsRequests(page);
   await page.goto("/");

@@ -32,9 +32,15 @@ export function Analytics() {
     if (!granted) clearAnalyticsCookies();
   }, [choice]);
 
-  return choice === "accepted" &&
-    MEASUREMENT_ID &&
-    !pathname.startsWith(TOKEN_PAGES) ? (
+  const tokenPage = pathname.startsWith(TOKEN_PAGES);
+
+  useEffect(() => {
+    if (choice !== "accepted" || !MEASUREMENT_ID) return;
+
+    (window as AnalyticsWindow)[`ga-disable-${MEASUREMENT_ID}`] = tokenPage;
+  }, [choice, tokenPage]);
+
+  return choice === "accepted" && MEASUREMENT_ID && !tokenPage ? (
     <GoogleAnalytics gaId={MEASUREMENT_ID} />
   ) : null;
 }

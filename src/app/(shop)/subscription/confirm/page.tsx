@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "Потвърждаване на абонамента",
   alternates: { canonical: "/subscription/confirm" },
   robots: { index: false, follow: false },
-  referrer: "same-origin",
+  referrer: "strict-origin",
 };
 
 export default async function ConfirmPage(

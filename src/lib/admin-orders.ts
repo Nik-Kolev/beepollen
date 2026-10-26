@@ -417,8 +417,58 @@ export function listOrders(view: OrderView = "all", shown = ORDERS_STEP) {
   });
 }
 
+export const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+type DuplicateCandidate = {
+  reference: string;
+  customerId: number;
+  createdAt: Date;
+  cancelledAt: Date | null;
+};
+
+export async function findPossibleDuplicates(orders: DuplicateCandidate[]) {
+  const duplicates = new Map<string, string>();
+  const live = orders.filter((order) => !order.cancelledAt);
+  if (live.length === 0) return duplicates;
+
+  const times = live.map((order) => order.createdAt.getTime());
+  const others = await prisma.order.findMany({
+    where: {
+      customerId: { in: [...new Set(live.map((order) => order.customerId))] },
+      cancelledAt: null,
+      createdAt: {
+        gt: new Date(Math.min(...times) - DUPLICATE_WINDOW_MS),
+        lt: new Date(Math.max(...times) + DUPLICATE_WINDOW_MS),
+      },
+    },
+    orderBy: { id: "asc" },
+    select: { reference: true, customerId: true, createdAt: true },
+  });
+
+  for (const order of live) {
+    let nearest: { gap: number; reference: string } | null = null;
+    for (const other of others) {
+      if (
+        other.reference === order.reference ||
+        other.customerId !== order.customerId
+      ) {
+        continue;
+      }
+      const gap = Math.abs(
+        other.createdAt.getTime() - order.createdAt.getTime(),
+      );
+      if (gap < DUPLICATE_WINDOW_MS && (!nearest || gap < nearest.gap)) {
+        nearest = { gap, reference: other.reference };
+      }
+    }
+    if (nearest) duplicates.set(order.reference, nearest.reference);
+  }
+  return duplicates;
+}
+
 const ORDER_DETAIL = {
   reference: true,
+  customerId: true,
   createdAt: true,
   sentAt: true,
   paidAt: true,

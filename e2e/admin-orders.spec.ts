@@ -1,10 +1,12 @@
+import { randomUUID } from "node:crypto";
+
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import { CONSENT_WORDING } from "@/lib/consent";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
-import { backdateOrderSteps } from "./e2e-db";
+import { backdateOrderSteps, placeEcontOrder } from "./e2e-db";
 import { signInAs } from "./admin-session";
 import { seedCart } from "./seed-cart";
 
@@ -399,4 +401,33 @@ test("an order has no page of its own any more, so its old address is the 404 pa
   await expect(
     page.getByRole("heading", { level: 1, name: "Страницата не е намерена" }),
   ).toBeVisible();
+});
+
+test("two orders from one email within a day each name the other as a possible duplicate", async ({
+  page,
+  context,
+}) => {
+  const email = `dup-${randomUUID()}@example.com`;
+  const first = placeEcontOrder(email, "0888123456");
+  const second = placeEcontOrder(email, "0888123456");
+  const alone = placeEcontOrder(
+    `alone-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders?filter=new&shown=100");
+
+  const card = (reference: string) =>
+    page
+      .getByRole("article")
+      .filter({ has: page.getByRole("heading", { name: reference }) });
+  const flag = (reference: string) =>
+    card(reference).getByText(/^Възможен дубликат на/);
+
+  await expect(flag(first)).toHaveText(`Възможен дубликат на ${second}`);
+  await expect(flag(second)).toHaveText(`Възможен дубликат на ${first}`);
+  await expect(card(alone)).toBeVisible();
+  await expect(flag(alone)).toHaveCount(0);
+  await expectNoAxeViolations(page);
 });

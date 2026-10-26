@@ -365,6 +365,21 @@ test("a city can be chosen with the arrow keys and Enter", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("the city the arrow keys reach is scrolled into the list's view", async ({
+  page,
+}) => {
+  await openPicker(page);
+
+  await cityInput(page).fill("с");
+  for (let step = 0; step < 12; step += 1) {
+    await cityInput(page).press("ArrowDown");
+  }
+
+  const active = page.locator('[role="option"][aria-selected="true"]');
+  await expect(active).toHaveAttribute("id", /-11$/);
+  await expect(active).toBeInViewport({ ratio: 1 });
+});
+
 test("choosing a city moves focus on to the control that continues the choice", async ({
   page,
 }) => {
@@ -458,4 +473,24 @@ test("Enter in a picker field never submits the order", async ({ page }) => {
   expect(posts).toEqual([]);
   await expect(page.getByText(OFFICE_REQUIRED)).toHaveCount(0);
   await expect(officeSearchInput(page)).toHaveValue(BIG_CITY_SEARCH_TERM);
+});
+
+test("Enter on an office in the list never submits the order", async ({
+  page,
+}) => {
+  await openPicker(page);
+  await chooseCity(page, SMALL_CITY);
+
+  const posts: string[] = [];
+
+  page.on("request", (request) => {
+    if (request.method() === "POST") posts.push(request.url());
+  });
+
+  const radio = officeGroup(page).getByRole("radio").first();
+  await radio.focus();
+  await radio.press("Enter");
+  await page.waitForLoadState("networkidle");
+
+  expect(posts).toEqual([]);
 });

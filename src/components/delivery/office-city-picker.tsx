@@ -19,6 +19,7 @@ import {
   INPUT_ERROR_TEXT,
   LABEL,
 } from "@/components/form-styles";
+import { inPlace } from "@/lib/delivery";
 import { listEcontCities, officeCount, type EcontOffice } from "@/lib/econt";
 
 const OfficeMap = dynamic(() => import("./office-map"), {
@@ -224,11 +225,14 @@ export function OfficeCityPicker({
 
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
-      setActiveCity(
+      const next =
         event.key === "ArrowDown"
           ? (activeCity + 1) % matchingCities.length
-          : (activeCity <= 0 ? matchingCities.length : activeCity) - 1,
-      );
+          : (activeCity <= 0 ? matchingCities.length : activeCity) - 1;
+      setActiveCity(next);
+      document
+        .getElementById(`${cityListId}-${next}`)
+        ?.scrollIntoView({ block: "nearest" });
       return;
     }
 
@@ -270,10 +274,10 @@ export function OfficeCityPicker({
     : !city
       ? ""
       : needsSearch && !officeQuery.trim()
-        ? `${officeCount(cityOffices.length)} в ${city} — въведете улица, квартал, име или изберете офис на картата.`
+        ? `${officeCount(cityOffices.length)} ${inPlace(city)} — въведете улица, квартал, име или изберете офис на картата.`
         : shownOffices.length === 0
           ? "Няма офис с това име."
-          : `${officeCount(shownOffices.length)} в ${city}.`;
+          : `${officeCount(shownOffices.length)} ${inPlace(city)}.`;
 
   const mapOffices = useMemo(() => {
     if (!city) return [];
@@ -466,8 +470,9 @@ export function OfficeCityPicker({
                 onPointerDown={() => {
                   pointerRef.current = true;
                 }}
-                onKeyDown={() => {
+                onKeyDown={(event) => {
                   pointerRef.current = false;
+                  if (event.key === "Enter") event.preventDefault();
                 }}
                 onBlur={(event) => {
                   if (event.currentTarget.contains(event.relatedTarget)) return;

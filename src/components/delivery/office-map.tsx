@@ -133,7 +133,7 @@ export default function OfficeMap({
       if (!marker) continue;
 
       const live = visibleCodes.has(office.code);
-      const chosen = office.code === selectedCode;
+      const chosen = live && office.code === selectedCode;
 
       marker.setStyle({
         radius: chosen ? radius + 3 : live ? radius : 5,
@@ -145,11 +145,14 @@ export default function OfficeMap({
 
       if (live) {
         marker.bindTooltip(office.label);
+        marker.bringToFront();
       } else {
         marker.unbindTooltip();
       }
+    }
 
-      if (chosen) marker.bringToFront();
+    if (selectedCode && visibleCodes.has(selectedCode)) {
+      markersRef.current.get(selectedCode)?.bringToFront();
     }
   }, [offices, visibleCodes, selectedCode]);
 

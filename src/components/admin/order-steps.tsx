@@ -75,13 +75,16 @@ export function OrderSteps({
   const saving = useRef(false);
   const advanced = useRef(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
   const stepsRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const textId = useId();
   const router = useRouter();
 
   useEffect(() => {
-    if (confirming && !dialogRef.current?.open) dialogRef.current?.showModal();
+    if (!confirming || dialogRef.current?.open) return;
+    dialogRef.current?.showModal();
+    cancelRef.current?.focus();
   }, [confirming]);
 
   function request(step: OrderStep) {
@@ -221,7 +224,7 @@ export function OrderSteps({
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <button
             type="button"
-            autoFocus
+            ref={cancelRef}
             onClick={closeDialog}
             className="border-line text-ink bg-surface hover:bg-ground inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors"
           >

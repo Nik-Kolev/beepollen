@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
-import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import { inPlace, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import { listEcontOffices } from "@/lib/delivery-offices";
 import { TODO_ECONT_TARIFF_CENTS } from "@/lib/econt";
 import { placeOrder } from "@/lib/orders";
@@ -160,4 +160,12 @@ test("a missing office is reported together with any other invalid field", async
   assert.equal(result.code, "VALIDATION_ERROR");
   if (result.code !== "VALIDATION_ERROR") return;
   assert.deepEqual([...result.fields].sort(), ["name", "officeCode"]);
+});
+
+test("a place starting with в or ф takes във, every other place в", () => {
+  assert.equal(inPlace("Варна"), "във Варна");
+  assert.equal(inPlace("Велико Търново"), "във Велико Търново");
+  assert.equal(inPlace("Фердинандово"), "във Фердинандово");
+  assert.equal(inPlace("София"), "в София");
+  assert.equal(inPlace("Габрово"), "в Габрово");
 });

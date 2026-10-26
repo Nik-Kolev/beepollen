@@ -11,3 +11,7 @@ export const DISPATCH_NOTE =
 export function deliveryPrice(method: DeliveryMethod): number {
   return method === DeliveryMethod.LOCAL ? 0 : TODO_ECONT_TARIFF_CENTS;
 }
+
+export function inPlace(name: string) {
+  return /^[вф]/i.test(name) ? `във ${name}` : `в ${name}`;
+}

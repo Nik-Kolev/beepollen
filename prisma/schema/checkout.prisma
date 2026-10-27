@@ -8,6 +8,7 @@ enum OrderEventKind {
   COLLECT
   UNDO
   WITHDRAWN
+  EDIT
 }
 
 enum EmailStatus {
@@ -116,6 +117,7 @@ model OrderEvent {
 
   adminEmail  String?
   emailStatus EmailStatus?
+  changes     Json?
   createdAt   DateTime     @default(now())
 
   @@index([orderId])

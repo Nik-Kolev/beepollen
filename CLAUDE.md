@@ -603,6 +603,19 @@ on screen with its message even when the step would have moved it out of the
 current filter. The list sets `overflow-anchor: none`, because a card that
 changes height after a step otherwise scrolls the page under the owner's finger.
 
+A new order's contact and delivery are edited by `editOrderContact` in
+`src/lib/order-edit.ts`. The caller sends the values its form started from as
+`original`; the server answers `stale` when the order no longer holds them, and
+the write matches them as read. The email lives on `Customer`, so a corrected
+one moves the order to the customer with that address, writes only the fields
+that changed onto it, and deletes the old customer once it has no orders. The
+order's offers consent is recreated unconfirmed: its confirmation token names
+the consent, and the misspelled address may already have confirmed it.
+Delivery is repriced only when the method changes, and an unchanged office is
+never re-read, so a phone fix can neither reprice an order nor fail on an
+office `econt:sync` dropped. The edit's `OrderEvent` keeps the old and new
+values in `changes`, which `/privacy` declares.
+
 The admin bar above the shop header is fetched from `/api/admin-status` in the
 browser after load. Asking the session while rendering would make every
 prerendered shop page dynamic, so do not move that check to the server.

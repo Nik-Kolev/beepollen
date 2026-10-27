@@ -102,6 +102,7 @@ CREATE TABLE "OrderEvent" (
     "kind" TEXT NOT NULL,
     "adminEmail" TEXT,
     "emailStatus" TEXT,
+    "changes" JSONB,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "OrderEvent_orderId_fkey" FOREIGN KEY ("orderId") REFERENCES "Order" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );

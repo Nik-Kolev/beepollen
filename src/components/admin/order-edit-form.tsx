@@ -12,7 +12,7 @@ import {
 
 import {
   editOrder,
-  loadEditOffices,
+  loadEditOptions,
   previewOrderEdit,
 } from "@/app/admin/orders/actions";
 import { ORDER_LIST_ID } from "@/components/admin/order-list-id";
@@ -39,6 +39,7 @@ type Original = {
   phone: string;
   deliveryMethod: DeliveryMethod;
   officeCode: string;
+  items: { slug: string; name: string; quantity: number }[];
 };
 
 type Answers = {
@@ -47,6 +48,12 @@ type Answers = {
   phone: string;
   local: boolean;
   officeCode: string;
+  items: { key: number; slug: string; quantity: string }[];
+};
+
+type Options = {
+  offices: EcontOffice[];
+  products: { slug: string; name: string }[];
 };
 
 const FAILURE_TEXT = {
@@ -54,6 +61,8 @@ const FAILURE_TEXT = {
   refused: "Тази поръчка вече не може да се редактира.",
   invalid: "Поправете отбелязаните полета.",
   unknownOffice: UNKNOWN_OFFICE,
+  unavailable:
+    "Избран продукт вече не се продава. Изберете друг или махнете реда.",
   unchanged: "Няма промени за запазване.",
   offices: "Офисите не се заредиха. Затворете и отворете редакцията отново.",
   error: "Не е запазено. Опитайте отново.",
@@ -78,6 +87,11 @@ function answersFrom(original: Original): Answers {
     phone: original.phone,
     local: original.deliveryMethod === DeliveryMethod.LOCAL,
     officeCode: original.officeCode,
+    items: original.items.map((item, index) => ({
+      key: index,
+      slug: item.slug,
+      quantity: String(item.quantity),
+    })),
   };
 }
 
@@ -93,7 +107,9 @@ export function OrderEditForm({
   const [editing, setEditing] = useState(false);
   const [openedFrom, setOpenedFrom] = useState({ original, officeCity });
   const [answers, setAnswers] = useState(() => answersFrom(original));
-  const [offices, setOffices] = useState<EcontOffice[] | null>(null);
+  const [options, setOptions] = useState<Options | null>(null);
+  const offices = options?.offices ?? null;
+  const nextKey = useRef(1000);
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [failure, setFailure] = useState<Failure | null>(null);
   const [changes, setChanges] = useState<OrderChange[] | null>(null);
@@ -108,6 +124,7 @@ export function OrderEditForm({
   const focusAfterClose = useRef(false);
   const focusInvalid = useRef(false);
   const reloaded = useRef(false);
+  const focusRow = useRef<number | null>(null);
   const router = useRouter();
   const id = useId();
   const titleId = `${id}-title`;
@@ -125,8 +142,29 @@ export function OrderEditForm({
     if (!focusInvalid.current) return;
     focusInvalid.current = false;
     const first = TEXT_FIELDS.find((field) => invalid.has(field));
-    if (first) inputRefs.current[first]?.focus();
-  }, [invalid]);
+    if (first) return inputRefs.current[first]?.focus();
+    const row = answers.items.find(
+      (item) =>
+        invalid.has(`product-${item.key}`) ||
+        invalid.has(`quantity-${item.key}`),
+    );
+    if (row) {
+      document
+        .getElementById(
+          invalid.has(`product-${row.key}`)
+            ? `${id}-item-${row.key}`
+            : `${id}-quantity-${row.key}`,
+        )
+        ?.focus();
+    }
+  }, [invalid, answers.items, id]);
+
+  useEffect(() => {
+    if (focusRow.current === null) return;
+    const key = focusRow.current;
+    focusRow.current = null;
+    document.getElementById(`${id}-item-${key}`)?.focus();
+  }, [answers.items, id]);
 
   useEffect(
     () => () => {
@@ -149,10 +187,10 @@ export function OrderEditForm({
     setInvalid(new Set());
     setFailure(null);
     setEditing(true);
-    if (offices) return;
+    if (options) return;
     startLoading(async () => {
       try {
-        setOffices(await loadEditOffices());
+        setOptions(await loadEditOptions());
       } catch {
         setFailure("offices");
       }
@@ -182,6 +220,10 @@ export function OrderEditForm({
         ? DeliveryMethod.LOCAL
         : DeliveryMethod.ECONT_OFFICE,
       officeCode: answers.local ? "" : answers.officeCode,
+      items: answers.items.map((item) => ({
+        slug: item.slug,
+        quantity: Number(item.quantity),
+      })),
     };
   }
 
@@ -189,9 +231,26 @@ export function OrderEditForm({
     if (result.reason === "VALIDATION_ERROR") {
       setFailure(result.fields.includes("original") ? "stale" : "invalid");
       focusInvalid.current = true;
-      setInvalid(new Set(result.fields));
+      setInvalid(
+        new Set([
+          ...result.fields,
+          ...(result.fields.includes("items")
+            ? answers.items.map((item) => `quantity-${item.key}`)
+            : []),
+        ]),
+      );
     } else if (result.reason === "UNKNOWN_OFFICE") {
       setFailure("unknownOffice");
+    } else if (result.reason === "UNAVAILABLE_ITEMS") {
+      setFailure("unavailable");
+      focusInvalid.current = true;
+      setInvalid(
+        new Set(
+          answers.items
+            .filter((item) => result.slugs.includes(item.slug))
+            .map((item) => `product-${item.key}`),
+        ),
+      );
     } else {
       setFailure(result.reason);
     }
@@ -214,6 +273,16 @@ export function OrderEditForm({
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
+    const outOfRange = answers.items.filter((item) => {
+      const quantity = Number(item.quantity);
+      return !Number.isInteger(quantity) || quantity < 1 || quantity > 99;
+    });
+    if (outOfRange.length > 0) {
+      setFailure("invalid");
+      focusInvalid.current = true;
+      setInvalid(new Set(outOfRange.map((item) => `quantity-${item.key}`)));
+      return;
+    }
     save(async () => {
       const result = await previewOrderEdit(payload());
       if (!result.ok) return refusal(result);
@@ -243,6 +312,66 @@ export function OrderEditForm({
         return next;
       });
     };
+  }
+
+  function setItem(key: number, change: { slug?: string; quantity?: string }) {
+    setAnswers((current) => ({
+      ...current,
+      items: current.items.map((item) =>
+        item.key === key ? { ...item, ...change } : item,
+      ),
+    }));
+    const marks = [
+      ...(change.quantity !== undefined ? [`quantity-${key}`] : []),
+      ...(change.slug !== undefined ? [`product-${key}`] : []),
+    ];
+    setInvalid((current) => {
+      if (!marks.some((mark) => current.has(mark))) return current;
+      const next = new Set(current);
+      for (const mark of marks) next.delete(mark);
+      next.delete("items");
+      return next;
+    });
+  }
+
+  function removeItem(key: number) {
+    const items = answers.items;
+    if (items.length < 2) return;
+    const index = items.findIndex((item) => item.key === key);
+    focusRow.current = (items[index - 1] ?? items[index + 1]).key;
+    setAnswers((current) => ({
+      ...current,
+      items: current.items.filter((item) => item.key !== key),
+    }));
+  }
+
+  const unusedProducts =
+    options?.products.filter(
+      (product) => !answers.items.some((item) => item.slug === product.slug),
+    ) ?? [];
+
+  function addItem() {
+    const product = unusedProducts[0];
+    if (!product) return;
+    nextKey.current += 1;
+    const key = nextKey.current;
+    focusRow.current = key;
+    setAnswers((current) => ({
+      ...current,
+      items: [...current.items, { key, slug: product.slug, quantity: "1" }],
+    }));
+  }
+
+  function productChoices(slug: string) {
+    const catalogue = options?.products ?? [];
+    const withdrawn = openedFrom.original.items.filter(
+      (item) => !catalogue.some((product) => product.slug === item.slug),
+    );
+    return [...withdrawn, ...catalogue].filter(
+      (product) =>
+        product.slug === slug ||
+        !answers.items.some((item) => item.slug === product.slug),
+    );
   }
 
   function fieldProps(field: string) {
@@ -310,6 +439,103 @@ export function OrderEditForm({
           )}
         </div>
       ))}
+
+      {options ? (
+        <fieldset className="flex flex-col gap-3">
+          <legend className={`${LABEL} mb-2`}>Продукти</legend>
+          <ul role="list" className="flex flex-col gap-3">
+            {answers.items.map((item, index) => (
+              <li
+                key={item.key}
+                className="border-line flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-end"
+              >
+                <div className="sm:flex-1">
+                  <label htmlFor={`${id}-item-${item.key}`} className={LABEL}>
+                    Продукт {index + 1}
+                  </label>
+                  <select
+                    id={`${id}-item-${item.key}`}
+                    value={item.slug}
+                    onChange={(event) =>
+                      setItem(item.key, { slug: event.target.value })
+                    }
+                    {...(invalid.has(`product-${item.key}`)
+                      ? {
+                          "aria-invalid": true,
+                          "aria-describedby": `${id}-unavailable-error`,
+                          className: FIELD_INVALID,
+                        }
+                      : { className: FIELD })}
+                  >
+                    {productChoices(item.slug).map((product) => (
+                      <option key={product.slug} value={product.slug}>
+                        {product.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="sm:w-28">
+                  <label
+                    htmlFor={`${id}-quantity-${item.key}`}
+                    className={LABEL}
+                  >
+                    Брой
+                    <span className="sr-only"> за продукт {index + 1}</span>
+                  </label>
+                  <input
+                    id={`${id}-quantity-${item.key}`}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={99}
+                    value={item.quantity}
+                    onChange={(event) =>
+                      setItem(item.key, { quantity: event.target.value })
+                    }
+                    {...(invalid.has(`quantity-${item.key}`)
+                      ? {
+                          "aria-invalid": true,
+                          "aria-describedby": `${id}-items-error`,
+                          className: FIELD_INVALID,
+                        }
+                      : { className: FIELD })}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeItem(item.key)}
+                  aria-disabled={answers.items.length === 1}
+                  aria-label={`Махни продукт ${index + 1}`}
+                  className={`${SECONDARY_BUTTON} aria-disabled:border-ink-soft/40 aria-disabled:text-ink/40 aria-disabled:cursor-not-allowed`}
+                >
+                  Махни
+                </button>
+              </li>
+            ))}
+          </ul>
+          {answers.items.some((item) =>
+            invalid.has(`quantity-${item.key}`),
+          ) && (
+            <p id={`${id}-items-error`} className={INPUT_ERROR_TEXT}>
+              Въведете брой от 1 до 99 за всеки продукт.
+            </p>
+          )}
+          {answers.items.some((item) => invalid.has(`product-${item.key}`)) && (
+            <p id={`${id}-unavailable-error`} className={INPUT_ERROR_TEXT}>
+              {FAILURE_TEXT.unavailable}
+            </p>
+          )}
+          {unusedProducts.length > 0 && (
+            <button
+              type="button"
+              onClick={addItem}
+              className={`${SECONDARY_BUTTON} self-start text-sm`}
+            >
+              Добави продукт
+            </button>
+          )}
+        </fieldset>
+      ) : null}
 
       <label className="flex min-h-11 items-center gap-3 text-sm">
         <input
@@ -398,8 +624,8 @@ export function OrderEditForm({
           Поръчка {reference} ще се промени:
         </p>
         <ul role="list" className="mt-2 flex flex-col gap-2 text-sm">
-          {changes?.map((change) => (
-            <li key={change.field}>
+          {changes?.map((change, index) => (
+            <li key={index}>
               <span className="font-semibold">
                 {ORDER_CHANGE_LABEL[change.field]}
               </span>

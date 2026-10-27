@@ -34,6 +34,7 @@ async function shown(reference: string) {
       customer: { select: { email: true } },
       deliveryMethod: true,
       officeCode: true,
+      items: { orderBy: { id: "asc" }, select: { slug: true, quantity: true } },
     },
   });
   return {
@@ -42,6 +43,7 @@ async function shown(reference: string) {
     phone: order.contactPhone,
     deliveryMethod: order.deliveryMethod,
     officeCode: order.officeCode ?? "",
+    items: order.items,
   };
 }
 
@@ -586,4 +588,343 @@ test("history changes that do not match the expected shape render as none", () =
     parseOrderChanges([{ field: "totalCents", from: 100, to: 200 }]),
     [{ field: "totalCents", from: 100, to: 200 }],
   );
+});
+
+const SMALL = "pchelen-prashets-500g";
+const LARGE = "pchelen-prashets-1kg";
+
+function catalogue(slug: string) {
+  return prisma.product.findUniqueOrThrow({
+    where: { slug },
+    select: { name: true, priceCents: true },
+  });
+}
+
+function linesOf(reference: string) {
+  return prisma.orderItem.findMany({
+    where: { order: { reference } },
+    orderBy: { id: "asc" },
+    select: { slug: true, name: true, unitPriceCents: true, quantity: true },
+  });
+}
+
+test("a new quantity keeps the line's order price and reprices the order", async () => {
+  const reference = await place();
+  await prisma.orderItem.updateMany({
+    where: { order: { reference } },
+    data: { unitPriceCents: 999 },
+  });
+  await prisma.order.update({
+    where: { reference },
+    data: { itemsCents: 999, totalCents: { set: 999 } },
+  });
+  const before = await orderOf(reference);
+  const small = await catalogue(SMALL);
+
+  const result = await editOrderContact(
+    await editInput(reference, { items: [{ slug: SMALL, quantity: 3 }] }),
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  const order = await orderOf(reference);
+  assert.deepEqual(await linesOf(reference), [
+    { slug: SMALL, name: small.name, unitPriceCents: 999, quantity: 3 },
+  ]);
+  assert.equal(order.itemsCents, 2997);
+  assert.equal(order.totalCents, 2997 + order.deliveryCents);
+  assert.deepEqual(result.changes, [
+    {
+      field: "item",
+      from: `${small.name} × 1`,
+      to: `${small.name} × 3`,
+    },
+    {
+      field: "totalCents",
+      from: before.totalCents,
+      to: 2997 + order.deliveryCents,
+    },
+  ]);
+});
+
+test("swapping the size removes the old line and adds the new one at the catalogue's price", async () => {
+  const reference = await place();
+  const small = await catalogue(SMALL);
+  const large = await catalogue(LARGE);
+
+  const result = await editOrderContact(
+    await editInput(reference, { items: [{ slug: LARGE, quantity: 2 }] }),
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.deepEqual(await linesOf(reference), [
+    {
+      slug: LARGE,
+      name: large.name,
+      unitPriceCents: large.priceCents,
+      quantity: 2,
+    },
+  ]);
+  const order = await orderOf(reference);
+  assert.equal(order.itemsCents, large.priceCents * 2);
+  assert.deepEqual(
+    result.changes.filter((change) => change.field === "item"),
+    [
+      { field: "item", from: `${small.name} × 1`, to: "—" },
+      { field: "item", from: "—", to: `${large.name} × 2` },
+    ],
+  );
+  assert.deepEqual(order.events.at(-1)?.changes, result.changes);
+});
+
+test("adding a line keeps the existing one, and a sum of a slug sent twice is one line", async () => {
+  const reference = await place();
+  const small = await catalogue(SMALL);
+  const large = await catalogue(LARGE);
+
+  const result = await editOrderContact(
+    await editInput(reference, {
+      items: [
+        { slug: SMALL, quantity: 1 },
+        { slug: LARGE, quantity: 1 },
+        { slug: LARGE, quantity: 2 },
+      ],
+    }),
+  );
+
+  assert.equal(result.ok, true);
+  const lines = await linesOf(reference);
+  assert.deepEqual(
+    lines.map((line) => [line.slug, line.quantity]),
+    [
+      [SMALL, 1],
+      [LARGE, 3],
+    ],
+  );
+  assert.equal(
+    (await orderOf(reference)).itemsCents,
+    small.priceCents + large.priceCents * 3,
+  );
+});
+
+test("a product that cannot be sold is refused when added, and nothing is written", async () => {
+  const reference = await place();
+
+  const results = [
+    await editOrderContact(
+      await editInput(reference, {
+        items: [{ slug: "lorem-ipsum", quantity: 1 }],
+      }),
+    ),
+    await editOrderContact(
+      await editInput(reference, { items: [{ slug: "no-such", quantity: 1 }] }),
+    ),
+  ];
+
+  assert.deepEqual(results, [
+    { ok: false, reason: "UNAVAILABLE_ITEMS", slugs: ["lorem-ipsum"] },
+    { ok: false, reason: "UNAVAILABLE_ITEMS", slugs: ["no-such"] },
+  ]);
+  assert.deepEqual(
+    (await linesOf(reference)).map((line) => line.slug),
+    [SMALL],
+  );
+  assert.equal((await orderOf(reference)).events.length, 1);
+});
+
+test("no lines, or a quantity past the limit, is refused naming the items", async () => {
+  const reference = await place();
+
+  const results = [
+    await editOrderContact(await editInput(reference, { items: [] })),
+    await editOrderContact(
+      await editInput(reference, { items: [{ slug: SMALL, quantity: 100 }] }),
+    ),
+    await editOrderContact(
+      await editInput(reference, { items: [{ slug: SMALL, quantity: 0 }] }),
+    ),
+  ];
+
+  for (const result of results) {
+    assert.equal(!result.ok && result.reason, "VALIDATION_ERROR");
+    assert.deepEqual(
+      !result.ok && result.reason === "VALIDATION_ERROR" && result.fields,
+      ["items"],
+    );
+  }
+});
+
+test("lines changed since the form opened make the edit stale", async () => {
+  const reference = await place();
+  const input = await editInput(reference, {
+    items: [{ slug: SMALL, quantity: 2 }],
+  });
+  await prisma.orderItem.updateMany({
+    where: { order: { reference } },
+    data: { quantity: 5 },
+  });
+
+  const preview = await editOrderContact(input, { dryRun: true });
+  const result = await editOrderContact(input);
+
+  assert.deepEqual(preview, { ok: false, reason: "stale" });
+  assert.deepEqual(result, { ok: false, reason: "stale" });
+  assert.equal((await linesOf(reference))[0].quantity, 5);
+});
+
+test("two identical size swaps at an equal total save one and leave a single line", async () => {
+  const reference = await place();
+  const large = await catalogue(LARGE);
+  await prisma.orderItem.updateMany({
+    where: { order: { reference } },
+    data: { unitPriceCents: large.priceCents },
+  });
+  await prisma.order.update({
+    where: { reference },
+    data: { itemsCents: large.priceCents },
+  });
+  const first = await editInput(reference, {
+    items: [{ slug: LARGE, quantity: 1 }],
+  });
+  const second = await editInput(reference, {
+    items: [{ slug: LARGE, quantity: 1 }],
+  });
+
+  const results = await Promise.all([
+    editOrderContact(first),
+    editOrderContact(second),
+  ]);
+
+  assert.deepEqual(
+    results.map((result) => (result.ok ? "ok" : result.reason)).sort(),
+    ["ok", "stale"],
+  );
+  assert.deepEqual(
+    (await linesOf(reference)).map((line) => line.slug),
+    [LARGE],
+  );
+});
+
+test("a line whose product left the catalogue survives an edit that leaves it alone", async () => {
+  const reference = await place();
+  await prisma.orderItem.updateMany({
+    where: { order: { reference } },
+    data: { slug: "withdrawn-size", productId: null },
+  });
+
+  const result = await editOrderContact(
+    await editInput(reference, { phone: "0899111222" }),
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(
+    (await linesOf(reference)).map((line) => line.slug),
+    ["withdrawn-size"],
+  );
+});
+
+async function withLargeAs<T>(
+  data: { stock?: "NONE"; priceCents?: number; isPublished?: boolean },
+  run: () => Promise<T>,
+): Promise<T> {
+  const before = await prisma.product.findUniqueOrThrow({
+    where: { slug: LARGE },
+    select: { stock: true, priceCents: true, isPublished: true },
+  });
+  await prisma.product.update({ where: { slug: LARGE }, data });
+  try {
+    return await run();
+  } finally {
+    await prisma.product.update({ where: { slug: LARGE }, data: before });
+  }
+}
+
+test("each of checkout's rules on its own refuses an added product", async () => {
+  const reference = await place();
+  const add = async () =>
+    editOrderContact(
+      await editInput(reference, { items: [{ slug: LARGE, quantity: 1 }] }),
+    );
+
+  const results = [
+    await withLargeAs({ stock: "NONE" }, add),
+    await withLargeAs({ priceCents: 0 }, add),
+    await withLargeAs({ isPublished: false }, add),
+  ];
+
+  for (const result of results) {
+    assert.deepEqual(result, {
+      ok: false,
+      reason: "UNAVAILABLE_ITEMS",
+      slugs: [LARGE],
+    });
+  }
+});
+
+test("a line no longer sold may stay or shrink but not grow", async () => {
+  const reference = await place({
+    items: [{ slug: LARGE, quantity: 3 }],
+  });
+
+  const [grown, shrunk] = await withLargeAs({ stock: "NONE" }, async () => [
+    await editOrderContact(
+      await editInput(reference, { items: [{ slug: LARGE, quantity: 4 }] }),
+    ),
+    await editOrderContact(
+      await editInput(reference, { items: [{ slug: LARGE, quantity: 2 }] }),
+    ),
+  ]);
+
+  assert.deepEqual(grown, {
+    ok: false,
+    reason: "UNAVAILABLE_ITEMS",
+    slugs: [LARGE],
+  });
+  assert.equal(shrunk.ok, true);
+  assert.equal((await linesOf(reference))[0].quantity, 2);
+});
+
+test("removing one of two lines keeps the other and its price", async () => {
+  const reference = await place({
+    items: [
+      { slug: SMALL, quantity: 1 },
+      { slug: LARGE, quantity: 2 },
+    ],
+  });
+  const before = await linesOf(reference);
+
+  const result = await editOrderContact(
+    await editInput(reference, { items: [{ slug: LARGE, quantity: 2 }] }),
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(await linesOf(reference), [before[1]]);
+  assert.equal(
+    (await orderOf(reference)).itemsCents,
+    before[1].unitPriceCents * 2,
+  );
+});
+
+test("a price or a name sent with a line is ignored", async () => {
+  const reference = await place();
+  const large = await catalogue(LARGE);
+
+  const result = await editOrderContact(
+    await editInput(reference, {
+      items: [
+        { slug: LARGE, quantity: 1, unitPriceCents: 1, name: "Безплатно" },
+      ],
+    }),
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(await linesOf(reference), [
+    {
+      slug: LARGE,
+      name: large.name,
+      unitPriceCents: large.priceCents,
+      quantity: 1,
+    },
+  ]);
 });

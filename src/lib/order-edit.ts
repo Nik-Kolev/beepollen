@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { deliveryLabel, orderStatus } from "@/lib/admin-orders";
+import { collapseDuplicates, MAX_LINE_QUANTITY, MAX_LINES } from "@/lib/cart";
 import {
   DeliveryMethod,
   deliveryPrice,
@@ -17,6 +18,11 @@ import {
 } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 
+const lineSchema = z.object({
+  slug: z.string().min(1).max(200),
+  quantity: z.number().int().min(1).max(MAX_LINE_QUANTITY),
+});
+
 export const orderEditInput = z
   .object({
     reference: z.string().min(1).max(32),
@@ -26,12 +32,14 @@ export const orderEditInput = z
       phone: z.string().max(30),
       deliveryMethod: z.enum(DeliveryMethod),
       officeCode: z.string().max(50),
+      items: z.array(lineSchema).max(MAX_LINES),
     }),
     name: contactNameSchema,
     email: contactEmailSchema,
     phone: contactPhoneSchema,
     deliveryMethod: z.enum(DeliveryMethod),
     officeCode: z.string().trim().max(50),
+    items: z.array(lineSchema).min(1).max(MAX_LINES),
   })
   .superRefine((input, ctx) => {
     if (input.deliveryMethod === "ECONT_OFFICE" && input.officeCode === "") {
@@ -52,7 +60,24 @@ export type OrderEditResult =
       offersUnconfirmed: boolean;
     }
   | { ok: false; reason: "VALIDATION_ERROR"; fields: string[] }
+  | { ok: false; reason: "UNAVAILABLE_ITEMS"; slugs: string[] }
   | { ok: false; reason: "UNKNOWN_OFFICE" | "stale" | "refused" };
+
+type Line = { slug: string; quantity: number };
+
+function sameLines(a: Line[], b: Line[]) {
+  const quantities = new Map(a.map((line) => [line.slug, line.quantity]));
+  return (
+    a.length === b.length &&
+    b.every((line) => quantities.get(line.slug) === line.quantity)
+  );
+}
+
+function lineText(line: { name: string; quantity: number }) {
+  return `${line.name} × ${line.quantity}`;
+}
+
+const NO_LINE = "—";
 
 type OfficeSnapshot = {
   officeCarrier: "ECONT" | "SPEEDY" | null;
@@ -127,6 +152,16 @@ export async function editOrderContact(
       cancelledAt: true,
       collectedAt: true,
       withdrawnAt: true,
+      items: {
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          unitPriceCents: true,
+          quantity: true,
+        },
+      },
     },
   });
   if (!order) return { ok: false, reason: "refused" };
@@ -146,10 +181,62 @@ export async function editOrderContact(
     input.original.email !== current.email ||
     input.original.phone !== current.phone ||
     input.original.deliveryMethod !== current.deliveryMethod ||
-    input.original.officeCode !== current.officeCode
+    input.original.officeCode !== current.officeCode ||
+    !sameLines(input.original.items, order.items)
   ) {
     return { ok: false, reason: "stale" };
   }
+
+  const desired = collapseDuplicates(input.items);
+  const existing = new Map(order.items.map((line) => [line.slug, line]));
+  const raisedSlugs = desired
+    .filter((line) => line.quantity > (existing.get(line.slug)?.quantity ?? 0))
+    .map((line) => line.slug);
+  const products =
+    raisedSlugs.length > 0
+      ? await prisma.product.findMany({
+          where: {
+            slug: { in: raisedSlugs },
+            isPublished: true,
+            stock: { not: "NONE" },
+            priceCents: { gt: 0 },
+          },
+          select: { id: true, slug: true, name: true, priceCents: true },
+        })
+      : [];
+  const sellable = new Map(products.map((product) => [product.slug, product]));
+  const unavailable = raisedSlugs.filter((slug) => !sellable.has(slug));
+  if (unavailable.length > 0) {
+    return { ok: false, reason: "UNAVAILABLE_ITEMS", slugs: unavailable };
+  }
+
+  const kept = desired.flatMap((line) => {
+    const was = existing.get(line.slug);
+    return was ? [{ ...was, quantity: line.quantity, was }] : [];
+  });
+  const added = desired.flatMap((line) => {
+    const product = existing.has(line.slug)
+      ? undefined
+      : sellable.get(line.slug);
+    return product
+      ? [
+          {
+            productId: product.id,
+            slug: product.slug,
+            name: product.name,
+            unitPriceCents: product.priceCents,
+            quantity: line.quantity,
+          },
+        ]
+      : [];
+  });
+  const removed = order.items.filter(
+    (line) => !desired.some((wanted) => wanted.slug === line.slug),
+  );
+  const itemsCents = [...kept, ...added].reduce(
+    (total, line) => total + line.unitPriceCents * line.quantity,
+    0,
+  );
 
   const officeCode =
     input.deliveryMethod === DeliveryMethod.ECONT_OFFICE
@@ -188,7 +275,7 @@ export async function editOrderContact(
     input.deliveryMethod === current.deliveryMethod
       ? order.deliveryCents
       : deliveryPrice(input.deliveryMethod);
-  const totalCents = order.itemsCents + deliveryCents;
+  const totalCents = itemsCents + deliveryCents;
 
   const changes: OrderChange[] = [];
   if (input.name !== current.name) {
@@ -207,18 +294,36 @@ export async function editOrderContact(
       to: describeDelivery({ ...office, deliveryMethod: input.deliveryMethod }),
     });
   }
+  for (const line of kept) {
+    if (line.quantity !== line.was.quantity) {
+      changes.push({
+        field: "item",
+        from: lineText(line.was),
+        to: lineText(line),
+      });
+    }
+  }
+  for (const line of removed) {
+    changes.push({ field: "item", from: lineText(line), to: NO_LINE });
+  }
+  for (const line of added) {
+    changes.push({ field: "item", from: NO_LINE, to: lineText(line) });
+  }
   if (deliveryCents !== order.deliveryCents) {
     changes.push({
       field: "deliveryCents",
       from: order.deliveryCents,
       to: deliveryCents,
     });
+  }
+  if (totalCents !== order.totalCents) {
     changes.push({
       field: "totalCents",
       from: order.totalCents,
       to: totalCents,
     });
   }
+  const linesChanged = changes.some((change) => change.field === "item");
 
   if (changes.length === 0 || dryRun) {
     return {
@@ -253,6 +358,7 @@ export async function editOrderContact(
             contactPhone: order.contactPhone,
             deliveryMethod: order.deliveryMethod,
             officeCode: order.officeCode,
+            itemsCents: order.itemsCents,
             sentAt: null,
             paidAt: null,
             cancelledAt: null,
@@ -265,11 +371,36 @@ export async function editOrderContact(
             contactPhone: input.phone,
             deliveryMethod: input.deliveryMethod,
             ...office,
+            itemsCents,
             deliveryCents,
             totalCents,
           },
         });
         if (count !== 1) throw new StaleEdit();
+
+        if (linesChanged) {
+          const lines = await tx.orderItem.findMany({
+            where: { orderId: order.id },
+            select: { slug: true, quantity: true },
+          });
+          if (!sameLines(lines, order.items)) throw new StaleEdit();
+          await tx.orderItem.deleteMany({
+            where: { id: { in: removed.map((line) => line.id) } },
+          });
+          for (const line of kept) {
+            if (line.quantity !== line.was.quantity) {
+              await tx.orderItem.update({
+                where: { id: line.id },
+                data: { quantity: line.quantity },
+              });
+            }
+          }
+          if (added.length > 0) {
+            await tx.orderItem.createMany({
+              data: added.map((line) => ({ ...line, orderId: order.id })),
+            });
+          }
+        }
 
         const offers = emailChanged
           ? await tx.consent.findFirst({

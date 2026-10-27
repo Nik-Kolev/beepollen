@@ -494,6 +494,7 @@ const ORDER_DETAIL = {
     orderBy: { id: "asc" },
     select: {
       id: true,
+      slug: true,
       name: true,
       unitPriceCents: true,
       quantity: true,

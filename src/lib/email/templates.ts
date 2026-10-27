@@ -286,6 +286,37 @@ export function orderSentEmail(
   };
 }
 
+export function orderUpdatedEmail(
+  order: OrderEmailData,
+  design: EmailDesign = DEFAULT_EMAIL_DESIGN,
+): EmailMessage {
+  const updated = `Здравейте! Обновихме данните по поръчка ${order.reference}.`;
+  const payment = "Плащате при получаване.";
+  const phone = `Телефон за връзка: ${order.contactPhone}.`;
+
+  return {
+    subject: `Поръчка ${order.reference} е обновена`,
+    html: renderLayout(design, {
+      preheader: updated,
+      heading: "Поръчката е обновена",
+      bodyHtml: [
+        paragraph(escapeHtml(updated)),
+        linesHtml(order),
+        paragraph(`${escapeHtml(deliverySentence(order))} ${payment}`),
+        paragraph(escapeHtml(phone)),
+      ].join("\n"),
+    }),
+    text: [
+      "Поръчката е обновена",
+      updated,
+      linesText(order),
+      `${deliverySentence(order)} ${payment}`,
+      phone,
+      textFooter(),
+    ].join("\n\n"),
+  };
+}
+
 export function orderCancelledEmail(
   order: OrderEmailData,
   design: EmailDesign = DEFAULT_EMAIL_DESIGN,

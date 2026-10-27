@@ -365,6 +365,7 @@ test("saving unchanged values writes no event", async () => {
 
   assert.deepEqual(result, {
     ok: true,
+    reference,
     eventId: null,
     changes: [],
     offersUnconfirmed: false,
@@ -522,6 +523,7 @@ test("a stray office code on a Попово order is no change", async () => {
 
   assert.deepEqual(result, {
     ok: true,
+    reference,
     eventId: null,
     changes: [],
     offersUnconfirmed: false,

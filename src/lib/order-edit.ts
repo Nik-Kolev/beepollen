@@ -37,6 +37,10 @@ export const orderEditInput = z
     }
   });
 
+export const orderEditNotify = z.object({
+  notify: z.boolean().optional(),
+});
+
 export type OrderChange =
   | { field: "name" | "email" | "phone" | "delivery"; from: string; to: string }
   | { field: "deliveryCents" | "totalCents"; from: number; to: number };
@@ -44,6 +48,7 @@ export type OrderChange =
 export type OrderEditResult =
   | {
       ok: true;
+      reference: string;
       eventId: number | null;
       changes: OrderChange[];
       offersUnconfirmed: boolean;
@@ -210,7 +215,13 @@ export async function editOrderContact(
   }
 
   if (changes.length === 0) {
-    return { ok: true, eventId: null, changes, offersUnconfirmed: false };
+    return {
+      ok: true,
+      reference: input.reference,
+      eventId: null,
+      changes,
+      offersUnconfirmed: false,
+    };
   }
 
   const emailChanged = input.email !== current.email;
@@ -301,7 +312,13 @@ export async function editOrderContact(
       },
     );
 
-    return { ok: true, eventId, changes, offersUnconfirmed };
+    return {
+      ok: true,
+      reference: input.reference,
+      eventId,
+      changes,
+      offersUnconfirmed,
+    };
   } catch (error) {
     if (error instanceof StaleEdit) return { ok: false, reason: "stale" };
     throw error;

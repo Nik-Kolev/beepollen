@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
 import type { EmailStatus } from "@/generated/prisma/enums";
@@ -8,8 +9,11 @@ import {
   type OrderStep,
   recordOrderStep,
 } from "@/lib/admin-orders";
+import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import type { Outgoing } from "@/lib/email/transport";
+import { editOrderContact } from "@/lib/order-edit";
 import {
+  sendEditEmail,
   sendPlacedEmails,
   sendStepEmail,
   sendWithdrawalEmails,
@@ -270,6 +274,149 @@ test("an order never withdrawn gets no acknowledgement", async () => {
   const { sent, send } = recorder();
 
   await sendWithdrawalEmails(reference, send);
+
+  assert.equal(sent.length, 0);
+});
+
+async function edit(reference: string, overrides: Record<string, unknown>) {
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { reference },
+    select: {
+      contactName: true,
+      contactPhone: true,
+      customer: { select: { email: true } },
+      deliveryMethod: true,
+      officeCode: true,
+    },
+  });
+  const original = {
+    name: order.contactName,
+    email: order.customer.email,
+    phone: order.contactPhone,
+    deliveryMethod: order.deliveryMethod,
+    officeCode: order.officeCode ?? "",
+  };
+  const result = await editOrderContact({
+    reference,
+    original,
+    ...original,
+    ...overrides,
+  });
+  if (!result.ok || result.eventId === null) {
+    throw new Error("edit was refused");
+  }
+  return result;
+}
+
+test("an edit emails the buyer the order as it now stands, without their name, and records it on the edit", async () => {
+  const { reference } = await place({ name: "Петър Петров" });
+  const email = `fixed-${randomUUID()}@example.com`;
+  const { eventId } = await edit(reference, { email, phone: "0899111222" });
+  const { sent, send } = recorder();
+
+  await sendEditEmail(reference, eventId ?? 0, false, send);
+
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].to, email);
+  assert.equal(sent[0].message.subject, `Поръчка ${reference} е обновена`);
+  assert.equal(sent[0].idempotencyKey, `order-edit/${eventId}`);
+  assert.ok(sent[0].message.text.includes("+359899111222"));
+  assert.ok(!sent[0].message.text.includes("Петър"));
+  assert.ok(!sent[0].message.html.includes("Петър"));
+  assert.equal(await statusOfEvent(eventId ?? 0), "SENT");
+});
+
+test("a failed edit email is recorded as failed on the edit", async () => {
+  const { reference } = await place();
+  const { eventId } = await edit(reference, { phone: "0899111222" });
+  const { send } = recorder("FAILED");
+
+  await sendEditEmail(reference, eventId ?? 0, false, send);
+
+  assert.equal(await statusOfEvent(eventId ?? 0), "FAILED");
+});
+
+test("an order switched to Попово is emailed with hand delivery and no office", async () => {
+  const { reference } = await place();
+  const before = await prisma.order.findUniqueOrThrow({
+    where: { reference },
+    select: { officeName: true, officeStreet: true },
+  });
+  assert.ok(before.officeStreet);
+  const { eventId } = await edit(reference, {
+    deliveryMethod: "LOCAL",
+    officeCode: "",
+  });
+  const { sent, send } = recorder();
+
+  await sendEditEmail(reference, eventId ?? 0, false, send);
+
+  const text = sent[0].message.text;
+  assert.ok(text.includes(`гр. ${LOCAL_DELIVERY_CITY}`));
+  assert.ok(text.includes("Доставка: Безплатна"));
+  assert.ok(!text.includes(before.officeStreet));
+});
+
+test("a corrected email with offers ticked also sends the confirmation to the new address", async () => {
+  const { reference } = await place({ acceptsOffers: true });
+  const email = `fixed-${randomUUID()}@example.com`;
+  const { eventId, offersUnconfirmed } = await edit(reference, { email });
+  const consent = await prisma.consent.findFirstOrThrow({
+    where: { order: { reference }, kind: "OFFERS" },
+  });
+  const { sent, send } = recorder();
+
+  await sendEditEmail(reference, eventId ?? 0, offersUnconfirmed, send);
+
+  assert.deepEqual(
+    sent.map(({ to, idempotencyKey }) => ({ to, idempotencyKey })),
+    [
+      { to: email, idempotencyKey: `order-edit/${eventId}` },
+      { to: email, idempotencyKey: `subscription-confirm/${consent.id}` },
+    ],
+  );
+  assert.ok(sent[1].message.text.includes(`token=`));
+});
+
+test("no confirmation goes out unless asked for, or to an address already subscribed", async () => {
+  const subscribed = `subscribed-${randomUUID()}@example.com`;
+  const earlier = await place({ email: subscribed, acceptsOffers: true });
+  await prisma.consent.updateMany({
+    where: { order: { reference: earlier.reference }, kind: "OFFERS" },
+    data: { confirmedAt: new Date() },
+  });
+  const unasked = await place({ acceptsOffers: true });
+  const toSubscriber = await place({ acceptsOffers: true });
+  const first = await edit(unasked.reference, {
+    email: `fixed-${randomUUID()}@example.com`,
+  });
+  const second = await edit(toSubscriber.reference, { email: subscribed });
+  const { sent, send } = recorder();
+
+  await sendEditEmail(unasked.reference, first.eventId ?? 0, false, send);
+  await sendEditEmail(
+    toSubscriber.reference,
+    second.eventId ?? 0,
+    second.offersUnconfirmed,
+    send,
+  );
+
+  assert.equal(second.offersUnconfirmed, true);
+  assert.deepEqual(
+    sent.map(({ idempotencyKey }) => idempotencyKey),
+    [`order-edit/${first.eventId}`, `order-edit/${second.eventId}`],
+  );
+});
+
+test("an edit email naming another order's or another kind's event sends nothing", async () => {
+  const { reference } = await place();
+  const other = await place();
+  const foreign = await edit(other.reference, { name: "Петър Петров" });
+  const cancel = await step(reference, "cancel", "new");
+  const { sent, send } = recorder();
+
+  await sendEditEmail(reference, foreign.eventId ?? 0, false, send);
+  await sendEditEmail(reference, cancel, false, send);
 
   assert.equal(sent.length, 0);
 });

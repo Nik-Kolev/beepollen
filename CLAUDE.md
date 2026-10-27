@@ -319,6 +319,10 @@ keyed on its event, so sending again after an undo is a new email. The owner
 hears only about new orders and withdrawals, at `OWNER_EMAIL`. „Изпратена“ and „Откажи“ always
 open the dialog, whose email box starts ticked; only a withdrawal warning in it
 passes `confirmed`, so an ordinary send can never wave a withdrawal through.
+The email after an order edit shows the order as it now stands rather than
+the changes, so a misspelled address it replaced is never mailed to the new
+one. A corrected address also gets the restarted offers confirmation, as an
+email of its own.
 
 The offers list is double opt-in. A ticked box writes an `OFFERS` consent with
 no `confirmedAt`; only a consent with a `confirmedAt` and no `withdrawnAt` makes

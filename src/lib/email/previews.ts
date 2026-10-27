@@ -5,6 +5,7 @@ import {
   orderCancelledEmail,
   type OrderEmailData,
   orderSentEmail,
+  orderUpdatedEmail,
   ownerNotificationEmail,
   ownerWithdrawalEmail,
   subscriptionConfirmEmail,
@@ -85,6 +86,12 @@ export const PREVIEWS: {
       "Когато натиснете „Изпратена“ за поръчка до офис на Еконт и отметката за имейл в прозореца остане включена. При „Предадена и платена“ за Попово не се праща имейл.",
     render: (design) =>
       orderSentEmail({ ...SAMPLE_ORDER, office: SAMPLE_OFFICE }, design),
+  },
+  {
+    title: "Обновена поръчка — до купувача",
+    trigger:
+      "Когато запишете редакция на нова поръчка и отметката за имейл в прозореца остане включена. Ако сте сменили имейла и купувачът е отметнал офертите, на новия адрес отива и потвърждението на абонамента.",
+    render: (design) => orderUpdatedEmail(SAMPLE_ORDER, design),
   },
   {
     title: "Отказана — до купувача",

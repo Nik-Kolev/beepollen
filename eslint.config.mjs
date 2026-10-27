@@ -4,7 +4,7 @@ import nextTs from "eslint-config-next/typescript";
 
 const nextDefaultIgnores = [".next/**", "out/**", "build/**", "next-env.d.ts"];
 
-const generatedIgnores = ["src/generated/**"];
+const generatedIgnores = ["src/generated/**", "playwright-report/**"];
 
 const eslintConfig = defineConfig([
   ...nextVitals,

@@ -31,3 +31,18 @@ export const listEcontOffices = cache(async (): Promise<EcontOffice[]> => {
 
   return sortOffices(offices);
 });
+
+export function findEcontOffice(code: string) {
+  return prisma.deliveryOffice.findUnique({
+    where: {
+      carrier_code: { carrier: "ECONT", code },
+    },
+    select: {
+      carrier: true,
+      code: true,
+      name: true,
+      city: true,
+      street: true,
+    },
+  });
+}

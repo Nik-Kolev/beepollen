@@ -8,6 +8,7 @@ import {
   deliveryPrice,
   LOCAL_DELIVERY_CITY,
 } from "@/lib/delivery";
+import { findEcontOffice } from "@/lib/delivery-offices";
 import { orderingOpen } from "@/lib/ordering";
 import prisma from "@/lib/prisma";
 import { takeToken } from "@/lib/rate-limit";
@@ -214,18 +215,7 @@ export async function placeOrder(
 
   const office =
     input.deliveryMethod === "ECONT_OFFICE"
-      ? await prisma.deliveryOffice.findUnique({
-          where: {
-            carrier_code: { carrier: "ECONT", code: input.officeCode },
-          },
-          select: {
-            carrier: true,
-            code: true,
-            name: true,
-            city: true,
-            street: true,
-          },
-        })
+      ? await findEcontOffice(input.officeCode)
       : null;
 
   if (

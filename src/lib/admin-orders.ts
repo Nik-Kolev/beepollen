@@ -368,6 +368,7 @@ export const ORDER_EVENT_LABEL: Record<OrderEventKind, string> = {
   COLLECT: "Прибрана",
   UNDO: "Стъпката е отменена",
   WITHDRAWN: "Заявен отказ от купувача",
+  EDIT: "Данните са редактирани",
 };
 
 export const EMAIL_STATUS_LABEL: Record<EmailStatus, string> = {

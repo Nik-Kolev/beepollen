@@ -9,6 +9,7 @@ import {
   type OrderStepResult,
 } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
+import { editOrderContact, type OrderEditResult } from "@/lib/order-edit";
 import { isEmailStep, sendStepEmail } from "@/lib/order-emails";
 
 export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
@@ -31,5 +32,12 @@ export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
     }
     refresh();
   }
+  return result;
+}
+
+export async function editOrder(input: unknown): Promise<OrderEditResult> {
+  const { email } = await requireAdmin();
+  const result = await editOrderContact(input, new Date(), email ?? null);
+  if (result.ok && result.eventId !== null) refresh();
   return result;
 }

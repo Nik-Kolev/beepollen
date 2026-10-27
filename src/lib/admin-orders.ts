@@ -517,6 +517,7 @@ const ORDER_DETAIL = {
       kind: true,
       adminEmail: true,
       emailStatus: true,
+      changes: true,
       createdAt: true,
     },
   },

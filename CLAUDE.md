@@ -618,7 +618,10 @@ the consent, and the misspelled address may already have confirmed it.
 Delivery is repriced only when the method changes, and an unchanged office is
 never re-read, so a phone fix can neither reprice an order nor fail on an
 office `econt:sync` dropped. The edit's `OrderEvent` keeps the old and new
-values in `changes`, which `/privacy` declares.
+values in `changes`, which `/privacy` declares. The admin form asks
+`previewOrderEdit`, the same function without the write, for the changes its
+dialog lists, and fetches the 590 offices only when it opens, so the order list
+never carries them once per card.
 
 The admin bar above the shop header is fetched from `/api/admin-status` in the
 browser after load. Asking the session while rendering would make every

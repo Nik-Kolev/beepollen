@@ -4,6 +4,7 @@ import {
   orderCancelledEmail,
   type OrderEmailData,
   orderSentEmail,
+  orderUpdatedEmail,
   ownerNotificationEmail,
   ownerWithdrawalEmail,
   subscriptionConfirmEmail,
@@ -193,6 +194,49 @@ export function sendStepEmail(
       where: { id: event.id },
       data: { emailStatus: status },
     });
+  });
+}
+
+export function sendEditEmail(
+  reference: string,
+  eventId: number,
+  confirmOffers: boolean,
+  send: Send = sendEmail,
+) {
+  return report(`edit ${reference}`, async () => {
+    const loaded = await loadOrder(reference);
+    if (!loaded) return;
+    const { order, data } = loaded;
+
+    const event = await prisma.orderEvent.findFirst({
+      where: { id: eventId, orderId: order.id, kind: "EDIT" },
+      select: { id: true },
+    });
+    if (!event) return;
+
+    const status = await send({
+      to: data.email,
+      message: orderUpdatedEmail(data),
+      idempotencyKey: `order-edit/${event.id}`,
+    });
+    await prisma.orderEvent.update({
+      where: { id: event.id },
+      data: { emailStatus: status },
+    });
+
+    const pending = order.consents.find(
+      (consent) => !consent.confirmedAt && !consent.withdrawnAt,
+    );
+    if (confirmOffers && pending && !(await isSubscribed(order.customer.id))) {
+      await send({
+        to: data.email,
+        message: subscriptionConfirmEmail({
+          reference,
+          confirmUrl: confirmUrl(pending.id),
+        }),
+        idempotencyKey: `subscription-confirm/${pending.id}`,
+      });
+    }
   });
 }
 

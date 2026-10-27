@@ -9,8 +9,12 @@ import {
   type OrderStepResult,
 } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
-import { editOrderContact, type OrderEditResult } from "@/lib/order-edit";
-import { isEmailStep, sendStepEmail } from "@/lib/order-emails";
+import {
+  editOrderContact,
+  orderEditNotify,
+  type OrderEditResult,
+} from "@/lib/order-edit";
+import { isEmailStep, sendEditEmail, sendStepEmail } from "@/lib/order-emails";
 
 export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
   const { email } = await requireAdmin();
@@ -38,6 +42,13 @@ export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
 export async function editOrder(input: unknown): Promise<OrderEditResult> {
   const { email } = await requireAdmin();
   const result = await editOrderContact(input, new Date(), email ?? null);
-  if (result.ok && result.eventId !== null) refresh();
+  if (result.ok && result.eventId !== null) {
+    const { reference, eventId, offersUnconfirmed } = result;
+    const notify = orderEditNotify.safeParse(input);
+    if (notify.success && notify.data.notify) {
+      after(() => sendEditEmail(reference, eventId, offersUnconfirmed));
+    }
+    refresh();
+  }
   return result;
 }

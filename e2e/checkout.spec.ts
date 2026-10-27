@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { CONSENT_WORDING } from "@/lib/consent";
+import { DISPATCH_NOTE } from "@/lib/delivery";
 
 import { seedCart } from "./seed-cart";
 
@@ -376,7 +377,7 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
   });
   await page.goto("/checkout");
   await showSummary(page, isMobile);
-  const dispatchNote = page.getByText(/^Изпращаме в деня на поръчката/);
+  const dispatchNote = page.getByText(DISPATCH_NOTE, { exact: true });
   await expect(dispatchNote).toBeVisible();
   await chooseOffice(page);
   await expect(chosenOffice(page)).toBeVisible();

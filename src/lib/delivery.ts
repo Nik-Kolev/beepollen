@@ -5,8 +5,10 @@ export { DeliveryMethod };
 
 export const LOCAL_DELIVERY_CITY = "Попово";
 
-export const DISPATCH_NOTE =
-  "Изпращаме в деня на поръчката или на следващия ден. Колко бързо ще пристигне, зависи от куриера. Ако има промяна, ще се свържем с вас.";
+export const DELIVERY_PERIOD =
+  "Срокът за доставка обикновено е до 48 часа от поръчката и зависи от куриера и натовареността му.";
+
+export const DISPATCH_NOTE = `${DELIVERY_PERIOD} Ако има промяна, ще се свържем с вас.`;
 
 export function deliveryPrice(method: DeliveryMethod): number {
   return method === DeliveryMethod.LOCAL ? 0 : TODO_ECONT_TARIFF_CENTS;

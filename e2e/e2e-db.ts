@@ -108,6 +108,38 @@ export function offersConsent(reference: string): {
   );
 }
 
+export function editEvents(
+  reference: string,
+): { emailStatus: string | null }[] {
+  const script = `
+    import("@/lib/prisma").then(async (module) => {
+      const prisma = module.default.default ?? module.default;
+      const events = await prisma.orderEvent.findMany({
+        where: { kind: "EDIT", order: { reference: ${JSON.stringify(reference)} } },
+        orderBy: { id: "asc" },
+        select: { emailStatus: true },
+      });
+      await prisma.$disconnect();
+      process.stdout.write(JSON.stringify(events));
+    });
+  `;
+  return JSON.parse(
+    execFileSync(process.execPath, ["--import", "tsx", "-e", script], {
+      env: { ...process.env, DATABASE_URL: "file:./data/e2e.db" },
+      encoding: "utf8",
+    }),
+  );
+}
+
+export function renameOrderContact(reference: string, name: string) {
+  runInE2eDb(`
+    await prisma.order.update({
+      where: { reference: ${JSON.stringify(reference)} },
+      data: { contactName: ${JSON.stringify(name)} },
+    });
+  `);
+}
+
 function runInE2eDb(body: string) {
   const script = `
     import("@/lib/prisma").then(async (module) => {

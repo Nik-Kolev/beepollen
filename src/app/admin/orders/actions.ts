@@ -9,6 +9,8 @@ import {
   type OrderStepResult,
 } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
+import { listEcontOffices } from "@/lib/delivery-offices";
+import type { EcontOffice } from "@/lib/econt";
 import {
   editOrderContact,
   orderEditNotify,
@@ -41,7 +43,7 @@ export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
 
 export async function editOrder(input: unknown): Promise<OrderEditResult> {
   const { email } = await requireAdmin();
-  const result = await editOrderContact(input, new Date(), email ?? null);
+  const result = await editOrderContact(input, { adminEmail: email ?? null });
   if (result.ok && result.eventId !== null) {
     const { reference, eventId, offersUnconfirmed } = result;
     const notify = orderEditNotify.safeParse(input);
@@ -51,4 +53,16 @@ export async function editOrder(input: unknown): Promise<OrderEditResult> {
     refresh();
   }
   return result;
+}
+
+export async function previewOrderEdit(
+  input: unknown,
+): Promise<OrderEditResult> {
+  await requireAdmin();
+  return editOrderContact(input, { dryRun: true });
+}
+
+export async function loadEditOffices(): Promise<EcontOffice[]> {
+  await requireAdmin();
+  return listEcontOffices();
 }

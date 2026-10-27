@@ -4,6 +4,8 @@ import { after, test } from "node:test";
 
 import { applyOrderStep } from "@/lib/admin-orders";
 import { deliveryPrice } from "@/lib/delivery";
+import { officeLabel } from "@/lib/econt";
+import { parseOrderChanges } from "@/lib/order-change";
 import { signEmailToken } from "@/lib/email-token";
 import { editOrderContact } from "@/lib/order-edit";
 import { placeOrder } from "@/lib/orders";
@@ -88,7 +90,7 @@ function officeText(order: {
   officeCity: string | null;
   officeStreet: string | null;
 }) {
-  return `${order.officeName}, ${order.officeCity}, ${order.officeStreet}`;
+  return `${officeLabel(order.officeName ?? "", order.officeCity ?? "")}, ${order.officeStreet}`;
 }
 
 test("a new name and phone are written to the order and the customer, with an event naming each change", async () => {
@@ -97,8 +99,7 @@ test("a new name and phone are written to the order and the customer, with an ev
 
   const result = await editOrderContact(
     await editInput(reference, { name: "Петър Петров", phone: "0899 111 222" }),
-    now,
-    "owner@example.com",
+    { now, adminEmail: "owner@example.com" },
   );
 
   assert.equal(result.ok, true);
@@ -182,7 +183,7 @@ test("another office is read back and snapshotted, and the same method keeps the
     {
       field: "delivery",
       from: officeText(before),
-      to: "Тестов офис, Тестово, ул. Тестова 2",
+      to: "Тестово, Тестов офис, ул. Тестова 2",
     },
   ]);
   const order = await orderOf(reference);
@@ -549,4 +550,40 @@ test("an edit made from another delivery method or office than the order holds i
     { ok: false, reason: "stale" },
     { ok: false, reason: "stale" },
   ]);
+});
+
+test("a dry run lists the changes and writes nothing", async () => {
+  const reference = await place({ acceptsOffers: true });
+  const before = await orderOf(reference);
+  const offers = await offersOf(reference);
+
+  const result = await editOrderContact(
+    await editInput(reference, {
+      phone: "0899111222",
+      email: `fixed-${randomUUID()}@example.com`,
+    }),
+    { dryRun: true },
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) return;
+  assert.equal(result.eventId, null);
+  assert.deepEqual(
+    result.changes.map((change) => change.field),
+    ["email", "phone"],
+  );
+  const after = await orderOf(reference);
+  assert.equal(after.contactPhone, before.contactPhone);
+  assert.equal(after.customerId, before.customerId);
+  assert.equal(after.events.length, before.events.length);
+  assert.equal((await offersOf(reference))?.id, offers?.id);
+});
+
+test("history changes that do not match the expected shape render as none", () => {
+  assert.deepEqual(parseOrderChanges(null), []);
+  assert.deepEqual(parseOrderChanges([{ field: "phone", from: 1, to: 2 }]), []);
+  assert.deepEqual(
+    parseOrderChanges([{ field: "totalCents", from: 100, to: 200 }]),
+    [{ field: "totalCents", from: 100, to: 200 }],
+  );
 });

@@ -7,6 +7,8 @@ import {
   LOCAL_DELIVERY_CITY,
 } from "@/lib/delivery";
 import { findEcontOffice } from "@/lib/delivery-offices";
+import { officeLabel } from "@/lib/econt";
+import type { OrderChange } from "@/lib/order-change";
 import {
   contactEmailSchema,
   contactNameSchema,
@@ -41,10 +43,6 @@ export const orderEditNotify = z.object({
   notify: z.boolean().optional(),
 });
 
-export type OrderChange =
-  | { field: "name" | "email" | "phone" | "delivery"; from: string; to: string }
-  | { field: "deliveryCents" | "totalCents"; from: number; to: number };
-
 export type OrderEditResult =
   | {
       ok: true;
@@ -77,7 +75,12 @@ function describeDelivery(
 ) {
   return order.deliveryMethod === DeliveryMethod.LOCAL
     ? deliveryLabel(order)
-    : [order.officeName, order.officeCity, order.officeStreet]
+    : [
+        order.officeName &&
+          order.officeCity &&
+          officeLabel(order.officeName, order.officeCity),
+        order.officeStreet,
+      ]
         .filter(Boolean)
         .join(", ");
 }
@@ -86,8 +89,11 @@ class StaleEdit extends Error {}
 
 export async function editOrderContact(
   raw: unknown,
-  now = new Date(),
-  adminEmail: string | null = null,
+  {
+    now = new Date(),
+    adminEmail = null,
+    dryRun = false,
+  }: { now?: Date; adminEmail?: string | null; dryRun?: boolean } = {},
 ): Promise<OrderEditResult> {
   const parsed = orderEditInput.safeParse(raw);
   if (!parsed.success) {
@@ -214,7 +220,7 @@ export async function editOrderContact(
     });
   }
 
-  if (changes.length === 0) {
+  if (changes.length === 0 || dryRun) {
     return {
       ok: true,
       reference: input.reference,

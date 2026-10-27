@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { AdminHeader } from "@/components/admin/admin-header";
 import { HideClosedToggle } from "@/components/admin/hide-closed-toggle";
+import { OrderEditForm } from "@/components/admin/order-edit-form";
 import { ORDER_LIST_ID } from "@/components/admin/order-list-id";
 import {
   OrderSteps,
@@ -39,6 +40,11 @@ import {
 import { requireAdmin } from "@/lib/admin-session";
 import { DeliveryMethod } from "@/lib/delivery";
 import { formatPrice } from "@/lib/money";
+import {
+  changeText,
+  ORDER_CHANGE_LABEL,
+  parseOrderChanges,
+} from "@/lib/order-change";
 
 export const metadata: Metadata = {
   title: "Поръчки",
@@ -335,6 +341,20 @@ export default async function AdminOrders({
                       confirmations={stepConfirmations(order, status)}
                     />
 
+                    {status === "new" && !order.withdrawnAt && (
+                      <OrderEditForm
+                        reference={order.reference}
+                        original={{
+                          name: order.contactName,
+                          email: order.customer.email,
+                          phone: order.contactPhone,
+                          deliveryMethod: order.deliveryMethod,
+                          officeCode: order.officeCode ?? "",
+                        }}
+                        officeCity={order.officeCity}
+                      />
+                    )}
+
                     <details className="group border-line mt-3 border-t pt-2">
                       <summary className="text-brand-deep inline-flex min-h-11 cursor-pointer list-none items-center gap-2 font-medium">
                         <span
@@ -552,6 +572,25 @@ export default async function AdminOrders({
                                     {" "}
                                     · {EMAIL_STATUS_LABEL[event.emailStatus]}
                                   </span>
+                                )}
+                                {event.kind === "EDIT" && (
+                                  <ul
+                                    role="list"
+                                    className="text-ink-soft mt-0.5 pl-4"
+                                  >
+                                    {parseOrderChanges(event.changes).map(
+                                      (change) => (
+                                        <li
+                                          key={change.field}
+                                          className="wrap-anywhere"
+                                        >
+                                          {ORDER_CHANGE_LABEL[change.field]}:{" "}
+                                          {changeText(change.from)} →{" "}
+                                          {changeText(change.to)}
+                                        </li>
+                                      ),
+                                    )}
+                                  </ul>
                                 )}
                               </li>
                             ))}

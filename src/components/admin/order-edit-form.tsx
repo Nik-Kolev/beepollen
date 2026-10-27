@@ -274,7 +274,6 @@ export function OrderEditForm({
         >
           Редакция
         </button>
-        {status}
       </div>
     );
   }

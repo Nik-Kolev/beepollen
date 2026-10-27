@@ -202,6 +202,12 @@ a local check stays quick. All three together are what a green PR means. `typech
 `LayoutProps` and friends live in `.next/types`, which a clean checkout does not
 have.
 
+The `e2e` job runs inside Playwright's own image, so Chromium and its system
+packages come preinstalled — downloading them from the Ubuntu mirror once took
+nine minutes of a run. The image tag names the Playwright version, so **bump it
+with `@playwright/test`**: a mismatched browser build fails every spec at launch.
+`--user 1001` is the runner's own user, which the checkout needs to own.
+
 Prettier is a pinned devDependency rather than an `npx` fetch, and `format:check`
 runs in CI. Prettier 3 reads `.gitignore` by default, so generated output needs
 no `.prettierignore`.

@@ -197,3 +197,103 @@ test("a sent order offers no edit", async ({ page }) => {
   await expect(sent.getByRole("button", { name: "Платена" })).toBeVisible();
   await expect(sent.getByRole("button", { name: "Редакция" })).toHaveCount(0);
 });
+
+test("a raised quantity and an added product are confirmed line by line and saved", async ({
+  page,
+}) => {
+  const reference = placeEcontOrder(
+    `edit-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  const { card, form } = await openEdit(page, reference);
+
+  await form.getByLabel("Брой за продукт 1").fill("2");
+  await form.getByRole("button", { name: "Добави продукт" }).click();
+  await expect(form.getByLabel("Продукт 2", { exact: true })).toBeFocused();
+  await expect(
+    form.getByRole("button", { name: "Добави продукт" }),
+  ).toHaveCount(0);
+  await expectNoAxeViolations(page);
+  await form.getByRole("button", { name: "Запази" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  await expect(dialog.getByRole("listitem")).toHaveText([
+    "ПродуктПчелен прашец 500 г × 1 → Пчелен прашец 500 г × 2",
+    "Продукт— → Пчелен прашец 1 кг × 1",
+    /^Общо/,
+  ]);
+  await dialog.getByRole("button", { name: "Да, запази" }).click();
+
+  await expect(card.getByRole("button", { name: "Редакция" })).toBeFocused();
+  await card.getByText("Детайли").click();
+  await expect(
+    card.getByText("Продукт: — → Пчелен прашец 1 кг × 1"),
+  ).toBeVisible();
+  await expect(
+    card.getByText("Пчелен прашец 1 кг 1 × 45,90 €", { exact: true }),
+  ).toBeVisible();
+});
+
+test("removing a row hands focus to the row left, and the last row cannot be removed", async ({
+  page,
+}) => {
+  const reference = placeEcontOrder(
+    `edit-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  const { form } = await openEdit(page, reference);
+
+  await form.getByRole("button", { name: "Добави продукт" }).click();
+  await form.getByRole("button", { name: "Махни продукт 2" }).click();
+  await expect(form.getByLabel("Продукт 1", { exact: true })).toBeFocused();
+
+  const last = form.getByRole("button", { name: "Махни продукт 1" });
+  await expect(last).toHaveAttribute("aria-disabled", "true");
+  await last.click({ force: true });
+  await expect(form.getByLabel("Продукт 1", { exact: true })).toBeVisible();
+});
+
+test("a quantity outside 1–99 is refused and described by its error", async ({
+  page,
+}) => {
+  const reference = placeEcontOrder(
+    `edit-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  const { form } = await openEdit(page, reference);
+  const quantity = form.getByLabel("Брой за продукт 1");
+
+  await quantity.fill("100");
+  await form.getByRole("button", { name: "Запази" }).click();
+
+  await expect(form.getByRole("status")).toHaveText(
+    "Поправете отбелязаните полета.",
+  );
+  await expect(quantity).toHaveAccessibleDescription(
+    "Въведете брой от 1 до 99 за всеки продукт.",
+  );
+  await quantity.fill("3");
+  await expect(quantity).not.toHaveAttribute("aria-invalid");
+});
+
+test("only the row with a wrong quantity is marked, and editing another row leaves the mark", async ({
+  page,
+}) => {
+  const reference = placeEcontOrder(
+    `edit-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  const { form } = await openEdit(page, reference);
+  await form.getByRole("button", { name: "Добави продукт" }).click();
+  const first = form.getByLabel("Брой за продукт 1");
+  const second = form.getByLabel("Брой за продукт 2");
+
+  await second.fill("100");
+  await form.getByRole("button", { name: "Запази" }).click();
+
+  await expect(second).toHaveAttribute("aria-invalid", "true");
+  await expect(second).toBeFocused();
+  await expect(first).not.toHaveAttribute("aria-invalid");
+  await first.fill("2");
+  await expect(second).toHaveAttribute("aria-invalid", "true");
+});

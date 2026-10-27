@@ -287,6 +287,7 @@ async function edit(reference: string, overrides: Record<string, unknown>) {
       customer: { select: { email: true } },
       deliveryMethod: true,
       officeCode: true,
+      items: { orderBy: { id: "asc" }, select: { slug: true, quantity: true } },
     },
   });
   const original = {
@@ -295,6 +296,7 @@ async function edit(reference: string, overrides: Record<string, unknown>) {
     phone: order.contactPhone,
     deliveryMethod: order.deliveryMethod,
     officeCode: order.officeCode ?? "",
+    items: order.items,
   };
   const result = await editOrderContact({
     reference,

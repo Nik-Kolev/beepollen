@@ -3,7 +3,7 @@ import { z } from "@/lib/zod";
 
 const orderChangeSchema = z.discriminatedUnion("field", [
   z.object({
-    field: z.enum(["name", "email", "phone", "delivery"]),
+    field: z.enum(["name", "email", "phone", "delivery", "item"]),
     from: z.string(),
     to: z.string(),
   }),
@@ -21,6 +21,7 @@ export const ORDER_CHANGE_LABEL: Record<OrderChange["field"], string> = {
   email: "Имейл",
   phone: "Телефон",
   delivery: "Доставка",
+  item: "Продукт",
   deliveryCents: "Цена на доставката",
   totalCents: "Общо",
 };

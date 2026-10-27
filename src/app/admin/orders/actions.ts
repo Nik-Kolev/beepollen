@@ -11,6 +11,7 @@ import {
 import { requireAdmin } from "@/lib/admin-session";
 import { listEcontOffices } from "@/lib/delivery-offices";
 import type { EcontOffice } from "@/lib/econt";
+import { listPublishedProductsForCart } from "@/lib/products";
 import {
   editOrderContact,
   orderEditNotify,
@@ -62,7 +63,19 @@ export async function previewOrderEdit(
   return editOrderContact(input, { dryRun: true });
 }
 
-export async function loadEditOffices(): Promise<EcontOffice[]> {
+export async function loadEditOptions(): Promise<{
+  offices: EcontOffice[];
+  products: { slug: string; name: string }[];
+}> {
   await requireAdmin();
-  return listEcontOffices();
+  const [offices, products] = await Promise.all([
+    listEcontOffices(),
+    listPublishedProductsForCart(),
+  ]);
+  return {
+    offices,
+    products: products
+      .filter((product) => product.stock !== "NONE" && product.priceCents > 0)
+      .map(({ slug, name }) => ({ slug, name })),
+  };
 }

@@ -350,6 +350,11 @@ export default async function AdminOrders({
                           phone: order.contactPhone,
                           deliveryMethod: order.deliveryMethod,
                           officeCode: order.officeCode ?? "",
+                          items: order.items.map((item) => ({
+                            slug: item.slug,
+                            name: item.name,
+                            quantity: item.quantity,
+                          })),
                         }}
                         officeCity={order.officeCity}
                       />
@@ -579,9 +584,9 @@ export default async function AdminOrders({
                                     className="text-ink-soft mt-0.5 pl-4"
                                   >
                                     {parseOrderChanges(event.changes).map(
-                                      (change) => (
+                                      (change, index) => (
                                         <li
-                                          key={change.field}
+                                          key={index}
                                           className="wrap-anywhere"
                                         >
                                           {ORDER_CHANGE_LABEL[change.field]}:{" "}

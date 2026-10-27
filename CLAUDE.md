@@ -623,6 +623,13 @@ values in `changes`, which `/privacy` declares. The admin form asks
 dialog lists, and fetches the 590 offices only when it opens, so the order list
 never carries them once per card.
 
+The same edit changes an order's lines. A kept line keeps the price it was
+sold at; an added or swapped product takes today's catalogue price and must
+pass checkout's rules, and so must a kept line whose quantity grows — a product
+no longer sold may stay on the order or shrink, never grow. The lines are
+re-read inside the transaction before they are rewritten, because two swaps at
+an equal total pass the `itemsCents` compare-and-set alike.
+
 The admin bar above the shop header is fetched from `/api/admin-status` in the
 browser after load. Asking the session while rendering would make every
 prerendered shop page dynamic, so do not move that check to the server.

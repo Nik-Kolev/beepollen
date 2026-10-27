@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
+import { DELIVERY_PERIOD } from "@/lib/delivery";
 import { OWNER_PHONE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -95,9 +96,9 @@ export default function TermsPage() {
         <Section id="delivery" title="Доставка">
           <p>
             Доставяме до избран от вас офис на Еконт в цялата страна. За град
-            Попово доставяме на ръка, като се уговаряме по телефона. Срокът за
-            доставка е TODO: срок за доставка. Рискът от погиване на стоката
-            преминава върху вас, когато я получите.
+            Попово доставяме на ръка, като се уговаряме по телефона.{" "}
+            {DELIVERY_PERIOD} Рискът от погиване на стоката преминава върху вас,
+            когато я получите.
           </p>
         </Section>
 

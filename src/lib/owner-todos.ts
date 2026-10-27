@@ -50,11 +50,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Доставка, плащане, връщане и спорове",
     items: [
       {
-        text: "Срок за доставка.",
-        files: [TERMS],
-        markers: ["TODO: срок за доставка"],
-      },
-      {
         text: "Кой поема таксата на Еконт за наложения платеж.",
         files: [TERMS],
         markers: ["TODO: кой поема таксата на Еконт"],

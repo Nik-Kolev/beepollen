@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { PREVIEWS } from "@/lib/email/previews";
+
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
 
@@ -51,7 +53,7 @@ test("the todo page shows every email in the design the shop sends, with when it
   await page.goto("/admin/todo");
 
   const emails = page.getByRole("region", { name: "Имейли" });
-  await expect(emails.locator("iframe")).toHaveCount(10);
+  await expect(emails.locator("iframe")).toHaveCount(PREVIEWS.length);
 
   const accepted = emails
     .getByRole("listitem")

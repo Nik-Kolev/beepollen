@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
+import { PREVIEWS } from "@/lib/email/previews";
+
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
 
@@ -14,7 +16,7 @@ test("the email preview shows every email in both designs to an admin", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: "Имейли — два варианта" }),
   ).toBeVisible();
-  await expect(page.locator("iframe")).toHaveCount(20);
+  await expect(page.locator("iframe")).toHaveCount(PREVIEWS.length * 2);
 
   const accepted = page.frameLocator(
     'iframe[title="Приета поръчка — до купувача, дизайн A"]',

@@ -187,9 +187,8 @@ test("the back link returns to where the catalogue was left", async ({
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollY);
 });
 
-test("a modified click on the back link opens the catalogue in a new tab", async ({
+test("a modified click on the back link is left to the browser", async ({
   page,
-  context,
 }) => {
   await page.goto("/");
   await page
@@ -201,13 +200,20 @@ test("a modified click on the back link opens the catalogue in a new tab", async
     () => !document.documentElement.matches(":active-view-transition"),
   );
 
-  const newTab = context.waitForEvent("page");
+  await page.evaluate(() => {
+    window.addEventListener("click", (event) => {
+      document.body.dataset.clickPrevented = String(event.defaultPrevented);
+      event.preventDefault();
+    });
+  });
   await page
     .getByRole("link", { name: "Към продуктите" })
     .click({ modifiers: ["ControlOrMeta"] });
 
-  await expect(await newTab).toHaveURL("/");
-  await expect(page).toHaveURL(/\/products\//);
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-click-prevented",
+    "false",
+  );
 });
 
 test("an unpublished product is not reachable", async ({ page }) => {

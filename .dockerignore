@@ -13,6 +13,7 @@ tsconfig.tsbuildinfo
 Dockerfile
 .dockerignore
 compose.yaml
+compose.prod.yaml
 README.md
 CLAUDE.md
 AGENTS.md

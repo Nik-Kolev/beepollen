@@ -28,7 +28,7 @@ export function Header() {
           />
 
           <Link href="/" className="font-head flex items-center gap-2">
-            <OwnerEmblem className="w-11 shrink-0" />
+            <OwnerEmblem className="w-13 shrink-0" />
             <span>
               <span className="block text-xl leading-none font-bold">
                 Д{" "}

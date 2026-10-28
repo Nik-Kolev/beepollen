@@ -27,7 +27,7 @@ export function Header() {
             className="text-bee-dark pointer-events-none absolute top-3 left-[66%] hidden w-8 -rotate-6 lg:block"
           />
 
-          <div className="flex flex-1 pr-7 sm:flex-none sm:pr-0">
+          <div className="flex flex-1 sm:flex-none">
             <Link
               href="/"
               className="font-head flex flex-1 items-center sm:gap-2"

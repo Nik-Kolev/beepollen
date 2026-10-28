@@ -88,6 +88,12 @@ colour — `text-bee-dark` on light grounds. `outline` strokes the silhouette in
 ground it is the only correct option: recolouring the linework light instead
 produces a bee with white stripes, which reads as a different insect.
 
+`OwnerEmblem` is the owner's own mark, redrawn from his business card and bag
+label. The header shows variant `b`; the others are kept on purpose for
+comparing at small sizes. Its link is `tabIndex={-1}` and `aria-hidden`, so the
+wordmark stays the one home link keyboard and screen-reader users meet — a single
+link spanning both put the mobile focus ring over the cart's bee.
+
 The footer's hive offset and the grid's `pr-*` reserve are one setting in two
 places. The hive is absolute against the footer while the text is inset inside a
 container that stops growing at `max-w-6xl`, so past that width the page margin

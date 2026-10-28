@@ -111,12 +111,12 @@ function neckedPetals(x: number, y: number) {
 function hexPath([cx, cy, r]: Hex) {
   const halfW = (r * Math.sqrt(3)) / 2;
   return [
-    `M${cx},${cy - r}`,
-    `L${round(cx + halfW)},${cy - r / 2}`,
-    `L${round(cx + halfW)},${cy + r / 2}`,
-    `L${cx},${cy + r}`,
-    `L${round(cx - halfW)},${cy + r / 2}`,
-    `L${round(cx - halfW)},${cy - r / 2}`,
+    `M${cx},${round(cy - r)}`,
+    `L${round(cx + halfW)},${round(cy - r / 2)}`,
+    `L${round(cx + halfW)},${round(cy + r / 2)}`,
+    `L${cx},${round(cy + r)}`,
+    `L${round(cx - halfW)},${round(cy + r / 2)}`,
+    `L${round(cx - halfW)},${round(cy - r / 2)}`,
     "Z",
   ].join(" ");
 }

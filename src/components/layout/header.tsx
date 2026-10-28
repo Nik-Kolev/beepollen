@@ -27,23 +27,23 @@ export function Header() {
             className="text-bee-dark pointer-events-none absolute top-3 left-[66%] hidden w-8 -rotate-6 lg:block"
           />
 
-          <div className="flex flex-1 sm:flex-none">
+          <div className="flex flex-1 items-center sm:flex-none sm:gap-2">
             <Link
               href="/"
-              className="font-head flex flex-1 items-center sm:gap-2"
+              tabIndex={-1}
+              aria-hidden="true"
+              className="shrink-0"
             >
-              <OwnerEmblem className="w-13 shrink-0" />
-              <span className="mx-auto sm:mx-0">
-                <span className="block text-xl leading-none font-bold">
-                  Д{" "}
-                  <span className="text-brand mr-0.5 text-2xl italic">
-                    &amp;
-                  </span>{" "}
-                  Н Димитрови
-                </span>
-                <span className="text-ink-soft mt-1 -mr-[0.2em] block text-center font-sans text-xs font-medium tracking-[0.2em] uppercase">
-                  пчелни продукти
-                </span>
+              <OwnerEmblem className="w-13" />
+            </Link>
+            <Link href="/" className="font-head mx-auto sm:mx-0">
+              <span className="block text-xl leading-none font-bold">
+                Д{" "}
+                <span className="text-brand mr-0.5 text-2xl italic">&amp;</span>{" "}
+                Н Димитрови
+              </span>
+              <span className="text-ink-soft mt-1 -mr-[0.2em] block text-center font-sans text-xs font-medium tracking-[0.2em] uppercase">
+                пчелни продукти
               </span>
             </Link>
           </div>

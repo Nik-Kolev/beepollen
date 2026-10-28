@@ -674,6 +674,16 @@ The standalone `server.js` does **not** serve `public/` or `.next/static`. The
 Dockerfile copies both in explicitly — drop either and the site still returns
 200, with no styling.
 
+`compose.prod.yaml` starts the `runner` image only after a one-off `migrate`
+service, built from `builder` because the standalone output has no Prisma CLI,
+has migrated and seeded the shared volume. Both run as uid 1001 and both images
+create `/app/data` owned by it: an empty named volume takes the ownership of
+whichever image mounts it first, and the builder's own `/app/data` is root's.
+`prisma db seed` spawns `tsx` without npm's `PATH`, which is why the `migrate`
+stage puts `node_modules/.bin` on it. `env_file` reaches only the running
+container, so `NEXT_PUBLIC_GA_MEASUREMENT_ID` is passed to the build as an arg
+interpolated from the same `.env`.
+
 ## Testing
 
 Two layers. `npm run test:unit` runs `node:test` through tsx over `tests/**`,

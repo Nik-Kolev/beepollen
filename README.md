@@ -51,15 +51,18 @@ Same URL. Edits to `src/`, `public/`, `prisma/`, `prisma.config.ts` and
 `postcss.config.mjs` sync and restart it, and changing `package.json` or the
 lockfile rebuilds the image.
 
-The production image is a separate target:
+Production runs from its own compose file:
 
 ```bash
-docker build --target runner -t beepollen:prod .
-docker run --rm -p 3000:3000 beepollen:prod
+docker compose -f compose.prod.yaml up -d --build
 ```
 
-It serves the prerendered pages only: the image sets no `DATABASE_URL` and
-holds no database, so placing an order in it fails.
+The site reads `.env` when it starts, except `NEXT_PUBLIC_GA_MEASUREMENT_ID`,
+which is fixed when the image is built, so changing it needs `--build`. The
+database lives in its own volume, apart from the dev one. Before the site
+starts, a one-off `migrate` service applies the migrations and seeds the
+catalogue into that volume. The site answers on `127.0.0.1:3000` only, for a
+reverse proxy on the same host.
 
 ## Scripts
 

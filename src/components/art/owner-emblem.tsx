@@ -19,6 +19,7 @@ type Flower = {
 };
 
 type Variant = {
+  ringStroke: number;
   hexes: readonly Hex[];
   hexStroke: number;
   flower: Flower;
@@ -152,15 +153,16 @@ function measuredFlower(x: number, stemX: number): Flower {
     y,
     stemTop: [stemX, y + CUSP_R],
     centreR: 6.2,
-    centreStroke: 2.4,
-    stroke: 2.8,
-    stemStroke: 3.2,
+    centreStroke: 3.2,
+    stroke: 3.2,
+    stemStroke: 3.9,
     petals: neckedPetals(x, y),
   };
 }
 
 const variants = {
   a: {
+    ringStroke: 2.4,
     hexes: [
       [90, 6, 12.5],
       [114, 6, 12.5],
@@ -197,24 +199,27 @@ const variants = {
     bee: { kind: "classic" },
   },
   b: {
+    ringStroke: 3.4,
     hexes: MEASURED_HEXES,
-    hexStroke: 2.2,
+    hexStroke: 2.7,
     flower: measuredFlower(100, 100),
     leaves: MEASURED_LEAVES,
     bees: LABEL_BEES,
     bee: { kind: "label", stripes: 2 },
   },
   c: {
+    ringStroke: 3.4,
     hexes: MEASURED_HEXES,
-    hexStroke: 2.2,
+    hexStroke: 2.7,
     flower: measuredFlower(100, 100),
     leaves: MEASURED_LEAVES,
     bees: LABEL_BEES,
     bee: { kind: "label", stripes: 3 },
   },
   d: {
+    ringStroke: 3.4,
     hexes: MEASURED_HEXES,
-    hexStroke: 2.2,
+    hexStroke: 2.7,
     flower: measuredFlower(101.2, 100.9),
     leaves: MEASURED_LEAVES,
     bees: LABEL_BEES,
@@ -376,7 +381,7 @@ export function OwnerEmblem({
           ))}
         </g>
 
-        <circle cx={CENTRE} cy={CENTRE} r={RING_R} strokeWidth="2.4" />
+        <circle cx={CENTRE} cy={CENTRE} r={RING_R} strokeWidth={v.ringStroke} />
 
         <g strokeWidth={flower.stroke}>
           <path

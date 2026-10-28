@@ -12,10 +12,6 @@ export function Header() {
         <div className="relative flex flex-wrap items-center gap-y-3 py-3 sm:h-16 sm:flex-nowrap sm:py-0">
           <Bee
             outline
-            className="text-bee-dark pointer-events-none absolute top-5 right-23 hidden w-7 scale-x-[-1] min-[390px]:block sm:hidden"
-          />
-          <Bee
-            outline
             className="text-bee-dark pointer-events-none absolute top-1 left-69 hidden w-9 -rotate-12 sm:block"
           />
           <Bee

@@ -27,19 +27,23 @@ export function Header() {
             className="text-bee-dark pointer-events-none absolute top-3 left-[66%] hidden w-8 -rotate-6 lg:block"
           />
 
-          <Link href="/" className="font-head flex items-center gap-2">
-            <OwnerEmblem className="w-13 shrink-0" />
-            <span>
-              <span className="block text-xl leading-none font-bold">
-                Д{" "}
-                <span className="text-brand mr-0.5 text-2xl italic">&amp;</span>{" "}
-                Н Димитрови
+          <div className="flex flex-1 justify-center pr-7 sm:flex-none sm:pr-0">
+            <Link href="/" className="font-head flex items-center gap-2">
+              <OwnerEmblem className="w-13 shrink-0" />
+              <span>
+                <span className="block text-xl leading-none font-bold">
+                  Д{" "}
+                  <span className="text-brand mr-0.5 text-2xl italic">
+                    &amp;
+                  </span>{" "}
+                  Н Димитрови
+                </span>
+                <span className="text-ink-soft mt-1 -mr-[0.2em] block text-center font-sans text-xs font-medium tracking-[0.2em] uppercase">
+                  пчелни продукти
+                </span>
               </span>
-              <span className="text-ink-soft mt-1 -mr-[0.2em] block text-center font-sans text-xs font-medium tracking-[0.2em] uppercase">
-                пчелни продукти
-              </span>
-            </span>
-          </Link>
+            </Link>
+          </div>
 
           <CartLink />
         </div>

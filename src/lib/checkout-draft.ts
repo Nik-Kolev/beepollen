@@ -59,3 +59,81 @@ export function clearDraft() {
     sessionStorage.removeItem(CHECKOUT_DRAFT_KEY);
   } catch {}
 }
+
+export const CHECKOUT_SCROLL_KEY = "beepollen.checkout-scroll";
+
+const heldScrollSchema = z.object({
+  y: z.number().int().positive(),
+  href: z.string(),
+});
+
+let heldScrollTaken = false;
+
+function forgetHeldScroll() {
+  try {
+    sessionStorage.removeItem(CHECKOUT_SCROLL_KEY);
+  } catch {}
+}
+
+export function holdScroll() {
+  history.scrollRestoration = "manual";
+  try {
+    sessionStorage.setItem(
+      CHECKOUT_SCROLL_KEY,
+      JSON.stringify({ y: Math.round(scrollY), href: location.href }),
+    );
+  } catch {}
+}
+
+export function releaseScroll() {
+  const release = () => {
+    history.scrollRestoration = "auto";
+  };
+
+  if (document.readyState === "complete") release();
+  else addEventListener("load", () => setTimeout(release), { once: true });
+}
+
+export function releaseRestoredScroll(event: PageTransitionEvent) {
+  if (!event.persisted) return;
+
+  forgetHeldScroll();
+  history.scrollRestoration = "auto";
+}
+
+export function takeHeldScroll(): number | null {
+  if (heldScrollTaken) return null;
+  heldScrollTaken = true;
+
+  let raw: string | null;
+
+  try {
+    raw = sessionStorage.getItem(CHECKOUT_SCROLL_KEY);
+  } catch {
+    return null;
+  }
+  forgetHeldScroll();
+
+  const [navigation] = performance.getEntriesByType(
+    "navigation",
+  ) as PerformanceNavigationTiming[];
+  const returning =
+    navigation?.type === "reload" || navigation?.type === "back_forward";
+
+  let held: unknown;
+
+  try {
+    held = JSON.parse(raw ?? "null");
+  } catch {
+    return null;
+  }
+
+  const result = heldScrollSchema.safeParse(held);
+
+  return returning &&
+    result.success &&
+    result.data.href === location.href &&
+    result.data.href === navigation.name
+    ? result.data.y
+    : null;
+}

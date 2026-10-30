@@ -35,7 +35,15 @@ import {
   ORDERING_CLOSED,
   summaryError,
 } from "@/lib/checkout-messages";
-import { clearDraft, readDraft, writeDraft } from "@/lib/checkout-draft";
+import {
+  clearDraft,
+  holdScroll,
+  readDraft,
+  releaseRestoredScroll,
+  releaseScroll,
+  takeHeldScroll,
+  writeDraft,
+} from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
 import {
   deliveryPrice,
@@ -790,6 +798,33 @@ export function CheckoutForm({
     city,
     office,
   ]);
+
+  useEffect(() => {
+    addEventListener("pagehide", holdScroll);
+    addEventListener("pageshow", releaseRestoredScroll);
+    return () => {
+      removeEventListener("pagehide", holdScroll);
+      removeEventListener("pageshow", releaseRestoredScroll);
+      history.scrollRestoration = "auto";
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!restored) return;
+
+    const y = takeHeldScroll();
+    if (y === null) {
+      releaseScroll();
+      return;
+    }
+
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (scrollY === 0) scrollTo(0, y);
+        releaseScroll();
+      }),
+    );
+  }, [restored]);
 
   useEffect(() => {
     if (!placed) return;

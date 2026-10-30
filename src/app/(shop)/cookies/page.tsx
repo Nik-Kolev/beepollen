@@ -5,8 +5,9 @@ import { Container } from "@/components/container";
 import { CookieChoice } from "@/components/cookie-choice";
 import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
+import { Todo } from "@/components/todo";
 import { CART_STORAGE_KEY } from "@/lib/cart";
-import { CHECKOUT_DRAFT_KEY } from "@/lib/checkout-draft";
+import { CHECKOUT_DRAFT_KEY, CHECKOUT_SCROLL_KEY } from "@/lib/checkout-draft";
 import { COOKIE_CONSENT_KEY } from "@/lib/cookie-consent";
 
 export const metadata: Metadata = {
@@ -50,6 +51,15 @@ const ENTRIES: Entry[] = [
     consent: "Не изисква съгласие — служи само да не попълвате формата отново.",
   },
   {
+    name: CHECKOUT_SCROLL_KEY,
+    provider: "Този сайт, запис в паметта на раздела (sessionStorage)",
+    purpose:
+      "Помни докъде сте превъртели страницата на поръчката, за да ви върне там след презареждане или връщане назад. Не се изпраща никъде.",
+    duration:
+      "До следващото отваряне на страницата на поръчката или до затваряне на раздела",
+    consent: "Не изисква съгласие — служи само страницата да не скача.",
+  },
+  {
     name: "_ga",
     provider: "Google Analytics",
     purpose: "Различава отделните посетители, за да броим посещенията.",
@@ -74,7 +84,7 @@ export default function CookiesPage() {
             Политика за бисквитките
           </h1>
           <p className="text-ink-soft text-sm">
-            Последна промяна: TODO: дата на публикуване
+            Последна промяна: <Todo>TODO: дата на публикуване</Todo>
           </p>
         </header>
 

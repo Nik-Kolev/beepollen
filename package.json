@@ -20,6 +20,7 @@
     "db:seed": "prisma db seed",
     "db:sample-orders": "tsx --env-file-if-exists=.env scripts/seed-sample-orders.ts",
     "econt:sync": "tsx scripts/econt-sync.ts",
+    "db:backup": "tsx --env-file-if-exists=.env scripts/db-backup.ts",
     "db:fresh": "prisma migrate reset --force && prisma db seed",
     "typecheck": "prisma generate && next typegen && tsc --noEmit",
     "test:unit": "node scripts/test-unit.mjs",

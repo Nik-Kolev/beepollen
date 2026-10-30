@@ -56,7 +56,10 @@ item naming its files and the exact `TODO` text it stands for.
 `tests/owner-todos.test.ts` fails when a `TODO` under `src/` or in
 `prisma/seed.ts` is covered by no item, or when an item's text is gone from its
 files — so a new `TODO:` joins that list in the same change, and a filled one
-leaves it.
+leaves it. Markers are whole phrases compared for equality: a `TODO:` in page
+prose must be wrapped in `<Todo>` — the test refuses one outside it — and its
+phrase ends at `</Todo>`; one in a string ends at the closing quote; a `TODO_*`
+name is matched as a whole word.
 
 The catalogue is pollen only. Honey and comb were seeded early against borrowed
 free-licensed photographs and removed once the catalogue settled on pollen alone
@@ -444,6 +447,18 @@ The draft is restored during the first render after the cart is read, never in
 an effect, which `react-hooks/set-state-in-effect` refuses, and the office
 picker is keyed on that restore, since its city and office are its own state
 seeded from props. Only an accepted order clears it.
+
+A reload must not let the browser restore the scroll position itself: it
+restores as soon as the prerendered page is tall enough, and the restored draft
+then grows the office panel above the visitor's view (CLS 0.4). `pagehide`
+sets `history.scrollRestoration` to `manual` and keeps the position under
+`beepollen.checkout-scroll` with its URL; after the restore the form scrolls
+back two frames later — in the same frame, the growth itself counts as the
+shift — unless the visitor has scrolled already, and hands restoration back to
+the browser a task after `load`, since releasing it inside `load` lets the
+browser restore over it. The position is used once per document, only when the
+document itself was loaded at that URL by a reload or Back/Forward; a back-forward-cache restore keeps
+its own scroll, so `pageshow` drops the position and releases the mode.
 
 The form is in the prerendered HTML inside a `fieldset` that stays disabled
 until the cart has been read; only the lines and the total wait for the browser.
@@ -837,6 +852,14 @@ and rejected, while that doubled slash fails the migration engine with `P1003`.
 The path is duplicated on purpose. Studio also cannot run in the container — it
 binds loopback there with no flag to change it, so `compose.yaml` publishes only
 3000 and Studio stays on the host.
+
+`scripts/db-backup.ts` copies with `VACUUM INTO`, never a file copy, which
+would miss what is still in the WAL. It checks the copy through `ATTACH` on the
+source connection rather than a client of its own: on Windows libsql keeps a
+file open after `$disconnect`, so renaming the checked copy into place fails
+with `EBUSY`. Retention in `src/lib/backup-retention.ts` counts periods that
+have a backup, as restic's `--keep-daily/weekly/monthly` do, rather
+than calendar windows, so backups that stopped are never all pruned at once.
 
 The seed runs through `tsx`, not `node`. Node strips the types fine, but the
 generated client imports `./enums` and `./internal/class` without extensions and

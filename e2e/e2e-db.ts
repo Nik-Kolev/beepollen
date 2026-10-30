@@ -13,6 +13,8 @@ export function placeOrderWithOffers(email: string) {
   return placeInE2eDb(email, "0888123456", "ECONT_OFFICE", "1127", true);
 }
 
+const ORDER_ATTEMPTS = 3;
+
 function placeInE2eDb(
   email: string,
   phone: string,
@@ -41,14 +43,24 @@ function placeInE2eDb(
       process.stdout.write(result.order.reference);
     });
   `;
-  return execFileSync(process.execPath, ["--import", "tsx", "-e", script], {
-    env: {
-      ...process.env,
-      DATABASE_URL: "file:./data/e2e.db",
-      ORDERING_OPEN: "true",
-    },
-    encoding: "utf8",
-  });
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return execFileSync(process.execPath, ["--import", "tsx", "-e", script], {
+        env: {
+          ...process.env,
+          DATABASE_URL: "file:./data/e2e.db",
+          ORDERING_OPEN: "true",
+        },
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } catch (error) {
+      const stderr = (error as { stderr?: string }).stderr ?? "";
+      if (attempt === ORDER_ATTEMPTS || !stderr.includes("SQLITE_BUSY")) {
+        throw error;
+      }
+    }
+  }
 }
 
 export function backdateOrderSteps(reference: string, hoursAgo: number) {

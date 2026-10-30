@@ -56,7 +56,10 @@ item naming its files and the exact `TODO` text it stands for.
 `tests/owner-todos.test.ts` fails when a `TODO` under `src/` or in
 `prisma/seed.ts` is covered by no item, or when an item's text is gone from its
 files — so a new `TODO:` joins that list in the same change, and a filled one
-leaves it.
+leaves it. Markers are whole phrases compared for equality: a `TODO:` in page
+prose must be wrapped in `<Todo>` — the test refuses one outside it — and its
+phrase ends at `</Todo>`; one in a string ends at the closing quote; a `TODO_*`
+name is matched as a whole word.
 
 The catalogue is pollen only. Honey and comb were seeded early against borrowed
 free-licensed photographs and removed once the catalogue settled on pollen alone

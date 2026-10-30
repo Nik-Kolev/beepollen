@@ -28,10 +28,38 @@ function walkedFiles() {
   return [...sources, "prisma/seed.ts"];
 }
 
-function todosIn(text: string) {
-  return [...text.matchAll(/TODO/g)].map((match) =>
-    text.slice(match.index, match.index + 80),
+function phraseAt(text: string, start: number) {
+  const identifier = /TODO_[A-Z0-9_]+\b/y;
+  identifier.lastIndex = start;
+  const name = identifier.exec(text);
+  if (name) return name[0];
+
+  if (text.slice(0, start).trimEnd().endsWith("<Todo>")) {
+    return text.slice(start, text.indexOf("</Todo>", start)).trim();
+  }
+
+  const open = Math.max(
+    ...['"', "'", "`"].map((quote) => text.lastIndexOf(quote, start)),
   );
+  const end = open === -1 ? -1 : text.indexOf(text[open], start);
+  const quoted = text.slice(start, end === -1 ? undefined : end);
+  return end === -1 || /[<>{}]/.test(quoted)
+    ? `outside <Todo>: ${quoted.slice(0, 80)}`
+    : quoted;
+}
+
+const TODOS_BY_FILE = new Map<string, string[]>();
+
+function todosIn(file: string) {
+  let todos = TODOS_BY_FILE.get(file);
+  if (!todos) {
+    const text = readFlat(file);
+    todos = [...text.matchAll(/\bTODO/g)].map((match) =>
+      phraseAt(text, match.index),
+    );
+    TODOS_BY_FILE.set(file, todos);
+  }
+  return todos;
 }
 
 test("every TODO in the source is covered by an item on the admin's todo page", () => {
@@ -39,8 +67,8 @@ test("every TODO in the source is covered by an item on the admin's todo page", 
     const markers = ITEMS.filter((item) => item.files.includes(file)).flatMap(
       (item) => item.markers,
     );
-    return todosIn(readFlat(file))
-      .filter((todo) => !markers.some((marker) => todo.startsWith(marker)))
+    return todosIn(file)
+      .filter((todo) => !markers.includes(todo))
       .map((todo) => `${file}: ${todo}`);
   });
 
@@ -51,15 +79,15 @@ test("every item on the todo page is still owed in each file it names", () => {
   const filled = ITEMS.flatMap((item) =>
     item.files
       .filter((file) => {
-        const text = readFlat(file);
-        return !item.markers.some((marker) => text.includes(marker));
+        const todos = todosIn(file);
+        return !item.markers.some((marker) => todos.includes(marker));
       })
       .map((file) => `${item.text} — ${file}`),
   );
   const unfound = ITEMS.flatMap((item) =>
     item.markers
       .filter(
-        (marker) => !item.files.some((file) => readFlat(file).includes(marker)),
+        (marker) => !item.files.some((file) => todosIn(file).includes(marker)),
       )
       .map((marker) => `${item.text} — ${marker}`),
   );

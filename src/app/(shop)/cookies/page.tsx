@@ -5,6 +5,7 @@ import { Container } from "@/components/container";
 import { CookieChoice } from "@/components/cookie-choice";
 import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
+import { Todo } from "@/components/todo";
 import { CART_STORAGE_KEY } from "@/lib/cart";
 import { CHECKOUT_DRAFT_KEY } from "@/lib/checkout-draft";
 import { COOKIE_CONSENT_KEY } from "@/lib/cookie-consent";
@@ -74,7 +75,7 @@ export default function CookiesPage() {
             Политика за бисквитките
           </h1>
           <p className="text-ink-soft text-sm">
-            Последна промяна: TODO: дата на публикуване
+            Последна промяна: <Todo>TODO: дата на публикуване</Todo>
           </p>
         </header>
 

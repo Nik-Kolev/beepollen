@@ -36,6 +36,7 @@ The rest of `.env`:
 | `EMAIL_REPLY_TO`                | Where replies go; required once `RESEND_API_KEY` is set                                                       |
 | `OWNER_EMAIL`                   | Receives a notice for every new order and every withdrawal                                                    |
 | `EMAIL_TOKEN_SECRET`            | Signs the subscribe and unsubscribe links; at least 32 characters; empty, no such link is sent and none opens |
+| `REVALIDATE_SECRET`             | Bearer secret for `POST /api/revalidate`; at least 32 characters; empty, every call is refused                |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics, after cookie consent; read at build time                                                    |
 
 ### With Docker
@@ -63,6 +64,12 @@ database lives in its own volume, apart from the dev one. Before the site
 starts, a one-off `migrate` service applies the migrations and seeds the
 catalogue into that volume. The site answers on `127.0.0.1:3000` only, for a
 reverse proxy on the same host.
+
+Once it is up, re-render the shop pages from that database:
+
+```bash
+curl -X POST -H "Authorization: Bearer $REVALIDATE_SECRET" http://127.0.0.1:3000/api/revalidate
+```
 
 ## Scripts
 

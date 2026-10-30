@@ -174,3 +174,18 @@ restored database rather than replacing the day's pre-migration copy with the
 migrated one. The replaced images stay on disk for rollbacks; `docker image
 prune` deletes them, so it is a deliberate step of its own, never part of a
 deploy.
+
+## 6. Nightly backup
+
+`deploy`'s crontab backs up the database at 03:00 server time (Europe/Sofia),
+logging to the journal tagged `beepollen-backup`. Re-running this replaces the
+line rather than adding a second one:
+
+```bash
+( crontab -l 2>/dev/null | grep -v beepollen-backup; echo '0 3 * * * cd /home/deploy/beepollen && docker compose -f compose.prod.yaml run --rm migrate npm run db:backup 2>&1 | logger -t beepollen-backup' ) | crontab -
+```
+
+Read the runs with `sudo journalctl -t beepollen-backup`. A day keeps one copy,
+the latest, so a deploy between 00:00 and 03:00 loses its pre-migration copy to
+the nightly one: deploy after 03:00. The copies stay in the volume beside the
+database, on the same disk, until an off-host upload exists.

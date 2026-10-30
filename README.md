@@ -79,6 +79,32 @@ Once it is up, re-render the shop pages from that database:
 curl -X POST -H "Authorization: Bearer $REVALIDATE_SECRET" http://127.0.0.1:3000/api/revalidate
 ```
 
+### Backups
+
+`npm run db:backup` copies the `DATABASE_URL` database into
+`data/backups/beepollen-YYYY-MM-DD.db` (the date in Sofia; `BACKUP_DIR` moves
+the folder), checks the copy's integrity and exits non-zero if it fails. It
+then deletes older copies, keeping the 7 newest and the newest of each of the 4
+most recent weeks and 3 most recent months that have a backup. In production it runs
+in the `migrate` image, against the volume:
+
+```bash
+docker compose -f compose.prod.yaml run --rm migrate npm run db:backup
+```
+
+Restoring replaces the live database with the backup, losing everything
+written since it was taken:
+
+```bash
+docker compose -f compose.prod.yaml stop web
+docker compose -f compose.prod.yaml run --rm migrate \
+  sh -c 'cp /app/data/backups/beepollen-YYYY-MM-DD.db /app/data/prod.db && rm -f /app/data/prod.db-wal /app/data/prod.db-shm'
+docker compose -f compose.prod.yaml up -d
+```
+
+Then call the revalidate route above. A backup kept outside the volume is
+mounted in with `-v /its/folder:/backups:ro` and copied from `/backups/`.
+
 ## Scripts
 
 | Command                    | Does                                      |
@@ -102,6 +128,7 @@ curl -X POST -H "Authorization: Bearer $REVALIDATE_SECRET" http://127.0.0.1:3000
 | `npm run db:reset`         | Wipe and replay migrations                |
 | `npm run db:fresh`         | Reset, then seed                          |
 | `npm run db:sample-orders` | Sample orders in each status, subscribers |
+| `npm run db:backup`        | Checked, dated copy; prunes old ones      |
 | `npm run econt:sync`       | Refresh the Econt office list             |
 | `npm run test:unit`        | Unit tests, own throwaway DB              |
 | `npm run test:e2e`         | E2E and accessibility tests               |

@@ -853,6 +853,14 @@ The path is duplicated on purpose. Studio also cannot run in the container — i
 binds loopback there with no flag to change it, so `compose.yaml` publishes only
 3000 and Studio stays on the host.
 
+`scripts/db-backup.ts` copies with `VACUUM INTO`, never a file copy, which
+would miss what is still in the WAL. It checks the copy through `ATTACH` on the
+source connection rather than a client of its own: on Windows libsql keeps a
+file open after `$disconnect`, so renaming the checked copy into place fails
+with `EBUSY`. Retention in `src/lib/backup-retention.ts` counts periods that
+have a backup, as restic's `--keep-daily/weekly/monthly` do, rather
+than calendar windows, so backups that stopped are never all pruned at once.
+
 The seed runs through `tsx`, not `node`. Node strips the types fine, but the
 generated client imports `./enums` and `./internal/class` without extensions and
 Node’s ESM resolver cannot follow those. `db:fresh` chains `prisma db seed`

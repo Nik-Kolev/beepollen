@@ -448,6 +448,18 @@ an effect, which `react-hooks/set-state-in-effect` refuses, and the office
 picker is keyed on that restore, since its city and office are its own state
 seeded from props. Only an accepted order clears it.
 
+A reload must not let the browser restore the scroll position itself: it
+restores as soon as the prerendered page is tall enough, and the restored draft
+then grows the office panel above the visitor's view (CLS 0.4). `pagehide`
+sets `history.scrollRestoration` to `manual` and keeps the position under
+`beepollen.checkout-scroll` with its URL; after the restore the form scrolls
+back two frames later — in the same frame, the growth itself counts as the
+shift — unless the visitor has scrolled already, and hands restoration back to
+the browser a task after `load`, since releasing it inside `load` lets the
+browser restore over it. The position is used once per document, only when the
+document itself was loaded at that URL by a reload or Back/Forward; a back-forward-cache restore keeps
+its own scroll, so `pageshow` drops the position and releases the mode.
+
 The form is in the prerendered HTML inside a `fieldset` that stays disabled
 until the cart has been read; only the lines and the total wait for the browser.
 Rendered after the read instead, the page stayed empty until hydration and the

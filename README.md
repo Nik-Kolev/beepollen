@@ -79,6 +79,9 @@ Once it is up, re-render the shop pages from that database:
 curl -X POST -H "Authorization: Bearer $REVALIDATE_SECRET" http://127.0.0.1:3000/api/revalidate
 ```
 
+On the production host `deploy/deploy.sh` runs these steps and checks each;
+[`deploy/README.md`](deploy/README.md) is how that host is built.
+
 ### Backups
 
 `npm run db:backup` copies the `DATABASE_URL` database into

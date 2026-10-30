@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Container } from "@/components/container";
 import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
+import { Todo } from "@/components/todo";
 
 export const metadata: Metadata = {
   title: "Политика за поверителност",
@@ -120,12 +121,14 @@ export default function PrivacyPage() {
             Политика за поверителност
           </h1>
           <p className="text-ink-soft text-sm">
-            Последна промяна: TODO: дата на публикуване
+            Последна промяна: <Todo>TODO: дата на публикуване</Todo>
           </p>
         </header>
 
         <Section id="controller" title="Кой отговаря за данните">
-          <p>TODO: име, адрес, телефон и имейл на администратора</p>
+          <p>
+            <Todo>TODO: име, адрес, телефон и имейл на администратора</Todo>
+          </p>
           <p>
             Нямаме длъжностно лице по защита на данните, защото законът не го
             изисква за магазин с нашия размер и дейност.
@@ -182,8 +185,8 @@ export default function PrivacyPage() {
             ))}
           </ul>
           <p>
-            За всяко от тях ни пишете на TODO: имейл. Отговаряме до един месец.
-            Съгласието за бисквитките променяте от{" "}
+            За всяко от тях ни пишете на <Todo>TODO: имейл</Todo>. Отговаряме до
+            един месец. Съгласието за бисквитките променяте от{" "}
             <Link href="/cookies" className={TEXT_LINK}>
               политиката за бисквитките
             </Link>

@@ -52,14 +52,22 @@ Same URL. Edits to `src/`, `public/`, `prisma/`, `prisma.config.ts` and
 `postcss.config.mjs` sync and restart it, and changing `package.json` or the
 lockfile rebuilds the image.
 
-Production runs from its own compose file:
+Production runs from its own compose file. Every push to `main` builds its two
+images and publishes them to GHCR, tagged with the commit and `latest`; the
+server pulls them rather than building:
 
 ```bash
-docker compose -f compose.prod.yaml up -d --build
+docker compose -f compose.prod.yaml pull
+docker compose -f compose.prod.yaml up -d
 ```
 
+`IMAGE_TAG=<commit sha>` in front of both runs a specific build instead of
+`latest`, and `up -d --build` builds the images locally instead — that build
+then stands in for `latest` until the next `pull`.
+
 The site reads `.env` when it starts, except `NEXT_PUBLIC_GA_MEASUREMENT_ID`,
-which is fixed when the image is built, so changing it needs `--build`. The
+which is fixed when the image is built: the published images take it from the
+repository variable of that name, and a local `--build` from `.env`. The
 database lives in its own volume, apart from the dev one. Before the site
 starts, a one-off `migrate` service applies the migrations and seeds the
 catalogue into that volume. The site answers on `127.0.0.1:3000` only, for a

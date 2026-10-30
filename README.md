@@ -107,8 +107,9 @@ curl -X POST -H "Authorization: Bearer $REVALIDATE_SECRET" http://127.0.0.1:3000
 | `npm run test:e2e`         | E2E and accessibility tests               |
 | `npm run test:perf`        | Lighthouse, not on Windows                |
 
-## Preview
+## Hosts
 
-A demo tracks `develop` at
+Production is [beepollen.bg](https://beepollen.bg), kept out of search results
+with ordering closed until launch. A demo tracks `develop` at
 [beepollen-wheat.vercel.app](https://beepollen-wheat.vercel.app); each pull
-request gets its own temporary URL. Not the production host.
+request gets its own temporary URL.

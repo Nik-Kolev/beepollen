@@ -252,9 +252,10 @@ route, and `src/lib/prisma.ts` copies it to `/tmp` once per instance — skipped
 while `CI` is set, so the build's seeding writes the bundled file itself. Writes
 land in that instance's copy and are lost on a cold start.
 
-`next.config.ts` sets `X-Robots-Tag: noindex, nofollow` on every route, because
-Vercel noindexes preview deployments but not production ones. **Remove it when
-the real production host and domain go live.**
+`next.config.ts` sets `X-Robots-Tag: noindex, nofollow` on every route of every
+host, because the site is a showcase until launch and Vercel does not noindex
+the demo's production deployment. **Remove it at launch, with the banner
+below.**
 
 The same `headers()` sets the security headers, a Content Security Policy
 among them. It allows `'unsafe-inline'` scripts: every prerendered page carries
@@ -278,9 +279,10 @@ The checkout reads it at build time to swap its submit button for a notice, and
 the order service at request time. **Delete the banner, the variable and both
 checks together at launch**; they are not a switch to keep.
 
-`SITE_URL` in `src/lib/site.ts` is that same demo origin and `metadataBase`
-resolves every canonical and Open Graph URL against it, so **it changes with the
-domain, in the same pass as the header above.**
+`SITE_URL` in `src/lib/site.ts` is `https://beepollen.bg`, the production
+host, and `metadataBase` resolves every canonical and Open Graph URL against it
+— so the Vercel demo's canonicals, sitemap and email links name the domain, not
+the demo.
 
 ## Metadata
 
@@ -347,7 +349,9 @@ withdraws every offers consent of that customer, and a withdrawn consent can
 never be confirmed again. The checkout answers the same whatever address is
 typed, so no page reveals whether an address is subscribed. The links carry an
 HMAC token signed with `EMAIL_TOKEN_SECRET`, naming its purpose so a
-confirmation token cannot unsubscribe. Opening `/subscription/confirm` or
+confirmation token cannot unsubscribe. Every host links to `SITE_URL`, so the
+Vercel demo's tokens reach beepollen.bg naming the demo's row ids: the two hosts
+must never share that secret. Opening `/subscription/confirm` or
 `/subscription/unsubscribe` changes nothing: mail scanners fetch every link, so
 only the page's button, a form post, acts. The one-click header points at
 `POST /api/unsubscribe`, which mail clients call themselves.

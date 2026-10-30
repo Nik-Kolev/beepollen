@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { CHECKOUT_SCROLL_KEY } from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
 import { DISPATCH_NOTE } from "@/lib/delivery";
 
@@ -158,6 +159,125 @@ test("answers survive a reload of the checkout", async ({ page }) => {
 
   await expectContactKept(page);
   await expect(chosenOffice(page)).toContainText(OFFICE_HEADING);
+});
+
+for (const [way, heldLoad] of [
+  ["a reload whose load event is held", true],
+  ["a reload", false],
+  ["Back from another page", false],
+] as const) {
+  test(`${way}, scrolled down to the consents, returns there without shifting the page`, async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "the shift was measured at 1280px");
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await seedCart(page, {
+      version: 2,
+      items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+    });
+    await page.goto("/checkout");
+    await fillContact(page, "maria.ivanova@example.com");
+    await chooseOffice(page);
+    await termsBox(page).scrollIntoViewIfNeeded();
+    await page.evaluate(
+      () => new Promise((resolve) => requestAnimationFrame(resolve)),
+    );
+
+    await page.addInitScript(() => {
+      const shifts: PerformanceEntry[] = [];
+      const observer = new PerformanceObserver((list) => {
+        shifts.push(...list.getEntries());
+      });
+      observer.observe({ type: "layout-shift", buffered: true });
+      Object.assign(window, {
+        layoutShift: () =>
+          [...shifts, ...observer.takeRecords()].reduce(
+            (total, entry) =>
+              total + (entry as PerformanceEntry & { value: number }).value,
+            0,
+          ),
+      });
+    });
+    if (heldLoad) {
+      await page.route("**/held-load.png", async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        await route.fulfill({ status: 404 });
+      });
+      await page.addInitScript(() => {
+        const image = new Image();
+        image.src = "/held-load.png";
+        Object.assign(window, { heldLoad: image });
+      });
+    }
+    if (way.startsWith("Back")) {
+      await page.addInitScript(() => {
+        addEventListener("pageshow", (event) => {
+          document.documentElement.dataset.persisted = String(event.persisted);
+        });
+      });
+      await page.goto("/terms");
+      await page.goBack();
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-persisted",
+        "false",
+      );
+    } else {
+      await page.reload();
+    }
+    await expect(chosenOffice(page)).toContainText(OFFICE_HEADING);
+    await expect(termsBox(page)).toBeInViewport();
+    await page.evaluate(
+      () =>
+        new Promise((resolve) =>
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => setTimeout(resolve)),
+          ),
+        ),
+    );
+
+    const cls = await page.evaluate(() =>
+      (window as Window & { layoutShift?: () => number }).layoutShift?.(),
+    );
+    expect(cls).toBeLessThan(0.01);
+    expect(await page.evaluate(() => history.scrollRestoration)).toBe("auto");
+    expect(
+      await page.evaluate(
+        (key) => sessionStorage.getItem(key),
+        CHECKOUT_SCROLL_KEY,
+      ),
+    ).toBeNull();
+  });
+}
+
+test("a position kept by another document never moves a later visit to the checkout", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, "the position is kept the same way at every width");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+  await fillContact(page, "maria.ivanova@example.com");
+  await chooseOffice(page);
+  await termsBox(page).scrollIntoViewIfNeeded();
+
+  await page.goto("/");
+  await page.reload();
+  await cartLink(page).click();
+  await page.getByRole("link", { name: "Към поръчката" }).click();
+  await expect(chosenOffice(page)).toContainText(OFFICE_HEADING);
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+
+  expect(await page.evaluate(() => scrollY)).toBe(0);
 });
 
 test("a chosen city with no office yet is kept, and so is local delivery", async ({

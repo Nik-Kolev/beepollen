@@ -4,6 +4,7 @@ import {
   TEST_ADMIN_EMAIL,
   TEST_AUTH_SECRET,
   TEST_EMAIL_TOKEN_SECRET,
+  TEST_REVALIDATE_SECRET,
 } from "./e2e/admin-env";
 import { COOKIE_CONSENT_KEY } from "./src/lib/cookie-consent";
 
@@ -68,6 +69,7 @@ export default defineConfig({
       RESEND_API_KEY: "",
       OWNER_EMAIL: "",
       EMAIL_TOKEN_SECRET: TEST_EMAIL_TOKEN_SECRET,
+      REVALIDATE_SECRET: TEST_REVALIDATE_SECRET,
       NEXT_PUBLIC_GA_MEASUREMENT_ID: "G-E2ETEST000",
     },
     reuseExistingServer: !process.env.CI,

@@ -4,8 +4,9 @@ import { SOLD_OUT_LINES, UNAVAILABLE_LINES } from "@/lib/checkout-messages";
 import { CONSENT_WORDING } from "@/lib/consent";
 import { formatPrice } from "@/lib/money";
 
-import { TEST_ADMIN_EMAIL } from "./admin-env";
+import { TEST_ADMIN_EMAIL, TEST_REVALIDATE_SECRET } from "./admin-env";
 import { signInAs } from "./admin-session";
+import { setProductPrice } from "./e2e-db";
 import { seedCart } from "./seed-cart";
 
 const PRODUCT = "Пчелен прашец 1 кг";
@@ -140,4 +141,37 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await expect(main.getByText(PRODUCT, { exact: true })).toHaveCount(0);
   await expect(main.getByRole("alert")).toHaveCount(0);
   await expect(submit).toBeEnabled();
+});
+
+test("the revalidate route re-renders the prerendered pages from the database", async ({
+  page,
+  request,
+}) => {
+  const paths = [`/products/${SLUG}`, "/"];
+  const main = page.getByRole("main");
+  async function expectPrice(price: string) {
+    for (const path of paths) {
+      await page.goto(path);
+      await expect(main.getByText(`${price} €`)).toBeVisible();
+    }
+  }
+
+  await expectPrice(SEEDED.price);
+  setProductPrice(SLUG, 4810);
+  await expectPrice(SEEDED.price);
+
+  for (const headers of [
+    {},
+    { authorization: "Bearer not-the-secret" },
+  ] as Record<string, string>[]) {
+    const refused = await request.post("/api/revalidate", { headers });
+    expect(refused.status()).toBe(401);
+  }
+  await expectPrice(SEEDED.price);
+
+  const response = await request.post("/api/revalidate", {
+    headers: { authorization: `Bearer ${TEST_REVALIDATE_SECRET}` },
+  });
+  expect(response.status()).toBe(204);
+  await expectPrice("48,10");
 });

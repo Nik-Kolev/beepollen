@@ -684,6 +684,14 @@ stage puts `node_modules/.bin` on it. `env_file` reaches only the running
 container, so `NEXT_PUBLIC_GA_MEASUREMENT_ID` is passed to the build as an arg
 interpolated from the same `.env`.
 
+The image prerenders the shop pages from the builder's own seeded database, not
+the volume's, so after every start they show seed prices and default stock
+until `POST /api/revalidate` re-renders them. It answers only a `Bearer`
+matching `REVALIDATE_SECRET` and refuses everything while that is unset or
+under 32 characters. A route handler only marks pages stale, and each
+re-renders on its next visit — so a page left unvisited since an earlier
+revalidation already reads the database, which a test must visit first to see.
+
 ## Testing
 
 Two layers. `npm run test:unit` runs `node:test` through tsx over `tests/**`,

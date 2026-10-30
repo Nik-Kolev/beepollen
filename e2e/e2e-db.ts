@@ -140,6 +140,15 @@ export function renameOrderContact(reference: string, name: string) {
   `);
 }
 
+export function setProductPrice(slug: string, priceCents: number) {
+  runInE2eDb(`
+    await prisma.product.update({
+      where: { slug: ${JSON.stringify(slug)} },
+      data: { priceCents: ${priceCents} },
+    });
+  `);
+}
+
 function runInE2eDb(body: string) {
   const script = `
     import("@/lib/prisma").then(async (module) => {

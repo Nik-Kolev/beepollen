@@ -1,0 +1,846 @@
+"use client";
+
+import Link from "next/link";
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type ReactNode,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+
+import { submitOrder } from "@/app/(shop)/checkout/actions";
+import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
+import { EmptyCart } from "@/components/empty-cart";
+import {
+  ERROR_TEXT,
+  FIELD,
+  FIELD_INVALID,
+  INPUT_ERROR_TEXT,
+  LABEL,
+} from "@/components/form-styles";
+import { TEXT_LINK } from "@/components/link-styles";
+import { Reveal } from "@/components/reveal";
+import { useCart } from "@/hooks/use-cart";
+import { isPurchasable, purchasableTotal, type CartItem } from "@/lib/cart";
+import { newIdempotencyKey } from "@/lib/checkout-payload";
+import {
+  blockedReason,
+  FIELD_ERROR,
+  ORDERING_CLOSED,
+  summaryError,
+} from "@/lib/checkout-messages";
+import { clearDraft, readDraft, writeDraft } from "@/lib/checkout-draft";
+import { CONSENT_WORDING } from "@/lib/consent";
+import {
+  deliveryPrice,
+  DISPATCH_NOTE,
+  LOCAL_DELIVERY_CITY,
+} from "@/lib/delivery";
+import type { EcontOffice } from "@/lib/econt";
+import { formatPrice } from "@/lib/money";
+import type { PlaceOrderResult, PlacedOrder } from "@/lib/orders";
+import type { CartProduct } from "@/lib/products";
+import { OWNER_PHONE } from "@/lib/site";
+
+const CHECKBOX = "accent-action size-5 shrink-0";
+
+const CHECKBOX_LABEL = "flex min-h-11 items-center gap-3 text-sm";
+
+const CONSENT_BOX = "border-line bg-ground rounded-lg border px-4 py-2";
+
+const CARD = "bg-surface ring-line rounded-xl p-5 shadow-sm ring-1 sm:p-6";
+
+type FocusTarget = () => HTMLElement | null | undefined;
+
+function StepCard({
+  step,
+  title,
+  children,
+}: {
+  step: number;
+  title: string;
+  children: ReactNode;
+}) {
+  const headingId = useId();
+
+  return (
+    <section aria-labelledby={headingId} className={CARD}>
+      <h2
+        id={headingId}
+        className="flex items-center gap-3 text-lg font-semibold"
+      >
+        <span
+          aria-hidden="true"
+          className="bg-action text-action-ink grid size-8 shrink-0 place-items-center rounded-full text-sm"
+        >
+          {step}
+        </span>
+        {title}
+      </h2>
+      {children}
+    </section>
+  );
+}
+
+type Answers = {
+  name: string;
+  email: string;
+  phone: string;
+  localDelivery: boolean;
+  acceptsTerms: boolean;
+  acceptsOffers: boolean;
+};
+
+const EMPTY_ANSWERS: Answers = {
+  name: "",
+  email: "",
+  phone: "",
+  localDelivery: false,
+  acceptsTerms: false,
+  acceptsOffers: false,
+};
+
+type Corrected = { of: PlaceOrderResult | null; fields: Set<string> };
+
+const NOTHING_CORRECTED: Corrected = { of: null, fields: new Set() };
+
+function OrderPlaced({
+  order,
+  office,
+}: {
+  order: PlacedOrder;
+  office: EcontOffice | null;
+}) {
+  const heading = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+    heading.current?.focus({ preventScroll: true });
+  }, []);
+
+  return (
+    <div className="py-10">
+      <div className={`${CARD} mx-auto max-w-xl text-center`}>
+        <p className="text-brand-deep text-2xl font-semibold sm:text-3xl">
+          Благодарим за поръчката!
+        </p>
+        <h2 ref={heading} tabIndex={-1} className="mt-2 text-lg font-semibold">
+          Поръчката е приета
+        </h2>
+        <dl className="mt-6 flex flex-col items-center gap-2">
+          <div className="flex gap-2">
+            <dt className="text-ink-soft">Номер на поръчката:</dt>
+            <dd className="font-semibold">{order.reference}</dd>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <dt className="text-ink-soft">Общо:</dt>
+            <dd className="text-brand-deep text-lg font-semibold">
+              {formatPrice(order.totalCents)}
+            </dd>
+          </div>
+        </dl>
+        {office ? (
+          <p className="mt-6">
+            Ще изпратим поръчката до офис на Еконт:{" "}
+            <span className="font-semibold">
+              {office.label}, {office.street}
+            </span>
+            . {DISPATCH_NOTE}
+          </p>
+        ) : (
+          <p className="mt-6">
+            Ще се свържем с вас възможно най-скоро по телефона, за да уговорим
+            доставката в гр. {LOCAL_DELIVERY_CITY}.
+          </p>
+        )}
+        <p className="text-ink-soft mt-2">
+          Ако имате въпроси, обадете се на{" "}
+          <a
+            href={OWNER_PHONE.href}
+            className="text-brand-deep font-medium whitespace-nowrap underline underline-offset-4"
+          >
+            {OWNER_PHONE.display}
+          </a>
+          .
+        </p>
+        <Link
+          href="/"
+          className="bg-action text-action-ink hover:bg-action-hover mt-8 inline-flex min-h-14 items-center rounded-full px-8 text-lg font-semibold transition-colors"
+        >
+          Към продуктите
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function FilledCheckout({
+  ready,
+  items,
+  products,
+  offices,
+  office,
+  setOffice,
+  city,
+  setCity,
+  restored,
+  answers,
+  setAnswers,
+  corrected,
+  setCorrected,
+  result,
+  pending,
+  formAction,
+  onRemove,
+  orderingOpen,
+}: {
+  ready: boolean;
+  items: CartItem[];
+  products: CartProduct[];
+  offices: EcontOffice[];
+  office: EcontOffice | null;
+  setOffice: Dispatch<SetStateAction<EcontOffice | null>>;
+  city: string | null;
+  setCity: Dispatch<SetStateAction<string | null>>;
+  restored: boolean;
+  answers: Answers;
+  setAnswers: Dispatch<SetStateAction<Answers>>;
+  corrected: Corrected;
+  setCorrected: Dispatch<SetStateAction<Corrected>>;
+  result: PlaceOrderResult | null;
+  pending: boolean;
+  formAction: (formData: FormData) => void;
+  onRemove: (slug: string, focusTarget: FocusTarget) => void;
+  orderingOpen: boolean;
+}) {
+  const idempotencyKey = useRef<string | null>(null);
+  const removeButtons = useRef(new Map<string, HTMLButtonElement>());
+  const summaryHeading = useRef<HTMLHeadingElement>(null);
+  const catalogue = new Map(products.map((product) => [product.slug, product]));
+  const lines = items.map((item) => ({
+    ...item,
+    product: catalogue.get(item.slug),
+  }));
+  const unavailable =
+    result && !result.ok && result.code === "UNAVAILABLE_ITEMS"
+      ? new Set(result.slugs)
+      : new Set<string>();
+  const sellable = lines.filter(
+    (line) => isPurchasable(line) && !unavailable.has(line.slug),
+  );
+  const itemsCents = purchasableTotal(sellable);
+  const deliveryCents = deliveryPrice(
+    answers.localDelivery ? "LOCAL" : "ECONT_OFFICE",
+  );
+  const blocked = blockedReason(lines);
+  const itemCount = sellable.reduce((total, line) => total + line.quantity, 0);
+  const totalText = !ready
+    ? null
+    : itemsCents === null
+      ? "TODO: цена"
+      : formatPrice(itemsCents + (itemCount > 0 ? deliveryCents : 0));
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [pickerRound, setPickerRound] = useState(0);
+  const [deliveryTouched, setDeliveryTouched] = useState(false);
+  const linesId = useId();
+  const formRef = useRef<HTMLFormElement>(null);
+  const submitting = useRef(false);
+
+  useEffect(() => {
+    submitting.current = false;
+    if (!result || result.ok) return;
+
+    const form = formRef.current;
+    const target =
+      form?.querySelector<HTMLElement>('[aria-invalid="true"]') ??
+      form?.querySelector<HTMLElement>('[role="alert"]');
+
+    target?.scrollIntoView({ block: "center" });
+    if (target?.matches("input")) target.focus({ preventScroll: true });
+  }, [result]);
+
+  const correctedFields =
+    corrected.of === result ? corrected.fields : new Set<string>();
+  const reported =
+    result && !result.ok && result.code === "VALIDATION_ERROR"
+      ? result.fields
+      : [];
+  const invalid = new Set(
+    reported.filter((field) => !correctedFields.has(field)),
+  );
+  const stillUnavailable = lines.some((line) => unavailable.has(line.slug));
+  const removable = lines.filter(
+    ({ slug, product }) =>
+      !product || unavailable.has(slug) || product.stock === "NONE",
+  );
+
+  function removeLine(slug: string) {
+    const index = removable.findIndex((line) => line.slug === slug);
+    const rest = removable.filter((line) => line.slug !== slug);
+    const next = rest[index] ?? rest[index - 1];
+
+    onRemove(
+      slug,
+      next
+        ? () => removeButtons.current.get(next.slug)
+        : () => summaryHeading.current,
+    );
+  }
+
+  function removeButtonRef(slug: string) {
+    return (button: HTMLButtonElement) => {
+      removeButtons.current.set(slug, button);
+      return () => {
+        removeButtons.current.delete(slug);
+      };
+    };
+  }
+  const linesShown = summaryOpen || unavailable.size > 0 || blocked !== null;
+  const summary = summaryError(
+    result,
+    stillUnavailable,
+    correctedFields.has("officeCode"),
+  );
+
+  function fieldProps(name: string) {
+    return invalid.has(name)
+      ? { "aria-invalid": true as const, "aria-describedby": `${name}-error` }
+      : {};
+  }
+
+  function fieldClass(name: string) {
+    return invalid.has(name) ? FIELD_INVALID : FIELD;
+  }
+
+  function markCorrected(field: string) {
+    setCorrected((current) => ({
+      of: result,
+      fields:
+        current.of === result
+          ? new Set(current.fields).add(field)
+          : new Set([field]),
+    }));
+  }
+
+  function onAnswerChange(field: keyof Answers) {
+    return (event: ChangeEvent<HTMLInputElement>) => {
+      const { value, checked, type } = event.target;
+
+      markCorrected(field);
+      setAnswers((current) => ({
+        ...current,
+        [field]: type === "checkbox" ? checked : value,
+      }));
+    };
+  }
+
+  function onLocalDeliveryChange(event: ChangeEvent<HTMLInputElement>) {
+    const { checked } = event.target;
+
+    markCorrected("officeCode");
+    setOffice(null);
+    setCity(null);
+    if (!checked) setPickerRound((round) => round + 1);
+    setDeliveryTouched(true);
+    setAnswers((current) => ({ ...current, localDelivery: checked }));
+  }
+
+  return (
+    <form
+      ref={formRef}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (submitting.current) return;
+        submitting.current = true;
+
+        const submitted = new FormData(event.currentTarget);
+        idempotencyKey.current ??= newIdempotencyKey();
+        submitted.set("idempotencyKey", idempotencyKey.current);
+
+        startTransition(() => formAction(submitted));
+      }}
+      className="mt-4"
+    >
+      <Link
+        href="/cart"
+        className="text-ink hover:text-brand-deep mb-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold underline underline-offset-4"
+      >
+        <span aria-hidden="true">←</span>
+        Обратно към количката
+      </Link>
+
+      <input
+        type="hidden"
+        name="items"
+        value={JSON.stringify(
+          items.map(({ slug, quantity }) => ({ slug, quantity })),
+        )}
+      />
+      <input type="hidden" name="officeCode" value={office?.code ?? ""} />
+
+      <fieldset
+        disabled={!ready}
+        className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:gap-8"
+      >
+        <section
+          className={`${CARD} lg:sticky lg:top-20 lg:order-last lg:w-80 lg:shrink-0`}
+        >
+          <h2
+            ref={summaryHeading}
+            tabIndex={-1}
+            className="text-lg font-semibold focus:outline-none"
+          >
+            <button
+              type="button"
+              aria-expanded={linesShown}
+              aria-controls={linesId}
+              onClick={() => setSummaryOpen((open) => !open)}
+              className="flex min-h-11 w-full items-center justify-between gap-3 text-left lg:hidden"
+            >
+              <span>
+                Вашата поръчка · {itemCount} бр.
+                {totalText && ` · ${totalText}`}
+              </span>
+              <span
+                aria-hidden="true"
+                className={`text-ink-soft transition-transform ${linesShown ? "rotate-180" : ""}`}
+              >
+                ▾
+              </span>
+            </button>
+            <span className="hidden lg:inline">Вашата поръчка</span>
+          </h2>
+
+          <div id={linesId} className={linesShown ? "" : "hidden lg:block"}>
+            <ul
+              role="list"
+              className="border-line divide-line mt-4 divide-y border-y"
+            >
+              {lines.map(({ slug, name, quantity, product }) => {
+                const withdrawn = !product || unavailable.has(slug);
+                const soldOut = !withdrawn && product.stock === "NONE";
+
+                return (
+                  <li key={slug} className="flex items-start gap-4 py-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium break-words">
+                        {product?.name ?? name}
+                      </p>
+                      <p className="text-ink-soft mt-1 text-sm">
+                        {withdrawn
+                          ? "Вече не се предлага"
+                          : soldOut
+                            ? "Изчерпан"
+                            : `${quantity} бр.`}
+                      </p>
+                      {removable.some((line) => line.slug === slug) && (
+                        <button
+                          ref={removeButtonRef(slug)}
+                          type="button"
+                          onClick={() => {
+                            setSummaryOpen(true);
+                            removeLine(slug);
+                          }}
+                          className="text-ink hover:text-brand-deep mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0"
+                        >
+                          Премахни
+                          <span className="sr-only">
+                            {" "}
+                            {product?.name ?? name}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                    {!withdrawn && !soldOut && (
+                      <p className="shrink-0 font-semibold tabular-nums">
+                        {product.priceCents > 0
+                          ? formatPrice(product.priceCents * quantity)
+                          : "TODO: цена"}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+
+            <p className="mt-4 flex items-center justify-between">
+              <span>Доставка</span>
+              <span className="font-semibold tabular-nums">
+                {deliveryCents === 0 ? "Безплатна" : formatPrice(deliveryCents)}
+              </span>
+            </p>
+
+            <p className="mt-4 hidden items-center justify-between text-lg font-semibold lg:flex">
+              <span>Общо</span>
+              <span className="text-brand-deep">{totalText}</span>
+            </p>
+          </div>
+        </section>
+
+        <div className="flex min-w-0 flex-col gap-6 lg:flex-1">
+          {summary && (
+            <p
+              role="alert"
+              className="border-ink text-ink border-l-4 pl-4 font-medium"
+            >
+              {summary}
+            </p>
+          )}
+
+          <StepCard step={1} title="Данни за връзка">
+            <div className="mt-4 flex flex-col gap-4">
+              <div>
+                <label htmlFor="name" className={LABEL}>
+                  Име и фамилия
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  value={answers.name}
+                  onChange={onAnswerChange("name")}
+                  className={fieldClass("name")}
+                  {...fieldProps("name")}
+                />
+                {invalid.has("name") && (
+                  <p id="name-error" className={INPUT_ERROR_TEXT}>
+                    {FIELD_ERROR.name}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="email" className={LABEL}>
+                  Имейл
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={answers.email}
+                  onChange={onAnswerChange("email")}
+                  className={fieldClass("email")}
+                  {...fieldProps("email")}
+                />
+                {invalid.has("email") && (
+                  <p id="email-error" className={INPUT_ERROR_TEXT}>
+                    {FIELD_ERROR.email}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="phone" className={LABEL}>
+                  Телефон
+                </label>
+                <input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  autoComplete="tel"
+                  required
+                  value={answers.phone}
+                  onChange={onAnswerChange("phone")}
+                  className={fieldClass("phone")}
+                  {...fieldProps("phone")}
+                />
+                {invalid.has("phone") && (
+                  <p id="phone-error" className={INPUT_ERROR_TEXT}>
+                    {FIELD_ERROR.phone}
+                  </p>
+                )}
+              </div>
+            </div>
+          </StepCard>
+
+          <StepCard step={2} title="Доставка">
+            <label className={`mt-4 ${CHECKBOX_LABEL}`}>
+              <input
+                type="checkbox"
+                name="localDelivery"
+                checked={answers.localDelivery}
+                onChange={onLocalDeliveryChange}
+                className={CHECKBOX}
+              />
+              <span>
+                Поръчката е за гр. {LOCAL_DELIVERY_CITY} — доставяме лично и
+                безплатно.
+              </span>
+            </label>
+
+            <Reveal open={!answers.localDelivery} animate={deliveryTouched}>
+              <div className="pt-4">
+                <p className="text-ink-soft mb-6 text-sm">{DISPATCH_NOTE}</p>
+                <OfficeCityPicker
+                  key={`${restored ? "restored" : "initial"}-${pickerRound}`}
+                  offices={offices}
+                  initialCity={city}
+                  initialOfficeCode={office?.code ?? null}
+                  onCityChange={setCity}
+                  error={
+                    invalid.has("officeCode")
+                      ? {
+                          id: "officeCode-error",
+                          message: FIELD_ERROR.officeCode,
+                        }
+                      : null
+                  }
+                  onSelect={(chosen) => {
+                    markCorrected("officeCode");
+                    setOffice(chosen);
+                  }}
+                />
+              </div>
+            </Reveal>
+          </StepCard>
+
+          <StepCard step={3} title="Потвърждение">
+            <div className="mt-4 flex flex-col gap-3">
+              <div className={CONSENT_BOX}>
+                <label className={CHECKBOX_LABEL}>
+                  <input
+                    type="checkbox"
+                    name="acceptsTerms"
+                    aria-required
+                    checked={answers.acceptsTerms}
+                    onChange={onAnswerChange("acceptsTerms")}
+                    className={CHECKBOX}
+                    {...fieldProps("acceptsTerms")}
+                  />
+                  <span>
+                    Прочетох и приемам{" "}
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      aria-describedby="new-tab-note"
+                      className={TEXT_LINK}
+                    >
+                      общите условия
+                    </Link>
+                    .
+                  </span>
+                </label>
+                {invalid.has("acceptsTerms") && (
+                  <p id="acceptsTerms-error" className={ERROR_TEXT}>
+                    {FIELD_ERROR.acceptsTerms}
+                  </p>
+                )}
+              </div>
+
+              <p className="text-sm">
+                Как обработваме данните ви:{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  aria-describedby="new-tab-note"
+                  className={TEXT_LINK}
+                >
+                  Политика за поверителност
+                </Link>
+                <span id="new-tab-note" className="sr-only">
+                  Отваря се в нов раздел.
+                </span>
+              </p>
+
+              <label className={`${CONSENT_BOX} ${CHECKBOX_LABEL}`}>
+                <input
+                  type="checkbox"
+                  name="acceptsOffers"
+                  checked={answers.acceptsOffers}
+                  onChange={onAnswerChange("acceptsOffers")}
+                  className={CHECKBOX}
+                />
+                <span>{CONSENT_WORDING.OFFERS}</span>
+              </label>
+            </div>
+
+            <p className="mt-6 flex items-center justify-between text-lg font-semibold">
+              <span>Общо</span>
+              <span className="text-brand-deep">{totalText}</span>
+            </p>
+
+            {orderingOpen ? (
+              <button
+                type="submit"
+                disabled={pending || blocked !== null || stillUnavailable}
+                className="bg-action text-action-ink hover:bg-action-hover disabled:bg-placeholder disabled:text-ink-soft mt-4 min-h-14 w-full rounded-full px-6 py-3 text-base leading-snug font-semibold disabled:cursor-not-allowed sm:px-8 sm:text-lg"
+              >
+                {pending ? "Изпращане…" : "Поръчай с плащане при доставка"}
+              </button>
+            ) : (
+              <p className="border-ink mt-4 border-l-4 pl-4 font-medium">
+                {ORDERING_CLOSED} Ако искате да поръчате, обадете се на{" "}
+                <a
+                  href={OWNER_PHONE.href}
+                  className="text-brand-deep whitespace-nowrap underline underline-offset-4"
+                >
+                  {OWNER_PHONE.display}
+                </a>
+                .
+              </p>
+            )}
+
+            {blocked && <p className={ERROR_TEXT}>{blocked}</p>}
+          </StepCard>
+
+          <div className="sr-only" aria-hidden="true">
+            <label htmlFor="website">Website</label>
+            <input
+              id="website"
+              name="website"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </fieldset>
+    </form>
+  );
+}
+
+export function CheckoutForm({
+  products,
+  offices,
+  orderingOpen,
+}: {
+  products: CartProduct[];
+  offices: EcontOffice[];
+  orderingOpen: boolean;
+}) {
+  const { cart, ready, remove, clear } = useCart();
+  const [office, setOffice] = useState<EcontOffice | null>(null);
+  const [city, setCity] = useState<string | null>(null);
+  const [answers, setAnswers] = useState(EMPTY_ANSWERS);
+  const [corrected, setCorrected] = useState(NOTHING_CORRECTED);
+  const [restored, setRestored] = useState(false);
+  const [result, formAction, pending] = useActionState(submitOrder, null);
+  const placed = result?.ok ? result.order : null;
+  const emptyHeading = useRef<HTMLHeadingElement>(null);
+  const focusAfterRemove = useRef<FocusTarget | null>(null);
+
+  if (ready && !restored) {
+    const draft = readDraft();
+
+    setRestored(true);
+    if (draft) {
+      const storedOffice = draft.localDelivery
+        ? null
+        : (offices.find(
+            (candidate) =>
+              candidate.code === draft.officeCode &&
+              candidate.city === draft.city,
+          ) ?? null);
+
+      setAnswers((current) => ({
+        ...current,
+        name: draft.name,
+        email: draft.email,
+        phone: draft.phone,
+        localDelivery: draft.localDelivery,
+      }));
+      setCity(
+        !draft.localDelivery &&
+          offices.some((candidate) => candidate.city === draft.city)
+          ? draft.city
+          : null,
+      );
+      setOffice(storedOffice);
+    }
+  }
+
+  useEffect(() => {
+    if (!restored || placed) return;
+
+    const draft = {
+      name: answers.name,
+      email: answers.email,
+      phone: answers.phone,
+      localDelivery: answers.localDelivery,
+      city: answers.localDelivery ? null : city,
+      officeCode: answers.localDelivery ? null : (office?.code ?? null),
+    };
+    const empty =
+      !draft.name &&
+      !draft.email &&
+      !draft.phone &&
+      !draft.localDelivery &&
+      !draft.city;
+
+    if (empty) clearDraft();
+    else writeDraft(draft);
+  }, [
+    restored,
+    placed,
+    answers.name,
+    answers.email,
+    answers.phone,
+    answers.localDelivery,
+    city,
+    office,
+  ]);
+
+  useEffect(() => {
+    if (!placed) return;
+
+    clearDraft();
+    clear();
+  }, [placed, clear]);
+
+  useEffect(() => {
+    focusAfterRemove.current?.()?.focus();
+    focusAfterRemove.current = null;
+  }, [cart.items]);
+
+  function removeLine(slug: string, focusTarget: FocusTarget) {
+    focusAfterRemove.current =
+      cart.items.length === 1 ? () => emptyHeading.current : focusTarget;
+    remove(slug);
+  }
+
+  if (placed) {
+    return (
+      <OrderPlaced
+        order={placed}
+        office={answers.localDelivery ? null : office}
+      />
+    );
+  }
+  if (ready && cart.items.length === 0) {
+    return <EmptyCart headingRef={emptyHeading} />;
+  }
+
+  return (
+    <FilledCheckout
+      ready={ready}
+      items={cart.items}
+      products={products}
+      offices={offices}
+      office={office}
+      setOffice={setOffice}
+      city={city}
+      setCity={setCity}
+      restored={restored}
+      answers={answers}
+      setAnswers={setAnswers}
+      corrected={corrected}
+      setCorrected={setCorrected}
+      result={result}
+      pending={pending}
+      formAction={formAction}
+      onRemove={removeLine}
+      orderingOpen={orderingOpen}
+    />
+  );
+}

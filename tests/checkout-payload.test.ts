@@ -1,0 +1,151 @@
+import assert from "node:assert/strict";
+import { test } from "node:test";
+
+import { checkoutPayload, newIdempotencyKey } from "@/lib/checkout-payload";
+import { checkoutInputSchema, placeOrder } from "@/lib/orders";
+
+function formDataWith(entries: [string, FormDataEntryValue][]) {
+  const formData = new FormData();
+
+  for (const [name, value] of entries) formData.append(name, value);
+
+  return formData;
+}
+
+const VALID_UUID = "0f8fad5b-d9cb-469f-a165-70867728950e";
+
+test("a missing field reads as an empty string rather than null", () => {
+  const payload = checkoutPayload(new FormData());
+
+  assert.deepEqual(payload, {
+    name: "",
+    email: "",
+    phone: "",
+    items: [],
+    deliveryMethod: "ECONT_OFFICE",
+    officeCode: "",
+    acceptsTerms: false,
+    acceptsOffers: false,
+    idempotencyKey: "",
+    website: "",
+  });
+});
+
+test("an unchecked box is false and a checked one is true", () => {
+  const payload = checkoutPayload(
+    formDataWith([
+      ["acceptsTerms", "on"],
+      ["acceptsOffers", "on"],
+    ]),
+  );
+
+  assert.equal(payload.acceptsTerms, true);
+  assert.equal(payload.acceptsOffers, true);
+
+  const unchecked = checkoutPayload(new FormData());
+
+  assert.equal(unchecked.acceptsTerms, false);
+  assert.equal(unchecked.acceptsOffers, false);
+});
+
+test("the local-delivery box picks the delivery method, and anything but a tick means Econt", () => {
+  assert.equal(
+    checkoutPayload(formDataWith([["localDelivery", "on"]])).deliveryMethod,
+    "LOCAL",
+  );
+  assert.equal(
+    checkoutPayload(formDataWith([["localDelivery", "true"]])).deliveryMethod,
+    "ECONT_OFFICE",
+  );
+  assert.equal(checkoutPayload(new FormData()).deliveryMethod, "ECONT_OFFICE");
+});
+
+test("a File under the local-delivery box means Econt, not a thrown error", () => {
+  const file = new File(["on"], "localDelivery.txt", { type: "text/plain" });
+  const payload = checkoutPayload(formDataWith([["localDelivery", file]]));
+
+  assert.equal(payload.deliveryMethod, "ECONT_OFFICE");
+});
+
+test("a checkbox sent with any other value is not accepted as checked", () => {
+  const payload = checkoutPayload(formDataWith([["acceptsTerms", "true"]]));
+
+  assert.equal(payload.acceptsTerms, false);
+});
+
+test("a File under a text field becomes an empty string, not a thrown error", () => {
+  const file = new File(["not a name"], "name.txt", { type: "text/plain" });
+  const payload = checkoutPayload(
+    formDataWith([
+      ["name", file],
+      ["email", file],
+      ["phone", file],
+      ["idempotencyKey", file],
+      ["website", file],
+    ]),
+  );
+
+  assert.equal(payload.name, "");
+  assert.equal(payload.email, "");
+  assert.equal(payload.phone, "");
+  assert.equal(payload.idempotencyKey, "");
+  assert.equal(payload.website, "");
+});
+
+test("a File under items becomes an empty list, not a thrown error", () => {
+  const file = new File(["[]"], "items.json", { type: "application/json" });
+  const payload = checkoutPayload(formDataWith([["items", file]]));
+
+  assert.deepEqual(payload.items, []);
+});
+
+test("items that are not valid JSON become an empty list", () => {
+  const payload = checkoutPayload(formDataWith([["items", "{oops"]]));
+
+  assert.deepEqual(payload.items, []);
+});
+
+test("items are handed over untouched for the schema to judge", () => {
+  const payload = checkoutPayload(
+    formDataWith([["items", '[{"slug":"x","quantity":2}]']]),
+  );
+
+  assert.deepEqual(payload.items, [{ slug: "x", quantity: 2 }]);
+});
+
+test("a crafted File payload is refused as a validation error, not a crash", async () => {
+  const file = new File(["x"], "name.txt", { type: "text/plain" });
+  const result = await placeOrder(
+    checkoutPayload(
+      formDataWith([
+        ["name", file],
+        ["email", file],
+        ["phone", file],
+        ["items", file],
+        ["acceptsTerms", "on"],
+        ["idempotencyKey", VALID_UUID],
+      ]),
+    ),
+    null,
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(result.code, "VALIDATION_ERROR");
+});
+
+test("without randomUUID, as on a plain-http address, the key is still a UUID the order accepts", () => {
+  for (const fill of [0x5a, 0xa5]) {
+    const insecure = {
+      getRandomValues: (bytes: Uint8Array) => bytes.fill(fill),
+    } as unknown as Crypto;
+    const key = newIdempotencyKey(insecure);
+
+    assert.equal(
+      checkoutInputSchema.shape.idempotencyKey.safeParse(key).success,
+      true,
+      key,
+    );
+    assert.equal(key[14], "4", key);
+    assert.match(key[19], /[89ab]/, key);
+  }
+});

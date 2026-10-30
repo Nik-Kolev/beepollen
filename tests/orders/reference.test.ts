@@ -1,0 +1,235 @@
+import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
+import { after, test } from "node:test";
+
+import {
+  nextOrderReference,
+  orderReferencePrefix,
+  placeOrder,
+} from "@/lib/orders";
+import prisma from "@/lib/prisma";
+
+import { TEST_OFFICE_SNAPSHOT, validCheckoutInput } from "../support/checkout";
+
+after(async () => {
+  await prisma.$disconnect();
+});
+
+function sequenceOf(reference: string, prefix: string) {
+  return Number(reference.slice(prefix.length));
+}
+
+async function lastSequenceOf(prefix: string) {
+  const orders = await prisma.order.findMany({
+    where: { reference: { startsWith: prefix } },
+    select: { reference: true },
+  });
+  return Math.max(
+    0,
+    ...orders.map((order) => sequenceOf(order.reference, prefix)),
+  );
+}
+
+async function placeOne() {
+  const result = await placeOrder(
+    validCheckoutInput({
+      idempotencyKey: randomUUID(),
+      items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+    }),
+    null,
+  );
+
+  assert.equal(result.ok, true);
+  if (!result.ok) throw new Error("the order was refused");
+
+  return result.order;
+}
+
+test("the prefix is BP plus the day, month and two-digit year, read in Sofia rather than UTC", () => {
+  assert.equal(
+    orderReferencePrefix(new Date("2026-09-24T22:30:00Z")),
+    "BP250926",
+  );
+  assert.equal(
+    orderReferencePrefix(new Date("2026-09-24T09:00:00Z")),
+    "BP240926",
+  );
+  assert.equal(
+    orderReferencePrefix(new Date("2026-12-31T22:30:00Z")),
+    "BP010127",
+  );
+});
+
+test("the first order of a day is number 1 and every later one takes the next", () => {
+  assert.equal(nextOrderReference("BP240926", null), "BP2409261");
+  assert.equal(nextOrderReference("BP240926", "BP2409261"), "BP2409262");
+  assert.equal(nextOrderReference("BP240926", "BP2409269"), "BP24092610");
+});
+
+test("a stored reference that cannot be read as a number restarts the day at 1", () => {
+  assert.equal(nextOrderReference("BP240926", "BP240926"), "BP2409261");
+  assert.equal(nextOrderReference("BP240926", "BP240926x"), "BP2409261");
+});
+
+test("two orders placed one after the other take consecutive numbers", async () => {
+  const prefix = orderReferencePrefix(new Date());
+
+  const first = await placeOne();
+  const second = await placeOne();
+
+  assert.ok(first.reference.startsWith(prefix));
+  assert.ok(second.reference.startsWith(prefix));
+  assert.equal(
+    sequenceOf(second.reference, prefix),
+    sequenceOf(first.reference, prefix) + 1,
+  );
+});
+
+test("an order from another day does not carry its number into today", async () => {
+  const customer = await prisma.customer.create({
+    data: {
+      name: "Стара поръчка",
+      email: `past-${randomUUID()}@example.com`,
+      phone: "0888000000",
+    },
+    select: { id: true },
+  });
+
+  const past = await prisma.order.create({
+    data: {
+      customerId: customer.id,
+      contactName: "Стара поръчка",
+      contactPhone: "0888000000",
+      ...TEST_OFFICE_SNAPSHOT,
+      reference: "BP00000099999",
+      itemsCents: 1,
+      deliveryCents: 0,
+      totalCents: 1,
+      idempotencyKey: randomUUID(),
+    },
+    select: { id: true },
+  });
+
+  try {
+    const prefix = orderReferencePrefix(new Date());
+    const last = await lastSequenceOf(prefix);
+    const placed = await placeOne();
+
+    assert.ok(placed.reference.startsWith(prefix));
+    assert.equal(sequenceOf(placed.reference, prefix), last + 1);
+  } finally {
+    await prisma.order.delete({ where: { id: past.id } });
+  }
+});
+
+test("an order from the same day a year earlier does not carry its number into this year", async () => {
+  const customer = await prisma.customer.create({
+    data: {
+      name: "Миналогодишна поръчка",
+      email: `last-year-${randomUUID()}@example.com`,
+      phone: "0888000000",
+    },
+    select: { id: true },
+  });
+
+  const prefix = orderReferencePrefix(new Date());
+  const lastYear = String((Number(prefix.slice(6)) + 99) % 100).padStart(
+    2,
+    "0",
+  );
+
+  const lastYearOrder = await prisma.order.create({
+    data: {
+      customerId: customer.id,
+      contactName: "Миналогодишна поръчка",
+      contactPhone: "0888000000",
+      ...TEST_OFFICE_SNAPSHOT,
+      reference: `${prefix.slice(0, 6)}${lastYear}99999`,
+      itemsCents: 1,
+      deliveryCents: 0,
+      totalCents: 1,
+      idempotencyKey: randomUUID(),
+    },
+    select: { id: true },
+  });
+
+  try {
+    const last = await lastSequenceOf(prefix);
+    const placed = await placeOne();
+
+    assert.ok(placed.reference.startsWith(prefix));
+    assert.equal(sequenceOf(placed.reference, prefix), last + 1);
+  } finally {
+    await prisma.order.delete({ where: { id: lastYearOrder.id } });
+  }
+});
+
+test("concurrent orders never share a reference", async () => {
+  const placed = await Promise.all([placeOne(), placeOne(), placeOne()]);
+  const references = placed.map((order) => order.reference);
+
+  assert.equal(
+    new Set(references).size,
+    references.length,
+    references.join(" "),
+  );
+});
+
+test("an order is refused rather than thrown when every attempt loses its number", async () => {
+  const prefix = orderReferencePrefix(new Date());
+  const newest = await prisma.order.findFirst({
+    where: { reference: { startsWith: prefix } },
+    orderBy: { id: "desc" },
+    select: { reference: true },
+  });
+  const contested = nextOrderReference(prefix, newest?.reference ?? null);
+  const sequence = Number(contested.slice(prefix.length));
+
+  const customer = await prisma.customer.create({
+    data: {
+      name: "Блокирана номерация",
+      email: `contested-${randomUUID()}@example.com`,
+      phone: "0888000000",
+    },
+    select: { id: true },
+  });
+
+  const fixture = (reference: string) => ({
+    customerId: customer.id,
+    contactName: "Блокирана номерация",
+    contactPhone: "0888000000",
+    ...TEST_OFFICE_SNAPSHOT,
+    reference,
+    itemsCents: 1,
+    deliveryCents: 0,
+    totalCents: 1,
+    idempotencyKey: randomUUID(),
+  });
+
+  const blocker = await prisma.order.create({
+    data: fixture(`${prefix}${sequence + 1}`),
+    select: { id: true },
+  });
+  const decoy = await prisma.order.create({
+    data: fixture(contested),
+    select: { id: true },
+  });
+
+  try {
+    const result = await placeOrder(
+      validCheckoutInput({
+        idempotencyKey: randomUUID(),
+        items: [{ slug: "pchelen-prashets-500g", quantity: 1 }],
+      }),
+      null,
+    );
+
+    assert.equal(result.ok, false);
+    if (result.ok) return;
+    assert.equal(result.code, "REJECTED");
+  } finally {
+    await prisma.order.deleteMany({
+      where: { id: { in: [blocker.id, decoy.id] } },
+    });
+  }
+});

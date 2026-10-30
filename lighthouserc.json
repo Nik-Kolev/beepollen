@@ -1,0 +1,38 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "npm start",
+      "url": [
+        "http://localhost:3000/",
+        "http://localhost:3000/products/pchelen-prashets-500g",
+        "http://localhost:3000/checkout"
+      ],
+      "puppeteerScript": "scripts/lighthouse-seed-cart.cjs",
+      "numberOfRuns": 3,
+      "settings": {
+        "throttlingMethod": "devtools",
+        "blockedUrlPatterns": ["*tile.openstreetmap.org*"]
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": [
+          "error",
+          { "minScore": 0.9, "aggregationMethod": "median-run" }
+        ],
+        "largest-contentful-paint": [
+          "error",
+          { "maxNumericValue": 3000, "aggregationMethod": "median-run" }
+        ],
+        "cumulative-layout-shift": [
+          "error",
+          { "maxNumericValue": 0.1, "aggregationMethod": "median-run" }
+        ]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "lighthouse-report"
+    }
+  }
+}

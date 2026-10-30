@@ -1,0 +1,231 @@
+import { expect, type Page, test } from "@playwright/test";
+
+import { productPhotoTransitionName } from "@/lib/view-transition";
+
+const PUBLISHED_SLUG = "pchelen-prashets-500g";
+const PUBLISHED_NAME = "Пчелен прашец 500 г";
+
+async function recordViewTransitions(page: Page) {
+  await page.evaluate(() => {
+    const start = document.startViewTransition.bind(document);
+
+    document.startViewTransition = (update) => {
+      const transition = start(update);
+
+      void transition.ready.then(() => {
+        document.body.dataset.transitioned = document
+          .getAnimations()
+          .map(({ effect }) =>
+            effect instanceof KeyframeEffect
+              ? `${effect.pseudoElement}=${effect.getTiming().duration}`
+              : null,
+          )
+          .join(" ");
+      });
+
+      return transition;
+    };
+  });
+
+  return () => page.locator("body").getAttribute("data-transitioned");
+}
+
+test("a catalogue card opens its product page", async ({ page }) => {
+  await page.goto("/");
+
+  const card = page
+    .getByRole("main")
+    .getByRole("list")
+    .first()
+    .getByRole("listitem")
+    .first();
+  const name = await card.getByRole("heading", { level: 2 }).innerText();
+
+  await card.getByRole("link").click();
+
+  await expect(page).toHaveURL(/\/products\//);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(name);
+});
+
+test("the whole card is clickable, not just the name", async ({ page }) => {
+  await page.goto("/");
+
+  const card = page
+    .getByRole("main")
+    .getByRole("list")
+    .first()
+    .getByRole("listitem")
+    .first();
+  const href = await card.getByRole("link").getAttribute("href");
+
+  await card.click({ position: { x: 20, y: 20 } });
+
+  await expect(page).toHaveURL(new RegExp(`${href}$`));
+});
+
+test("the product page serves its data", async ({ page }) => {
+  const response = await page.goto(`/products/${PUBLISHED_SLUG}`);
+
+  expect(response?.status()).toBe(200);
+  await expect(page).toHaveTitle(
+    "Пчелен прашец 500 г | Пчелни продукти Д & Н Димитрови",
+  );
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Пчелен прашец 500 г",
+  );
+  await expect(
+    page.getByRole("button", { name: "Добави в количката" }),
+  ).toBeEnabled();
+  await expect(
+    page.getByRole("term").filter({ hasText: "Нетно количество" }),
+  ).toBeVisible();
+  await expect(page.getByText("500 г", { exact: true })).toBeVisible();
+});
+
+test("the gallery swaps the main image", async ({ page }) => {
+  await page.goto(`/products/${PUBLISHED_SLUG}`);
+
+  const mainImage = page.getByRole("main").getByRole("img").first();
+  const bagThumbnail = page.getByRole("button", {
+    name: "Пакет пчелен прашец 500 г",
+  });
+  const plateThumbnail = page.getByRole("button", {
+    name: "Пчелен прашец в чиния",
+  });
+
+  await expect(mainImage).toHaveAttribute("alt", "Пакет пчелен прашец 500 г");
+  await expect(bagThumbnail).toHaveAttribute("aria-pressed", "true");
+
+  await plateThumbnail.click();
+
+  await expect(mainImage).toHaveAttribute("alt", "Пчелен прашец в чиния");
+  await expect(plateThumbnail).toHaveAttribute("aria-pressed", "true");
+  await expect(bagThumbnail).toHaveAttribute("aria-pressed", "false");
+});
+
+test("the product page carries valid Product structured data", async ({
+  page,
+}) => {
+  await page.goto(`/products/${PUBLISHED_SLUG}`);
+
+  const raw = await page
+    .locator('script[type="application/ld+json"]')
+    .textContent();
+  const jsonLd = JSON.parse(raw ?? "");
+
+  expect(jsonLd["@type"]).toBe("Product");
+  expect(jsonLd.name).toBe("Пчелен прашец 500 г");
+  expect(jsonLd.image).toHaveLength(2);
+  expect(jsonLd.weight).toMatchObject({ value: 500, unitCode: "GRM" });
+  expect(jsonLd.offers).toBeUndefined();
+});
+
+test("a card's photo morphs into the product page's photo", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const transitioned = await recordViewTransitions(page);
+
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: PUBLISHED_NAME })
+    .click();
+
+  const name = productPhotoTransitionName(PUBLISHED_SLUG);
+  await expect.poll(transitioned).toContain(`::view-transition-old(${name})`);
+  await expect.poll(transitioned).toContain(`::view-transition-new(${name})`);
+});
+
+test("the morph does not animate for visitors who reduce motion", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/");
+  const transitioned = await recordViewTransitions(page);
+
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: PUBLISHED_NAME })
+    .click();
+
+  const name = productPhotoTransitionName(PUBLISHED_SLUG);
+  await expect
+    .poll(transitioned)
+    .toContain(`::view-transition-group(${name})=0`);
+});
+
+test("a product opened directly links back to the catalogue", async ({
+  page,
+}) => {
+  await page.goto(`/products/${PUBLISHED_SLUG}`);
+  await page.getByRole("link", { name: "Към продуктите" }).click();
+
+  await expect(page).toHaveURL("/");
+});
+
+test("the back link returns to where the catalogue was left", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const card = page
+    .getByRole("main")
+    .getByRole("list")
+    .first()
+    .getByRole("listitem")
+    .last();
+  await card.scrollIntoViewIfNeeded();
+  const scrollY = await page.evaluate(() => window.scrollY);
+  expect(scrollY).toBeGreaterThan(0);
+
+  await card.getByRole("link").click();
+  await expect(page).toHaveURL(/\/products\//);
+  await page.getByRole("link", { name: "Към продуктите" }).click();
+
+  await expect(page).toHaveURL("/");
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(scrollY);
+});
+
+test("a modified click on the back link is left to the browser", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("main")
+    .getByRole("link", { name: PUBLISHED_NAME })
+    .click();
+  await expect(page).toHaveURL(/\/products\//);
+  await page.waitForFunction(
+    () => !document.documentElement.matches(":active-view-transition"),
+  );
+
+  await page.evaluate(() => {
+    window.addEventListener("click", (event) => {
+      document.body.dataset.clickPrevented = String(event.defaultPrevented);
+      event.preventDefault();
+    });
+  });
+  await page
+    .getByRole("link", { name: "Към продуктите" })
+    .click({ modifiers: ["ControlOrMeta"] });
+
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-click-prevented",
+    "false",
+  );
+});
+
+test("an unpublished product is not reachable", async ({ page }) => {
+  const response = await page.goto("/products/lorem-ipsum");
+
+  expect(response?.status()).toBe(404);
+});
+
+test("an unknown slug renders the not-found page", async ({ page }) => {
+  const response = await page.goto("/products/no-such-product");
+
+  expect(response?.status()).toBe(404);
+  await expect(page.getByRole("banner")).toBeVisible();
+  await expect(page).toHaveTitle(/^Страницата не е намерена/);
+});

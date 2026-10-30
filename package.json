@@ -3,27 +3,65 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "prisma generate && next dev",
+    "build": "prisma generate && next build",
+    "build:demo": "npm run db:setup && npm run build",
+    "build:vercel": "npm run db:setup && npm run db:sample-orders && npm run build",
     "start": "next start",
-    "lint": "eslint"
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint",
+    "generate": "prisma generate",
+    "db:migrate": "prisma migrate dev && prisma generate",
+    "db:deploy": "docker compose exec web npx prisma migrate deploy",
+    "db:setup": "prisma generate && prisma migrate deploy && prisma db seed",
+    "db:studio": "prisma studio --url file://./data/dev.db",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "prisma db seed",
+    "db:sample-orders": "tsx --env-file-if-exists=.env scripts/seed-sample-orders.ts",
+    "econt:sync": "tsx scripts/econt-sync.ts",
+    "db:fresh": "prisma migrate reset --force && prisma db seed",
+    "typecheck": "prisma generate && next typegen && tsc --noEmit",
+    "test:unit": "node scripts/test-unit.mjs",
+    "test:e2e": "playwright test",
+    "test:perf": "npm run build:demo && lhci autorun",
+    "ci": "npm run format:check && npm run lint && npm run typecheck && npm run test:unit && npm run db:setup && npm run build"
   },
   "dependencies": {
+    "@next/third-parties": "16.3.3",
+    "@prisma/adapter-libsql": "^7.10.0",
+    "@prisma/client": "^7.10.0",
+    "leaflet": "^1.9.4",
     "next": "16.3.3",
+    "next-auth": "5.0.0-beta.32",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "resend": "^6.34.1",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@lhci/cli": "^0.15.1",
+    "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/leaflet": "^1.9.22",
+    "@types/node": "^24.19.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.3",
+    "prettier": "^3.9.6",
+    "prisma": "^7.10.0",
+    "puppeteer-core": "^24.43.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   },
   "allowScripts": {
-    "unrs-resolver@1.12.2": true
+    "unrs-resolver@1.12.2": true,
+    "prisma@7.10.0": true,
+    "@prisma/engines@7.10.0": true,
+    "esbuild@0.28.2": true,
+    "fsevents": false
   }
 }

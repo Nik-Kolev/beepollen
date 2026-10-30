@@ -1,0 +1,124 @@
+enum OrderEventKind {
+  PLACED
+  SEND
+  HAND_OVER
+  PAY
+  CANCEL
+  RETURN
+  COLLECT
+  UNDO
+  WITHDRAWN
+  EDIT
+}
+
+enum EmailStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum ConsentKind {
+  TERMS
+  OFFERS
+}
+
+model Customer {
+  id    Int    @id @default(autoincrement())
+  name  String
+  email String @unique
+  phone String
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id         Int      @id @default(autoincrement())
+  customerId Int
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  sentAt         DateTime?
+  paidAt         DateTime?
+  cancelledAt    DateTime?
+  collectedAt    DateTime?
+  withdrawnAt    DateTime?
+  withdrawalName String?
+
+  contactName  String
+  contactPhone String
+
+  deliveryMethod DeliveryMethod
+
+  officeCarrier Carrier?
+  officeCode    String?
+  officeName    String?
+  officeCity    String?
+  officeStreet  String?
+
+  itemsCents    Int
+  deliveryCents Int @default(0)
+  totalCents    Int
+
+  reference String @unique
+
+  idempotencyKey String @unique
+
+  items    OrderItem[]
+  consents Consent[]
+  events   OrderEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id      Int   @id @default(autoincrement())
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId Int?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  slug           String
+  name           String
+  unitPriceCents Int
+  quantity       Int
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model Consent {
+  id      Int         @id @default(autoincrement())
+  orderId Int
+  order   Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind    ConsentKind
+
+  wording     String
+  ipAddress   String?
+  confirmedAt DateTime?
+  withdrawnAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([orderId, kind])
+  @@index([orderId])
+}
+
+model OrderEvent {
+  id      Int            @id @default(autoincrement())
+  orderId Int
+  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  kind    OrderEventKind
+
+  adminEmail  String?
+  emailStatus EmailStatus?
+  changes     Json?
+  createdAt   DateTime     @default(now())
+
+  @@index([orderId])
+}

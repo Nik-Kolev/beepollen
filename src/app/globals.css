@@ -1,26 +1,121 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-roboto);
+  --font-head: var(--font-alegreya);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  --text-xs: 0.875rem;
+  --text-sm: 1rem;
+  --text-base: 1.125rem;
+  --text-lg: 1.25rem;
+
+  --color-ground: oklch(0.95 0.022 82);
+  --color-surface: oklch(1 0 0);
+  --color-halo: oklch(0.99 0.004 85);
+  --color-placeholder: oklch(0.9 0.018 85);
+  --color-ink: oklch(0.21 0.014 60);
+  --color-ink-soft: oklch(0.45 0.016 60);
+  --color-line: oklch(0.875 0.016 85);
+
+  --color-nav: oklch(0.995 0.003 85);
+  --color-nav-ink: oklch(0.21 0.014 60);
+
+  --color-footer: oklch(0.86 0.045 78);
+  --color-footer-ink: oklch(0.21 0.014 60);
+  --color-footer-ink-soft: oklch(0.37 0.018 60);
+
+  --color-action: oklch(0.52 0.15 45);
+  --color-action-hover: oklch(0.45 0.14 45);
+  --color-action-ink: oklch(1 0 0);
+
+  --color-error: oklch(0.48 0.18 22);
+
+  --color-wood: oklch(0.31 0.045 50);
+  --color-brand: oklch(0.56 0.15 45);
+  --color-brand-deep: oklch(0.52 0.15 45);
+
+  --color-honey: oklch(0.72 0.16 68);
+  --color-bee: oklch(0.83 0.155 88);
+  --color-bee-dark: oklch(0.22 0.014 68);
+  --color-leaf: oklch(0.45 0.08 140);
+  --color-slate: oklch(0.45 0.03 250);
+  --color-emblem: oklch(0.6 0.13 62);
+  --color-emblem-wing: oklch(0.87 0.02 240);
+  --color-emblem-head: oklch(0.8 0.08 72);
+
+  --animate-buzz: buzz 1.5s ease-in-out;
+
+  @keyframes buzz {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    12% {
+      transform: translate(3px, -1px);
+    }
+    25% {
+      transform: translate(-3px, 1px);
+    }
+    37% {
+      transform: translate(4px, 0);
+    }
+    50% {
+      transform: translate(-3px, -1px);
+    }
+    62% {
+      transform: translate(3px, 1px);
+    }
+    75% {
+      transform: translate(-2px, 0);
+    }
+    87% {
+      transform: translate(1px, -1px);
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+html {
+  scrollbar-gutter: stable;
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+  background-color: var(--color-ink);
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 3l10 10M13 3L3 13' stroke='black' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+  }
+}
+
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-group(.morph) {
+  animation-duration: 400ms;
+}
+
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-group(site-header) {
+  animation-duration: 0s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
 }

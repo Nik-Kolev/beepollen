@@ -1,0 +1,31 @@
+enum Carrier {
+  ECONT
+  SPEEDY
+}
+
+enum DeliveryMethod {
+  ECONT_OFFICE
+  LOCAL
+}
+
+model DeliveryOffice {
+  id      Int     @id @default(autoincrement())
+  carrier Carrier
+  code    String
+  name    String
+  city    String
+
+  postCode String?
+  street   String
+  hours    String
+  phone    String?
+
+  latitude  Float?
+  longitude Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([carrier, code])
+  @@index([carrier, city])
+}

@@ -5,6 +5,7 @@ x-build-args: &build-args
 
 services:
   migrate:
+    image: ghcr.io/nik-kolev/beepollen-migrate:${IMAGE_TAG:-latest}
     build:
       context: .
       target: migrate
@@ -15,6 +16,7 @@ services:
       - db-data:/app/data
 
   web:
+    image: ghcr.io/nik-kolev/beepollen:${IMAGE_TAG:-latest}
     build:
       context: .
       target: runner

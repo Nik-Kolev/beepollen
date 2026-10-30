@@ -684,6 +684,13 @@ stage puts `node_modules/.bin` on it. `env_file` reaches only the running
 container, so `NEXT_PUBLIC_GA_MEASUREMENT_ID` is passed to the build as an arg
 interpolated from the same `.env`.
 
+`.github/workflows/image.yml` publishes both images to GHCR on a push to
+`main`, and on a manual run from any branch, which tags the commit only —
+`latest` is `main`'s alone. The image names are written out in lowercase
+because GHCR refuses capitals and `github.repository` is `Nik-Kolev/beepollen`.
+The `org.opencontainers.image.source` label is what links each package to the
+repository.
+
 The image prerenders the shop pages from the builder's own seeded database, not
 the volume's, so after every start they show seed prices and default stock
 until `POST /api/revalidate` re-renders them. It answers only a `Bearer`

@@ -1,0 +1,73 @@
+name: Econt sync
+
+on:
+  schedule:
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: econt-sync
+  cancel-in-progress: false
+
+env:
+  BRANCH: chore/econt-sync
+  SNAPSHOT: prisma/data/econt-offices.json
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: develop
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --strict-allow-scripts
+      - shell: bash
+        run: npm run -s econt:sync | tee "$RUNNER_TEMP/report.txt"
+      - shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pr=$(gh pr list --head "$BRANCH" --base develop --state open --json number --jq '.[0].number // empty')
+
+          if git diff --quiet -- "$SNAPSHOT"; then
+            if [ -n "$pr" ]; then
+              gh pr close "$pr" --delete-branch --comment "Econt's offices match \`develop\` again, so there is nothing left to merge."
+            fi
+            exit 0
+          fi
+
+          {
+            echo "Weekly refresh of Econt's office list from \`npm run econt:sync\`: $(grep ' offices: ' "$RUNNER_TEMP/report.txt")"
+            echo
+            echo '~~~text'
+            grep '^  ' "$RUNNER_TEMP/report.txt" | head -n 400 || true
+            echo '~~~'
+            echo
+            echo "Opened by GitHub Actions, so no checks start on their own: close and reopen this PR to run them, then merge. Every week it stays open, it is refreshed and gets a reminder comment."
+          } > "$RUNNER_TEMP/body.md"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$BRANCH"
+          git add "$SNAPSHOT"
+          git commit -m "Refresh the Econt office snapshot"
+          git push --force origin "$BRANCH"
+
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --body-file "$RUNNER_TEMP/body.md"
+            gh pr comment "$pr" --body "Still waiting to be merged: refreshed from Econt on $(date -u +%F). Close and reopen to run the checks on the new commit."
+          else
+            gh pr create --base develop --head "$BRANCH" \
+              --title "Refresh the Econt office snapshot" \
+              --body-file "$RUNNER_TEMP/body.md" \
+              --assignee Nik-Kolev
+          fi

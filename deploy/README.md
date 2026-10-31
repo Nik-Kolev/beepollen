@@ -150,9 +150,8 @@ git show main:deploy/deploy.sh | ssh <host> 'cat > ~/beepollen/deploy.sh && chmo
 `EMAIL_TOKEN_SECRET` and `REVALIDATE_SECRET` are generated on the server with
 `openssl rand -base64 48 | tr -d "\n/+="`, never typed or printed; the Google
 client's ID and secret are piped in over SSH. `AUTH_URL` is
-`https://beepollen.bg` and `AUTH_TRUST_HOST` is left out. `ORDERING_OPEN` and
-`ADMIN_WITHOUT_SIGN_IN` are `"false"`. `DATABASE_URL` comes from the compose
-file.
+`https://beepollen.bg` and `AUTH_TRUST_HOST` is left out. `ORDERING_OPEN` is
+`"false"`. `DATABASE_URL` comes from the compose file.
 
 ## 5. Deploy
 

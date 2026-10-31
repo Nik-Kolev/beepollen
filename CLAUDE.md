@@ -239,25 +239,10 @@ needed it — the same goes for a config change that exists only to make a featu
 run. A commit is something that can be reverted on its own without breaking
 anything else.
 
-## Preview deployment
+## Showcase
 
-Vercel serves `develop` at a permanent demo URL and each PR at a temporary one —
-a demo for owner feedback, not the production host. `vercel.json` sets the Build
-Command to `npm run build:vercel` so each deploy prerenders from a database it
-seeds itself, with the `db:sample-orders` orders in it; keeping it in the repo
-rather than the dashboard is what lets a reader see it. Nothing at runtime opens
-that file. `build:demo` stays without orders, because Playwright builds with it.
-
-A Vercel function's filesystem is read-only outside `/tmp`, and the seeded
-database is not traced into it on its own, so every request-time read failed
-with a 500. On Vercel `next.config.ts` traces the `DATABASE_URL` file into every
-route, and `src/lib/prisma.ts` copies it to `/tmp` once per instance — skipped
-while `CI` is set, so the build's seeding writes the bundled file itself. Writes
-land in that instance's copy and are lost on a cold start.
-
-`next.config.ts` sets `X-Robots-Tag: noindex, nofollow` on every route of every
-host, because the site is a showcase until launch and Vercel does not noindex
-the demo's production deployment. **Remove it at launch, with the banner
+`next.config.ts` sets `X-Robots-Tag: noindex, nofollow` on every route, because
+the site is a showcase until launch. **Remove it at launch, with the banner
 below.**
 
 The same `headers()` sets the security headers, a Content Security Policy
@@ -283,9 +268,7 @@ the order service at request time. **Delete the banner, the variable and both
 checks together at launch**; they are not a switch to keep.
 
 `SITE_URL` in `src/lib/site.ts` is `https://beepollen.bg`, the production
-host, and `metadataBase` resolves every canonical and Open Graph URL against it
-— so the Vercel demo's canonicals, sitemap and email links name the domain, not
-the demo.
+host, and `metadataBase` resolves every canonical and Open Graph URL against it.
 
 ## Metadata
 
@@ -352,9 +335,9 @@ withdraws every offers consent of that customer, and a withdrawn consent can
 never be confirmed again. The checkout answers the same whatever address is
 typed, so no page reveals whether an address is subscribed. The links carry an
 HMAC token signed with `EMAIL_TOKEN_SECRET`, naming its purpose so a
-confirmation token cannot unsubscribe. Every host links to `SITE_URL`, so the
-Vercel demo's tokens reach beepollen.bg naming the demo's row ids: the two hosts
-must never share that secret. Opening `/subscription/confirm` or
+confirmation token cannot unsubscribe. Every host links to `SITE_URL`, so a
+token minted on any other host reaches beepollen.bg naming that host's row ids:
+no other host may share production's secret. Opening `/subscription/confirm` or
 `/subscription/unsubscribe` changes nothing: mail scanners fetch every link, so
 only the page's button, a form post, acts. The one-click header points at
 `POST /api/unsubscribe`, which mail clients call themselves.
@@ -594,7 +577,7 @@ sign-in callback also requires Google's `email_verified`.
 
 Auth.js reads `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` by name,
 which is why `Google()` takes no keys. A production server refuses its own host
-unless `AUTH_URL` or `AUTH_TRUST_HOST` is set (Vercel sets its own). With none of
+unless `AUTH_URL` or `AUTH_TRUST_HOST` is set. With none of
 them, `auth()` logs and returns no session, so `/admin` falls back to the login
 page instead of failing. Outside production the host is trusted by default, but
 Auth.js takes the first of `AUTH_URL`, `AUTH_TRUST_HOST` and the platform
@@ -677,10 +660,8 @@ Windows→WSL2→container boundary, and `WATCHPACK_POLLING` cannot rescue it,
 because `next dev` runs Turbopack, whose watcher never reads that variable.
 
 `output: "standalone"` is set only when `BUILD_STANDALONE` is, which the builder
-stage exports. Setting it unconditionally breaks the Vercel build: standalone
-mode folds the top-level `next-server.js.nft.json` trace into `.next/standalone`,
-and Vercel's `onBuildComplete` adapter opens that trace and fails with `ENOENT`.
-The compile succeeds first, so the failure looks unrelated to the config.
+stage exports: `next start`, which `npm start` and Playwright run, does not
+support standalone output and warns at startup.
 
 The standalone `server.js` does **not** serve `public/` or `.next/static`. The
 Dockerfile copies both in explicitly — drop either and the site still returns
@@ -818,8 +799,8 @@ owns a product's content but sets the price only on create and never the stock:
 those belong to the admin, and every build re-seeds.
 
 The home page queries the catalogue during `next build`, so every path that
-builds the app seeds first — CI as its own step, Playwright's `webServer`, the
-Dockerfile's builder stage and Vercel's Build Command all reach `db:setup`. It
+builds the app seeds first — CI as its own step, Playwright's `webServer` and
+the Dockerfile's builder stage all reach `db:setup`. It
 generates the client itself rather than trusting an earlier step to have done
 it, because the generated client is gitignored and only CI's `ci` job happens to
 run `typecheck` beforehand. A migrated but unseeded database is the dangerous

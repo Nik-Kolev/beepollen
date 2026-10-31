@@ -113,7 +113,6 @@ mounted in with `-v /its/folder:/backups:ro` and copied from `/backups/`.
 | `npm run dev`              | Development server                        |
 | `npm run build`            | Production build                          |
 | `npm run build:demo`       | Migrate, seed, then build                 |
-| `npm run build:vercel`     | Like `build:demo`, plus sample orders     |
 | `npm start`                | Serve the production build                |
 | `npm run format`           | Prettier, writing in place                |
 | `npm run format:check`     | Prettier, failing on a diff               |
@@ -138,6 +137,4 @@ mounted in with `-v /its/folder:/backups:ro` and copied from `/backups/`.
 ## Hosts
 
 Production is [beepollen.bg](https://beepollen.bg), kept out of search results
-with ordering closed until launch. A demo tracks `develop` at
-[beepollen-wheat.vercel.app](https://beepollen-wheat.vercel.app); each pull
-request gets its own temporary URL.
+with ordering closed until launch.

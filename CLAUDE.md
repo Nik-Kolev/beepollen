@@ -547,9 +547,13 @@ what was added, removed and changed, so a refresh arrives as a reviewable diff.
 A malformed record is dropped rather than failing the list, and a sudden
 collapse in the count is refused, since a truncated response parses like a good
 one.
-Running it on a schedule waits for a host with cron. The 2.45 MB response is
-over Next's 2 MB data-cache limit, which is why fetching it during a build was
-never cached and made every build depend on Econt being up.
+`.github/workflows/econt-sync.yml` runs it every Monday and keeps one open PR
+on `chore/econt-sync`, force-pushed each week, so that branch is the
+workflow's and never holds hand-made work. A PR opened with `GITHUB_TOKEN`
+starts no workflows, so its checks run only once it is closed and reopened.
+The 2.45 MB response is over Next's 2 MB data-cache limit, which is why
+fetching it during a build was never cached and made every build depend on
+Econt being up.
 
 `src/lib/econt.ts` is client-safe — the type, the label and the sort, nothing
 more — because the picker's client components import from it. The sort is there

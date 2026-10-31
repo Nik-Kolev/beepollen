@@ -13,7 +13,7 @@ function byCode(offices: EcontOfficeRecord[]): Map<string, EcontOfficeRecord> {
 }
 
 function describe(office: EcontOfficeRecord): string {
-  return `${office.code} ${office.city}, ${office.name}`;
+  return `${office.code} ${office.city}, ${office.name}`.replace(/\s+/g, " ");
 }
 
 function report(previous: EcontOfficeRecord[], next: EcontOfficeRecord[]) {

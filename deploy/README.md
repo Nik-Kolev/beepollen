@@ -136,14 +136,15 @@ which reads as an outage. Security headers come from
 
 ## 4. The app
 
-`~/beepollen` (mode 700) holds `compose.prod.yaml`, `deploy.sh` from this
-folder and `.env` (mode 600, written under `umask 077`). Copy the first two from
-`main`:
+`~/beepollen` (mode 700) holds `compose.prod.yaml`, `deploy.sh` and
+`backup.sh` from this folder and `.env` (mode 600, written under `umask 077`).
+Copy the first three from `main`:
 
 ```bash
 ssh <host> 'install -d -m 700 ~/beepollen'
 git show main:compose.prod.yaml | ssh <host> 'cat > ~/beepollen/compose.prod.yaml'
 git show main:deploy/deploy.sh | ssh <host> 'cat > ~/beepollen/deploy.sh && chmod 700 ~/beepollen/deploy.sh'
+git show main:deploy/backup.sh | ssh <host> 'cat > ~/beepollen/backup.sh && chmod 700 ~/beepollen/backup.sh'
 ```
 
 `.env` holds the variables the README lists. `AUTH_SECRET`,
@@ -178,13 +179,20 @@ deploy.
 
 ## 6. Nightly backup
 
-`deploy`'s crontab backs up the database at 03:00 server time (Europe/Sofia),
+`deploy`'s crontab runs `backup.sh` at 03:00 server time (Europe/Sofia),
 logging to the journal tagged `beepollen-backup`. Re-running this replaces the
 line rather than adding a second one:
 
 ```bash
-( crontab -l 2>/dev/null | grep -v beepollen-backup; echo '0 3 * * * cd /home/deploy/beepollen && docker compose -f compose.prod.yaml run --rm migrate npm run db:backup 2>&1 | logger -t beepollen-backup' ) | crontab -
+( crontab -l 2>/dev/null | grep -v beepollen-backup; echo '0 3 * * * /home/deploy/beepollen/backup.sh 2>&1 | logger -t beepollen-backup' ) | crontab -
 ```
+
+The pipe into `logger` makes every run exit 0 to cron, so the script reports
+the backup's own exit status to the Healthchecks.io check whose ping URL is
+`HEALTHCHECK_BACKUP_URL` in `.env`: a failure, or no ping at all by 04:00,
+sends an alert email. The check's schedule is the cron line's — `0 3 * * *`,
+Europe/Sofia, one hour's grace. Without the variable the backup runs and
+nothing is pinged.
 
 Read the runs with `sudo journalctl -t beepollen-backup`. A day keeps one copy,
 the latest, so a deploy between 00:00 and 03:00 loses its pre-migration copy to

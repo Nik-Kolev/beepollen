@@ -23,8 +23,6 @@ It needs `AUTH_SECRET` and a Google OAuth client's `AUTH_GOOGLE_ID` and
 `AUTH_GOOGLE_SECRET` in `.env`; without them the shop still runs.
 `AUTH_TRUST_HOST` lets `npm start` accept sign-ins on localhost; a public host
 drops it and sets `AUTH_URL` to its own origin.
-`ADMIN_WITHOUT_SIGN_IN="true"` opens the admin to every visitor with no
-sign-in, for review before a Google client exists.
 
 The rest of `.env`:
 

@@ -1,5 +1,3 @@
-import path from "node:path";
-
 import type { NextConfig } from "next";
 
 const GOOGLE_ANALYTICS =
@@ -18,22 +16,8 @@ const CONTENT_SECURITY_POLICY = [
   "frame-ancestors 'none'",
 ].join("; ");
 
-const DATABASE_FILE = process.env.DATABASE_URL?.startsWith("file:")
-  ? path
-      .relative(
-        process.cwd(),
-        path.resolve(process.env.DATABASE_URL.slice("file:".length)),
-      )
-      .split(path.sep)
-      .join("/")
-  : undefined;
-
 const nextConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE ? "standalone" : undefined,
-  outputFileTracingIncludes:
-    process.env.VERCEL && DATABASE_FILE
-      ? { "/**": [DATABASE_FILE] }
-      : undefined,
   async headers() {
     return [
       {

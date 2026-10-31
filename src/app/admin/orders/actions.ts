@@ -31,7 +31,7 @@ export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
     expected,
     new Date(),
     confirmed ?? false,
-    email ?? null,
+    email,
   );
   if (result.ok) {
     if (notify && eventId !== null && isEmailStep(step)) {
@@ -44,7 +44,7 @@ export async function advanceOrder(input: unknown): Promise<OrderStepResult> {
 
 export async function editOrder(input: unknown): Promise<OrderEditResult> {
   const { email } = await requireAdmin();
-  const result = await editOrderContact(input, { adminEmail: email ?? null });
+  const result = await editOrderContact(input, { adminEmail: email });
   if (result.ok && result.eventId !== null) {
     const { reference, eventId, offersUnconfirmed } = result;
     const notify = orderEditNotify.safeParse(input);

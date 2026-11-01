@@ -36,6 +36,7 @@ import {
   parseOrderFilter,
   parseOrderShown,
   undoTarget,
+  viberChatHref,
 } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
 import { DeliveryMethod } from "@/lib/delivery";
@@ -383,6 +384,14 @@ export default async function AdminOrders({
                               className="text-brand-deep underline underline-offset-4"
                             >
                               {order.contactPhone}
+                            </a>
+                          </p>
+                          <p>
+                            <a
+                              href={viberChatHref(order.contactPhone)}
+                              className="text-brand-deep underline underline-offset-4"
+                            >
+                              Пиши във Viber
                             </a>
                           </p>
                           <p className="break-all">

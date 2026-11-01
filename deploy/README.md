@@ -177,6 +177,29 @@ migrated one. The replaced images stay on disk for rollbacks; `docker image
 prune` deletes them, so it is a deliberate step of its own, never part of a
 deploy.
 
+Every push to `main` also runs it from GitHub: `image.yml`'s `deploy` job
+waits for both images, then logs in as `deploy` with a key whose
+`authorized_keys` line can run nothing but this script, and fails when the
+script does. It deploys `latest`, and copies no files, so a changed
+`compose.prod.yaml` or script still goes over by hand first. The job's log is
+public, so the script prints the container's log only to a terminal. Set it up
+from the developer's machine with a fresh key made for it alone, outside any
+working tree:
+
+```bash
+cd "$(mktemp -d)"
+ssh-keygen -t ed25519 -N "" -C "github-actions deploy" -f deploy_key
+gh secret set -R Nik-Kolev/beepollen DEPLOY_SSH_KEY < deploy_key
+ssh <host> 'cat /etc/ssh/ssh_host_ed25519_key.pub' | sed 's/^/beepollen.bg /' | gh secret set -R Nik-Kolev/beepollen DEPLOY_KNOWN_HOSTS
+( printf 'restrict,command="/home/deploy/beepollen/deploy.sh" '; cat deploy_key.pub ) \
+  | ssh <host> 'cat >> ~/.ssh/authorized_keys'
+rm deploy_key deploy_key.pub
+```
+
+`DEPLOY_KNOWN_HOSTS` is read from the host itself rather than scanned over the
+network, so the job refuses any other machine answering for the name. Deleting
+the key's line from `authorized_keys` switches deploys from GitHub off.
+
 ## 6. Nightly backup
 
 `deploy`'s crontab runs `backup.sh` at 03:00 server time (Europe/Sofia),

@@ -29,6 +29,14 @@ export function readOfficeSnapshot(): EcontOfficeRecord[] {
   return snapshotSchema.parse(JSON.parse(readFileSync(SNAPSHOT_PATH, "utf8")));
 }
 
+export function officeRow({ location, ...office }: EcontOfficeRecord) {
+  return {
+    ...office,
+    latitude: location?.lat ?? null,
+    longitude: location?.lng ?? null,
+  };
+}
+
 export function writeOfficeSnapshot(offices: EcontOfficeRecord[]): void {
   writeFileSync(SNAPSHOT_PATH, `${JSON.stringify(offices, null, 2)}\n`, "utf8");
 }

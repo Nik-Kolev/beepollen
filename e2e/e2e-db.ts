@@ -1,16 +1,24 @@
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 
+import { TEST_OFFICE_CODE } from "../tests/support/checkout";
+
 export function placeLocalOrder(email: string, phone: string) {
   return placeInE2eDb(email, phone, "LOCAL", "");
 }
 
 export function placeEcontOrder(email: string, phone: string) {
-  return placeInE2eDb(email, phone, "ECONT_OFFICE", "1127");
+  return placeInE2eDb(email, phone, "ECONT_OFFICE", TEST_OFFICE_CODE);
 }
 
 export function placeOrderWithOffers(email: string) {
-  return placeInE2eDb(email, "0888123456", "ECONT_OFFICE", "1127", true);
+  return placeInE2eDb(
+    email,
+    "0888123456",
+    "ECONT_OFFICE",
+    TEST_OFFICE_CODE,
+    true,
+  );
 }
 
 const ORDER_ATTEMPTS = 3;

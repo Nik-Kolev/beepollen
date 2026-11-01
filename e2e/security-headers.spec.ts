@@ -1,5 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import { SMALL_CITY } from "../tests/support/fixture-offices";
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
 import { seedCart } from "./seed-cart";
@@ -80,8 +81,8 @@ test("the shop's pages, the map included, break no rule of the policy", async ({
   }
 
   await visit(page, "/checkout");
-  await page.getByLabel("Град", { exact: true }).fill("Павликени");
-  await page.getByRole("option", { name: "Павликени", exact: true }).click();
+  await page.getByLabel("Град", { exact: true }).fill(SMALL_CITY);
+  await page.getByRole("option", { name: SMALL_CITY, exact: true }).click();
   await expect(page.locator(".leaflet-tile-loaded").first()).toBeVisible();
 
   expect(violations).toEqual([]);

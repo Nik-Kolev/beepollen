@@ -18,7 +18,7 @@ export function AdminHeader({
   legend,
 }: {
   title: string;
-  email: string | null | undefined;
+  email: string;
   current: AdminSection;
   legend: string;
 }) {
@@ -45,7 +45,7 @@ export function AdminHeader({
           </ul>
         </nav>
         <div className="flex flex-wrap items-center gap-3 max-md:w-full max-md:justify-center">
-          {email && <p className="text-ink-soft text-sm">{email}</p>}
+          <p className="text-ink-soft text-sm">{email}</p>
           <Link
             href="/"
             className="border-line text-ink bg-surface hover:bg-ground inline-flex min-h-11 items-center rounded-md border-2 px-3 text-sm font-semibold transition-colors sm:px-4"

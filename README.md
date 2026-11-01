@@ -23,8 +23,6 @@ It needs `AUTH_SECRET` and a Google OAuth client's `AUTH_GOOGLE_ID` and
 `AUTH_GOOGLE_SECRET` in `.env`; without them the shop still runs.
 `AUTH_TRUST_HOST` lets `npm start` accept sign-ins on localhost; a public host
 drops it and sets `AUTH_URL` to its own origin.
-`ADMIN_WITHOUT_SIGN_IN="true"` opens the admin to every visitor with no
-sign-in, for review before a Google client exists.
 
 The rest of `.env`:
 
@@ -79,6 +77,9 @@ Once it is up, re-render the shop pages from that database:
 curl -X POST -H "Authorization: Bearer $REVALIDATE_SECRET" http://127.0.0.1:3000/api/revalidate
 ```
 
+On the production host `deploy/deploy.sh` runs these steps and checks each;
+[`deploy/README.md`](deploy/README.md) is how that host is built.
+
 ### Backups
 
 `npm run db:backup` copies the `DATABASE_URL` database into
@@ -112,7 +113,6 @@ mounted in with `-v /its/folder:/backups:ro` and copied from `/backups/`.
 | `npm run dev`              | Development server                        |
 | `npm run build`            | Production build                          |
 | `npm run build:demo`       | Migrate, seed, then build                 |
-| `npm run build:vercel`     | Like `build:demo`, plus sample orders     |
 | `npm start`                | Serve the production build                |
 | `npm run format`           | Prettier, writing in place                |
 | `npm run format:check`     | Prettier, failing on a diff               |
@@ -137,6 +137,4 @@ mounted in with `-v /its/folder:/backups:ro` and copied from `/backups/`.
 ## Hosts
 
 Production is [beepollen.bg](https://beepollen.bg), kept out of search results
-with ordering closed until launch. A demo tracks `develop` at
-[beepollen-wheat.vercel.app](https://beepollen-wheat.vercel.app); each pull
-request gets its own temporary URL.
+with ordering closed until launch.

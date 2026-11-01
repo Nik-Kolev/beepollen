@@ -299,9 +299,11 @@ email to the buyer never repeats the name they typed: the address is
 unverified, so a name like „влезте на evil.example“ would reach a stranger
 under the shop's domain. The
 palette is the site's tokens converted to hex, since mail clients do not read
-`oklch`, so a token change is copied by hand into `EMAIL_COLOR`. The bee is
-`public/email/bee.png` loaded from `SITE_URL`, since Gmail drops SVG: an email
-sent before a deploy shows no bee.
+`oklch`, so a token change is copied by hand into `EMAIL_COLOR`. The emblem
+and the hive are PNG screenshots of the header's `OwnerEmblem` and the footer's
+hive, in `public/email/` and loaded from `SITE_URL`, since Gmail drops SVG: a
+redrawn emblem or hive needs them shot again, and an email sent before a deploy
+shows the old ones.
 
 `sendEmail` answers `SENT`, `FAILED` or `SKIPPED` and never throws. With no
 `RESEND_API_KEY` it skips, so dev and the tests send nothing; with a key it
@@ -342,11 +344,8 @@ no other host may share production's secret. Opening `/subscription/confirm` or
 only the page's button, a form post, acts. The one-click header points at
 `POST /api/unsubscribe`, which mail clients call themselves.
 
-`/admin/emails` shows each email in two designs side by side for choosing
-between them; the shop sends design A. **Delete the page and the losing design
-once one is chosen.** The previews themselves stay: `src/lib/email/previews.ts`
-also feeds `/admin/todo`, which shows each email in the sent design beside the
-action that sends it, so a new email joins that list in the same change.
+`src/lib/email/previews.ts` feeds `/admin/todo`, which shows each email beside
+the action that sends it, so a new email joins that list in the same change.
 
 ## Orders
 

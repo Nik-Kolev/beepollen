@@ -1,14 +1,16 @@
 import { randomUUID } from "node:crypto";
 
-export const TEST_OFFICE_CODE = "1127";
+import { SMALL_CITY, SMALL_CITY_OFFICE_A } from "./fixture-offices";
+
+export const TEST_OFFICE_CODE = SMALL_CITY_OFFICE_A.code;
 
 export const TEST_OFFICE_SNAPSHOT = {
   deliveryMethod: "ECONT_OFFICE",
   officeCarrier: "ECONT",
   officeCode: TEST_OFFICE_CODE,
-  officeName: "София",
-  officeCity: "София",
-  officeStreet: "ул. Тестова 1",
+  officeName: SMALL_CITY,
+  officeCity: SMALL_CITY,
+  officeStreet: SMALL_CITY_OFFICE_A.street,
 } as const;
 
 export function validCheckoutInput(

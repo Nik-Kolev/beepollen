@@ -715,8 +715,8 @@ database and re-runs just those files once. The last test in
 `tests/orders/reference.test.ts` blocks the day's numbering until its own
 cleanup, so it stays last.
 
-Playwright is the other layer. It starts the app with
-`npm run build:demo && npm start`, not `next dev` — but `reuseExistingServer` is
+Playwright is the other layer. It starts the app with a production build and
+`npm start`, not `next dev` — but `reuseExistingServer` is
 on outside CI, so a local run silently attaches to whatever already holds the
 port. With `npm run dev` up, the whole suite tests Turbopack dev instead of the
 build and can fail on differences that do not exist in what ships. Stop the dev
@@ -727,9 +727,12 @@ than the seconds it saves. The suite runs twice, mobile project first, because
 mobile is the priority everything else here is built around.
 
 The server Playwright starts reads `data/e2e.db`, deleted before every build,
-because re-seeding no longer resets an edited price. The test draft is added
-after `build:demo` rather than before it, because the seed deletes every product
-missing from its own list. Checkout specs assert
+because re-seeding no longer resets an edited price. The test draft and the
+test offices are added after the seed, which deletes every product and office
+missing from its own lists, and before the build, which prerenders the
+checkout's office list. The picker specs and the unit tests' office live in
+`tests/support/fixture-offices.ts`, in made-up cities, so the weekly
+`econt:sync` never moves what they assert. Checkout specs assert
 seeded totals, so the spec that edits a published product is its own
 `catalogue-edit` project, run after both others and restoring the seeded values.
 `catalogue-fixtures` runs after that one and publishes throwaway products —

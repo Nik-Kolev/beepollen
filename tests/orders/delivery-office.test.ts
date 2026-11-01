@@ -10,14 +10,14 @@ after(async () => {
   await prisma.$disconnect();
 });
 
-test("the seeded snapshot still carries the office every other test orders to", async () => {
+test("the test fixtures carry the office every other test orders to", async () => {
   const office = await prisma.deliveryOffice.findUnique({
     where: { carrier_code: { carrier: "ECONT", code: TEST_OFFICE_CODE } },
   });
 
   assert.ok(
     office,
-    `Office ${TEST_OFFICE_CODE} is gone from prisma/data/econt-offices.json; pick another in tests/support/checkout.ts`,
+    `Office ${TEST_OFFICE_CODE} is missing: scripts/seed-test-fixtures.ts seeds it from tests/support/fixture-offices.ts`,
   );
 });
 

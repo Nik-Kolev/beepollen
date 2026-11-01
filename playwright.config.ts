@@ -56,7 +56,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "node scripts/reset-e2e-db.mjs && npm run build:demo && node --import tsx scripts/seed-test-fixtures.ts && npm start",
+      "node scripts/reset-e2e-db.mjs && npm run db:setup && node --import tsx scripts/seed-test-fixtures.ts && npm run build && npm start",
     url: baseURL,
     env: {
       PORT: port,

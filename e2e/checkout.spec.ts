@@ -4,6 +4,11 @@ import { CHECKOUT_SCROLL_KEY } from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
 import { DISPATCH_NOTE } from "@/lib/delivery";
 
+import {
+  LARGE_CITY,
+  SMALL_CITY,
+  SMALL_CITY_OFFICE_A,
+} from "../tests/support/fixture-offices";
 import { seedCart } from "./seed-cart";
 
 const POLLEN_SLUG = "pchelen-prashets-500g";
@@ -35,9 +40,9 @@ function emailField(page: Page) {
   return page.getByLabel("Имейл", { exact: true });
 }
 
-const OFFICE_CITY = "Павликени";
-const OFFICE_STREET = "пл. Стефан Караджа №16 (до Магазин Абсолют плюс)";
-const OFFICE_HEADING = "Павликени, офис Павликени";
+const OFFICE_CITY = SMALL_CITY;
+const OFFICE_STREET = SMALL_CITY_OFFICE_A.street;
+const OFFICE_HEADING = SMALL_CITY_OFFICE_A.heading;
 
 async function chooseOffice(page: Page) {
   await page.getByLabel("Град", { exact: true }).fill(OFFICE_CITY);
@@ -857,8 +862,8 @@ test.describe("placing an order", () => {
     await expect(page.getByText(officeRequired)).toHaveCount(0);
 
     await page.getByRole("button", { name: /Промени града/ }).click();
-    await page.getByLabel("Град", { exact: true }).fill("Габрово");
-    await page.getByRole("option", { name: "Габрово", exact: true }).click();
+    await page.getByLabel("Град", { exact: true }).fill(LARGE_CITY);
+    await page.getByRole("option", { name: LARGE_CITY, exact: true }).click();
     await page
       .getByRole("button", { name: "Поръчай с плащане при доставка" })
       .click();

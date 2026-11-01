@@ -1,4 +1,7 @@
+import { officeRow } from "@/lib/econt-snapshot";
 import prisma from "@/lib/prisma";
+
+import { FIXTURE_OFFICES } from "../tests/support/fixture-offices";
 
 const draft = {
   name: "Lorem ipsum",
@@ -23,6 +26,19 @@ async function main() {
     create: { slug: "lorem-ipsum", ...draft },
   });
   console.log("Seeded the lorem-ipsum test draft.");
+
+  await prisma.$transaction(
+    FIXTURE_OFFICES.map((office) => {
+      const row = officeRow(office);
+
+      return prisma.deliveryOffice.upsert({
+        where: { carrier_code: { carrier: "ECONT", code: office.code } },
+        update: row,
+        create: { carrier: "ECONT", ...row },
+      });
+    }),
+  );
+  console.log(`Seeded ${FIXTURE_OFFICES.length} test offices.`);
 }
 
 main()

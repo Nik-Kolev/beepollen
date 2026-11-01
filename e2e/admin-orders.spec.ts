@@ -5,6 +5,10 @@ import { expect, type Locator, type Page, test } from "@playwright/test";
 
 import { CONSENT_WORDING } from "@/lib/consent";
 
+import {
+  SMALL_CITY,
+  SMALL_CITY_OFFICE_A,
+} from "../tests/support/fixture-offices";
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { backdateOrderSteps, placeEcontOrder } from "./e2e-db";
 import { signInAs } from "./admin-session";
@@ -56,12 +60,12 @@ async function placeOrder(page: Page, email: string) {
   await page
     .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
     .check();
-  await page.getByLabel("Град", { exact: true }).fill("Павликени");
-  await page.getByRole("option", { name: "Павликени", exact: true }).click();
+  await page.getByLabel("Град", { exact: true }).fill(SMALL_CITY);
+  await page.getByRole("option", { name: SMALL_CITY, exact: true }).click();
   await page
     .getByRole("radiogroup", { name: "Офиси на Еконт" })
     .locator("label")
-    .filter({ hasText: "пл. Стефан Караджа №16" })
+    .filter({ hasText: SMALL_CITY_OFFICE_A.street })
     .click();
   await page
     .getByRole("button", { name: "Поръчай с плащане при доставка" })
@@ -91,7 +95,7 @@ test("an order placed through checkout appears in the order list and expands in 
     .getByRole("article")
     .filter({ has: page.getByRole("heading", { name: orderReference }) });
   await expect(card).toContainText("Админ Тестов");
-  await expect(card).toContainText("Павликени");
+  await expect(card).toContainText(SMALL_CITY);
   await expect(badge(card, "Нова")).toBeVisible();
   await expect(card.getByRole("button", { name: "Платена" })).toHaveCount(0);
   await expectNoAxeViolations(page);
@@ -136,7 +140,7 @@ test("an order placed through checkout appears in the order list and expands in 
   await expect(
     details.getByRole("link", { name: "admin.list@example.com" }),
   ).toBeVisible();
-  await expect(details).toContainText("пл. Стефан Караджа №16");
+  await expect(details).toContainText(SMALL_CITY_OFFICE_A.street);
   await expect(details).toContainText("Еконт");
   await expect(details).toContainText(CONSENT_WORDING.TERMS);
   await expect(details).toContainText("Без съгласие за оферти по имейл.");

@@ -1,16 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { EMAIL_DESIGNS } from "@/lib/email/layout";
 import {
   orderAcceptedEmail,
   orderCancelledEmail,
   type OrderEmailData,
   orderSentEmail,
+  orderUpdatedEmail,
   ownerNotificationEmail,
   subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
+import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import { type EmailClient, sendEmail } from "@/lib/email/transport";
 import { formatPrice } from "@/lib/money";
 import { OWNER_PHONE, SITE_URL } from "@/lib/site";
@@ -78,16 +79,55 @@ test("the text version carries no markup", () => {
   }
 });
 
-test("both designs draw the bee from the site and differ from each other", () => {
-  const [a, b] = EMAIL_DESIGNS.map((design) =>
-    orderAcceptedEmail(ORDER, design),
-  );
+test("the frame draws the emblem and the hive from the site", () => {
+  const { html } = orderAcceptedEmail(ORDER);
 
-  assert.ok(a.html.includes(`${SITE_URL}/email/bee.png`));
-  assert.ok(b.html.includes(`${SITE_URL}/email/bee.png`));
-  assert.notEqual(a.html, b.html);
-  assert.equal(a.text, b.text);
-  assert.equal(a.subject, b.subject);
+  assert.ok(html.includes(`${SITE_URL}/email/emblem.png`));
+  assert.ok(html.includes(`${SITE_URL}/email/hive.png`));
+});
+
+function summaryRows(html: string) {
+  const start = html.indexOf("border-radius:8px;");
+  assert.ok(start > 0, "no summary box");
+  const box = html.slice(start, html.indexOf("</td></tr>", start));
+
+  return [
+    ...box.matchAll(/<td[^>]*>([^<]*)<\/td>\s*<td[^>]*>([^<]*)<\/td>/g),
+  ].map(([, label, value]) => `${label}: ${value}`);
+}
+
+test("the accepted and updated emails open with the reference, total, delivery and payment", () => {
+  for (const { html } of [
+    orderAcceptedEmail(ORDER),
+    orderUpdatedEmail(ORDER),
+  ]) {
+    assert.deepEqual(summaryRows(html), [
+      `Поръчка: ${ORDER.reference}`,
+      `Общо: ${formatPrice(ORDER.totalCents)}`,
+      `Доставка: Еконт, ${OFFICE.name}, ${OFFICE.street}`,
+      "Плащане: при получаване",
+    ]);
+  }
+
+  assert.equal(
+    summaryRows(orderAcceptedEmail({ ...ORDER, office: null }).html)[2],
+    `Доставка: На ръка, гр. ${LOCAL_DELIVERY_CITY}`,
+  );
+});
+
+test("the owner's and the sent email open with their own summary", () => {
+  assert.deepEqual(summaryRows(ownerNotificationEmail(ORDER).html), [
+    `Общо: ${formatPrice(ORDER.totalCents)}`,
+    `Доставка: Еконт, ${OFFICE.name}, ${OFFICE.street}`,
+  ]);
+  assert.deepEqual(
+    summaryRows(orderSentEmail({ ...ORDER, office: OFFICE }).html),
+    [
+      `Поръчка: ${ORDER.reference}`,
+      `За плащане: ${formatPrice(ORDER.totalCents)}`,
+      `Офис: ${OFFICE.name}, ${OFFICE.street}`,
+    ],
+  );
 });
 
 test("the accepted email lists each line, the delivery and the total", () => {
@@ -168,7 +208,7 @@ test("an accepted order says nothing about a subscription unless given an unsubs
   assert.ok(subscribed.html.includes(`href="${url}"`));
 });
 
-test("no field of any email can inject markup, in either design", () => {
+test("no field of any email can inject markup", () => {
   const hostile = `"'><img src=x onerror=alert(1)>`;
   const office = { name: hostile, street: hostile };
   const order: OrderEmailData = {
@@ -181,24 +221,20 @@ test("no field of any email can inject markup, in either design", () => {
     office,
   };
 
-  for (const design of EMAIL_DESIGNS) {
-    for (const { html } of [
-      orderAcceptedEmail(order, design),
-      orderAcceptedEmail({ ...order, office: null }, design),
-      ownerNotificationEmail(order, design),
-      ownerNotificationEmail({ ...order, office: null }, design),
-      orderSentEmail({ ...order, office }, design),
-      orderCancelledEmail(order, design),
-      withdrawalReceivedEmail({ ...WITHDRAWAL, reference: hostile }, design),
-      orderAcceptedEmail({ ...order, unsubscribeUrl: hostile }, design),
-      subscriptionConfirmEmail(
-        { reference: hostile, confirmUrl: hostile },
-        design,
-      ),
-    ]) {
-      assert.ok(!html.includes("<img src=x"), html);
-      assert.ok(!html.includes(`"'>`));
-    }
+  for (const { html } of [
+    orderAcceptedEmail(order),
+    orderAcceptedEmail({ ...order, office: null }),
+    ownerNotificationEmail(order),
+    ownerNotificationEmail({ ...order, office: null }),
+    orderSentEmail({ ...order, office }),
+    orderCancelledEmail(order),
+    orderUpdatedEmail(order),
+    withdrawalReceivedEmail({ ...WITHDRAWAL, reference: hostile }),
+    orderAcceptedEmail({ ...order, unsubscribeUrl: hostile }),
+    subscriptionConfirmEmail({ reference: hostile, confirmUrl: hostile }),
+  ]) {
+    assert.ok(!html.includes("<img src=x"), html);
+    assert.ok(!html.includes(`"'>`));
   }
 });
 

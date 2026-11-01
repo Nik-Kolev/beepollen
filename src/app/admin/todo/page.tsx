@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { AdminHeader } from "@/components/admin/admin-header";
 import { requireAdmin } from "@/lib/admin-session";
-import { DEFAULT_EMAIL_DESIGN } from "@/lib/email/layout";
 import { PREVIEWS } from "@/lib/email/previews";
 import { missingProductFields, OWNER_TODOS } from "@/lib/owner-todos";
 import { listPublishedProductsForTodos } from "@/lib/products";
@@ -81,7 +80,7 @@ export default async function AdminTodo() {
         </p>
         <ul role="list" className="mt-4 flex flex-col gap-8">
           {PREVIEWS.map(({ title, trigger, render }) => {
-            const message = render(DEFAULT_EMAIL_DESIGN);
+            const message = render();
 
             return (
               <li key={title}>

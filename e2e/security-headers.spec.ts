@@ -121,7 +121,7 @@ test("the admin's pages, the email previews included, break no rule of the polic
     "/admin/orders",
     "/admin/products",
     "/admin/analytics",
-    "/admin/emails",
+    "/admin/todo",
   ]) {
     await visit(page, path);
   }

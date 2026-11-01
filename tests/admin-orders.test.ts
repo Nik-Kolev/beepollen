@@ -8,6 +8,7 @@ import {
   countOrdersByView,
   daysAgoLabel,
   deliveryLabel,
+  viberChatHref,
   DUPLICATE_WINDOW_MS,
   findPossibleDuplicates,
   formatOrderTime,
@@ -757,4 +758,11 @@ test("with several duplicates an order names the one placed closest to it", asyn
   assert.equal(duplicates.get(early), middle);
   assert.equal(duplicates.get(middle), late);
   assert.equal(duplicates.get(late), middle);
+});
+
+test("the Viber link opens a chat with the buyer's stored number", () => {
+  assert.equal(
+    viberChatHref("+359888123456"),
+    "viber://chat?number=%2B359888123456",
+  );
 });

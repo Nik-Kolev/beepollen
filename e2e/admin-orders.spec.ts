@@ -138,6 +138,9 @@ test("an order placed through checkout appears in the order list and expands in 
     details.getByRole("link", { name: "+359899555444" }),
   ).toHaveAttribute("href", "tel:+359899555444");
   await expect(
+    details.getByRole("link", { name: "Пиши във Viber" }),
+  ).toHaveAttribute("href", "viber://chat?number=%2B359899555444");
+  await expect(
     details.getByRole("link", { name: "admin.list@example.com" }),
   ).toBeVisible();
   await expect(details).toContainText(SMALL_CITY_OFFICE_A.street);

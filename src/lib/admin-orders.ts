@@ -533,6 +533,10 @@ export function deliveryLabel(order: {
     : (order.officeCity ?? "");
 }
 
+export function viberChatHref(phone: string) {
+  return `viber://chat?number=${encodeURIComponent(phone)}`;
+}
+
 const sofiaDateTime = new Intl.DateTimeFormat("bg-BG", {
   timeZone: "Europe/Sofia",
   day: "2-digit",

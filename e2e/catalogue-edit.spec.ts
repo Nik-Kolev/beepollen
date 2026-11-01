@@ -4,6 +4,10 @@ import { SOLD_OUT_LINES, UNAVAILABLE_LINES } from "@/lib/checkout-messages";
 import { CONSENT_WORDING } from "@/lib/consent";
 import { formatPrice } from "@/lib/money";
 
+import {
+  SMALL_CITY,
+  SMALL_CITY_OFFICE_B,
+} from "../tests/support/fixture-offices";
 import { TEST_ADMIN_EMAIL, TEST_REVALIDATE_SECRET } from "./admin-env";
 import { signInAs } from "./admin-session";
 import { setProductPrice } from "./e2e-db";
@@ -113,12 +117,12 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await page
     .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
     .check();
-  await page.getByLabel("Град", { exact: true }).fill("Павликени");
-  await page.getByRole("option", { name: "Павликени", exact: true }).click();
+  await page.getByLabel("Град", { exact: true }).fill(SMALL_CITY);
+  await page.getByRole("option", { name: SMALL_CITY, exact: true }).click();
   await page
     .getByRole("radiogroup", { name: "Офиси на Еконт" })
     .locator("label")
-    .filter({ hasText: "ул. Атанас Хаджиславчев №17" })
+    .filter({ hasText: SMALL_CITY_OFFICE_B.street })
     .click();
 
   await saveProduct(adminPage, SEEDED.price, "NONE");

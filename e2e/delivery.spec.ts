@@ -1,33 +1,27 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import {
+  BIG_CITY,
+  BIG_CITY_OFFICES,
+  BIG_CITY_SEARCH_MATCHES,
+  BIG_CITY_SEARCH_TERM,
+  LARGE_CITY,
+  LARGE_CITY_OFFICES,
+  NO_COORDS_CITY,
+  NO_COORDS_OFFICE_STREET,
+  SINGLE_OFFICE_CITY,
+  SMALL_CITY,
+  SMALL_CITY_OFFICE_A,
+  SMALL_CITY_OFFICE_B,
+} from "../tests/support/fixture-offices";
 import { seedCart } from "./seed-cart";
 
-const SMALL_CITY = "Павликени";
-
-const SMALL_CITY_OFFICE_A = {
-  heading: "Павликени, офис Павликени",
-  street: "пл. Стефан Караджа №16 (до Магазин Абсолют плюс)",
-};
-const SMALL_CITY_OFFICE_B = {
-  heading: "Павликени, офис Цар Иван Асен",
-  street: "ул. Атанас Хаджиславчев №17",
-};
-
-const LARGE_CITY = "Габрово";
-const LARGE_CITY_TOTAL = "6 офиса";
-
-const BIG_CITY = "София";
-const BIG_CITY_TOTAL = "110 офиса";
-const BIG_CITY_SEARCH_TERM = "Витоша";
-const BIG_CITY_SEARCH_MATCHES = 3;
-
-const SINGLE_OFFICE_CITY = "Ябланово";
+const SMALL_CITY_QUERY = "пробна ма";
+const LARGE_CITY_TOTAL = `${LARGE_CITY_OFFICES} офиса`;
+const BIG_CITY_TOTAL = `${BIG_CITY_OFFICES} офиса`;
 
 const OFFICE_REQUIRED =
   "Изберете офис на Еконт, до който да получите поръчката.";
-
-const NO_COORDS_CITY = "Нови Искър";
-const NO_COORDS_OFFICE_STREET = "кв. ЖП гара Курило ул. Търговска №18";
 
 async function openPicker(page: Page) {
   await seedCart(page, {
@@ -77,7 +71,7 @@ test("typing in the city field lists matching Bulgarian cities, and reports when
 }) => {
   await openPicker(page);
 
-  await cityInput(page).fill("павл");
+  await cityInput(page).fill(SMALL_CITY_QUERY);
   await expect(
     page.getByRole("option", { name: SMALL_CITY, exact: true }),
   ).toBeVisible();
@@ -337,7 +331,7 @@ test("the city field reports itself as a combobox and closes on Escape", async (
 
   await expect(cityInput(page)).toHaveAttribute("aria-expanded", "false");
 
-  await cityInput(page).fill("павл");
+  await cityInput(page).fill(SMALL_CITY_QUERY);
   await expect(cityInput(page)).toHaveAttribute("aria-expanded", "true");
 
   await cityInput(page).press("Escape");
@@ -351,7 +345,7 @@ test("the city field reports itself as a combobox and closes on Escape", async (
 test("a city can be chosen with the arrow keys and Enter", async ({ page }) => {
   await openPicker(page);
 
-  await cityInput(page).fill("павл");
+  await cityInput(page).fill(SMALL_CITY_QUERY);
   await cityInput(page).press("ArrowDown");
 
   await expect(

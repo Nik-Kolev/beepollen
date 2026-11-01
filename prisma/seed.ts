@@ -1,4 +1,4 @@
-import { readOfficeSnapshot } from "@/lib/econt-snapshot";
+import { officeRow, readOfficeSnapshot } from "@/lib/econt-snapshot";
 import { assertPublishable } from "@/lib/food-information";
 import prisma from "@/lib/prisma";
 
@@ -77,12 +77,8 @@ async function seedOffices() {
   });
 
   await prisma.$transaction(
-    offices.map(({ location, ...office }) => {
-      const row = {
-        ...office,
-        latitude: location?.lat ?? null,
-        longitude: location?.lng ?? null,
-      };
+    offices.map((office) => {
+      const row = officeRow(office);
 
       return prisma.deliveryOffice.upsert({
         where: { carrier_code: { carrier: "ECONT", code: office.code } },

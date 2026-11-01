@@ -15,7 +15,11 @@ for attempt in $(seq 1 30); do
   fi
   if [ "$attempt" -eq 30 ]; then
     echo "The site did not answer within a minute" >&2
-    "${compose[@]}" logs --tail 50 web >&2
+    if [ -t 2 ]; then
+      "${compose[@]}" logs --tail 50 web >&2
+    else
+      echo "Read docker compose -f ~/beepollen/compose.prod.yaml logs web on the host" >&2
+    fi
     exit 1
   fi
   sleep 2

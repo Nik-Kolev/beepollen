@@ -686,7 +686,9 @@ interpolated from the same `.env`.
 `latest` is `main`'s alone. The image names are written out in lowercase
 because GHCR refuses capitals and `github.repository` is `Nik-Kolev/beepollen`.
 The `org.opencontainers.image.source` label is what links each package to the
-repository.
+repository. Its `deploy` job then runs the host's `deploy.sh` over SSH, from
+`main` only, so a manual run on another branch publishes a tag and deploys
+nothing.
 
 The image prerenders the shop pages from the builder's own seeded database, not
 the volume's, so after every start they show seed prices and default stock

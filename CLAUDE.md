@@ -484,20 +484,20 @@ city string, so the villages around it, each under its own name, stay listed.
 
 City then office: a city with three or fewer offices lists them outright, and
 from four up a search narrows the list instead. The map draws pins for whatever
-the list currently shows rather than for the whole city, because София's 110
-overlap into one blob; pins outside that set are dimmed and ignore clicks. It
+the list currently shows rather than for the whole city, because София's
+hundred-odd overlap into one blob; pins outside that set are dimmed and ignore clicks. It
 fits to the middle 80% of the points, since a handful of far-flung offices
 otherwise drag Бургас's view out to Поморие.
 
 The map is not mounted, and Leaflet's chunk not loaded, until a city is chosen.
-Drawing all 590 pins at country zoom on load cost the checkout about 130 ms of
+Drawing every office's pin at country zoom on load cost the checkout about 130 ms of
 Total Blocking Time and failed the Lighthouse performance gate, for pins that
 were all dimmed and unclickable anyway.
 
 The city field is a combobox: its suggestions are `li role="option"` rather than
 buttons, since a button inside an option is not valid, and the active one is
-tracked with `aria-activedescendant` so the keyboard never tabs through 590
-entries. Where a step replaces the control that opened it, focus is moved by
+tracked with `aria-activedescendant` so the keyboard never tabs through
+hundreds of entries. Where a step replaces the control that opened it, focus is moved by
 hand — to the office search or the first office after a city, back to the city
 field when it is cleared — through a ref read in an effect keyed on the choices,
 because setting state in an effect is what `react-hooks/set-state-in-effect`
@@ -514,14 +514,14 @@ spend one of the attempts the rate limiter allows. Asserting that the
 refusal never appeared does not catch it — the assertion passes while the answer
 is still in flight, so `e2e/delivery.spec.ts` counts the page's POSTs instead.
 
-An office's `name` is not its heading. 159 of the 590 are named after their own
+An office's `name` is not its heading. Many are named after their own
 city, so the heading strips a repeated city prefix, and Econt reports no
 settlement type — there is no way to write `гр.` or `с.` correctly, and the list
 holds villages. The directions link omits `origin` so Google Maps starts from the
-visitor's own location. Two offices have no coordinates: they are listed but not
-mapped, and their directions link uses the address.
+visitor's own location. An office with no coordinates is listed but not
+mapped, and its directions link uses the address.
 
-`preferCanvas` is deliberate: 590 SVG nodes stall a phone at country zoom. Its
+`preferCanvas` is deliberate: hundreds of SVG nodes stall a phone at country zoom. Its
 cost is that Leaflet throws `clearRect` on teardown under React Strict Mode —
 once per load in `next dev`, never against `npm start`. Check the production
 build before treating it as a regression, and note that Playwright cannot select
@@ -539,7 +539,7 @@ office list, because an order is paid at a counter and a locker takes card only.
 The filter is on `isAPS` and applies to every carrier.
 
 Nothing in the running app calls Econt. `prisma/data/econt-offices.json` is a
-committed snapshot of 590 offices, the seed fills `DeliveryOffice` from it, and
+committed snapshot of every office, the seed fills `DeliveryOffice` from it, and
 `listEcontOffices` reads that table. `npm run econt:sync` is the only caller of
 `src/lib/econt-nomenclature.ts`: it refetches, rewrites the snapshot and reports
 what was added, removed and changed, so a refresh arrives as a reviewable diff.
@@ -636,7 +636,7 @@ never re-read, so a phone fix can neither reprice an order nor fail on an
 office `econt:sync` dropped. The edit's `OrderEvent` keeps the old and new
 values in `changes`, which `/privacy` declares. The admin form asks
 `previewOrderEdit`, the same function without the write, for the changes its
-dialog lists, and fetches the 590 offices only when it opens, so the order list
+dialog lists, and fetches the offices only when it opens, so the order list
 never carries them once per card.
 
 The same edit changes an order's lines. A kept line keeps the price it was

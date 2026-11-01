@@ -547,10 +547,15 @@ what was added, removed and changed, so a refresh arrives as a reviewable diff.
 A malformed record is dropped rather than failing the list, and a sudden
 collapse in the count is refused, since a truncated response parses like a good
 one.
-`.github/workflows/econt-sync.yml` runs it every Monday and keeps one open PR
-on `chore/econt-sync`, force-pushed each week, so that branch is the
-workflow's and never holds hand-made work. A PR opened with `GITHUB_TOKEN`
-starts no workflows, so its checks run only once it is closed and reopened.
+`.github/workflows/econt-sync.yml` runs it every Monday and opens a PR from
+`chore/econt-sync`, force-pushed each week, so that branch is the workflow's
+and never holds hand-made work. A push or merge made with `GITHUB_TOKEN`
+starts no workflows, so the job dispatches `ci.yml` itself and merges once it
+passes. It promotes to `main`, then dispatches `image.yml`, which deploys, only
+when `develop` differs from `main` in nothing but the snapshot, and every merge
+is pinned to the commit that was checked, so work landing mid-run is never
+shipped with it. A refresh that reaches `develop` but fails to promote goes
+out with the next manual promotion.
 The 2.45 MB response is over Next's 2 MB data-cache limit, which is why
 fetching it during a build was never cached and made every build depend on
 Econt being up.

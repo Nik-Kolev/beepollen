@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 concurrency:
   group: econt-sync
@@ -20,7 +21,7 @@ env:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
         with:
@@ -32,7 +33,8 @@ jobs:
       - run: npm ci --strict-allow-scripts
       - shell: bash
         run: npm run -s econt:sync | tee "$RUNNER_TEMP/report.txt"
-      - shell: bash
+      - id: pr
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -52,7 +54,7 @@ jobs:
             grep '^  ' "$RUNNER_TEMP/report.txt" | head -n 400 || true
             echo '~~~'
             echo
-            echo "Opened by GitHub Actions, so no checks start on their own: close and reopen this PR to run them, then merge. Every week it stays open, it is refreshed and gets a reminder comment."
+            echo "Opened by GitHub Actions, which runs the checks, merges it once they pass and promotes it to \`main\` when nothing else is waiting there. It stays open only when a check fails or the merge is refused; every week it is refreshed and tried again."
           } > "$RUNNER_TEMP/body.md"
 
           git config user.name "github-actions[bot]"
@@ -64,10 +66,67 @@ jobs:
 
           if [ -n "$pr" ]; then
             gh pr edit "$pr" --body-file "$RUNNER_TEMP/body.md"
-            gh pr comment "$pr" --body "Still waiting to be merged: refreshed from Econt on $(date -u +%F). Close and reopen to run the checks on the new commit."
+            gh pr comment "$pr" --body "Refreshed from Econt on $(date -u +%F) and tried again."
           else
-            gh pr create --base develop --head "$BRANCH" \
+            url=$(gh pr create --base develop --head "$BRANCH" \
               --title "Refresh the Econt office snapshot" \
               --body-file "$RUNNER_TEMP/body.md" \
-              --assignee Nik-Kolev
+              --assignee Nik-Kolev)
+            pr=${url##*/}
           fi
+          echo "number=$pr" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - if: steps.pr.outputs.number != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ steps.pr.outputs.number }}
+          HEAD_SHA: ${{ steps.pr.outputs.sha }}
+        run: |
+          dispatch() {
+            local since id
+            [ -n "$3" ] || return 1
+            since=$(date -u -d "-1 minute" +%Y-%m-%dT%H:%M:%SZ)
+            gh workflow run "$1" --ref "$2"
+            for _ in $(seq 1 40); do
+              sleep 15
+              id=$(gh run list --workflow "$1" --commit "$3" --event workflow_dispatch --created ">=$since" --json databaseId --jq '.[0].databaseId // empty')
+              [ -n "$id" ] && break
+            done
+            [ -n "$id" ] && gh run watch "$id" --exit-status --interval 60 > /dev/null
+          }
+
+          fail() {
+            gh pr comment "$PR" --body "$1"
+            exit 1
+          }
+
+          dispatch ci.yml "$BRANCH" "$HEAD_SHA" ||
+            fail "A check failed or was cancelled on this refresh, so it waits for a look."
+          gh pr merge "$PR" --repo "$GITHUB_REPOSITORY" --rebase --match-head-commit "$HEAD_SHA" ||
+            fail "The checks passed but GitHub refused the merge, so it waits for a look."
+          git push -q origin --delete "$BRANCH" || true
+
+          git fetch -q origin +main:refs/remotes/origin/main +develop:refs/remotes/origin/develop
+          dev=$(git rev-parse origin/develop)
+          if ! git diff --quiet origin/main "$dev" -- . ":(exclude)$SNAPSHOT"; then
+            gh pr comment "$PR" --body "Merged into \`develop\`. Other work there is not on \`main\` yet, so these offices reach the site with the next promotion."
+            exit 0
+          fi
+
+          dispatch ci.yml develop "$dev" ||
+            fail "Merged into \`develop\`, but a check there failed or was cancelled, so it was not promoted to \`main\`; it goes out with the next promotion."
+          promo=$(gh pr list --head develop --base main --state open --json number --jq '.[0].number // empty')
+          if [ -z "$promo" ]; then
+            url=$(gh pr create --base main --head develop \
+              --title "Refresh the Econt office snapshot" \
+              --body "Weekly Econt refresh from #$PR, promoted by GitHub Actions: \`develop\` differs from \`main\` only in \`$SNAPSHOT\`.")
+            promo=${url##*/}
+          fi
+          gh pr merge "$promo" --repo "$GITHUB_REPOSITORY" --merge --match-head-commit "$dev" ||
+            fail "Merged into \`develop\`, but the promotion #$promo was refused, so it goes out with the next promotion."
+
+          main=$(git ls-remote origin refs/heads/main | cut -f1) || true
+          dispatch image.yml main "$main" ||
+            fail "Promoted to \`main\` in #$promo, but the image build or deploy failed."
+          gh pr comment "$PR" --body "Promoted to \`main\` in #$promo and deployed."

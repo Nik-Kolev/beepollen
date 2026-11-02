@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 const count = new Intl.NumberFormat("bg-BG");
 
 export default async function AdminAnalytics() {
-  const { email } = await requireAdmin();
+  const { email } = await requireAdmin("/admin/analytics");
   const visitors = visitorStats();
   const subscribers = await countSubscribers(new Date());
 

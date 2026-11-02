@@ -59,7 +59,15 @@ files — so a new `TODO:` joins that list in the same change, and a filled one
 leaves it. Markers are whole phrases compared for equality: a `TODO:` in page
 prose must be wrapped in `<Todo>` — the test refuses one outside it — and its
 phrase ends at `</Todo>`; one in a string ends at the closing quote; a `TODO_*`
-name is matched as a whole word.
+name is matched as a whole word — so no identifier may start with `TODO_`
+unless it is a placeholder.
+
+The owner answers on that page: every item with an `id`, and the price and
+every owed field of each published product, has a field saved to
+`OwnerAnswer` under that key, and „Изтегли отговорите“ downloads them as JSON
+for the developer to move into the code by hand. Nothing reads an answer into
+the site. An item's `id` is its stored key, so renaming one orphans its
+answer.
 
 The catalogue is pollen only. Honey and comb were seeded early against borrowed
 free-licensed photographs and removed once the catalogue settled on pollen alone
@@ -344,8 +352,10 @@ no other host may share production's secret. Opening `/subscription/confirm` or
 only the page's button, a form post, acts. The one-click header points at
 `POST /api/unsubscribe`, which mail clients call themselves.
 
-`src/lib/email/previews.ts` feeds `/admin/todo`, which shows each email beside
-the action that sends it, so a new email joins that list in the same change.
+`src/lib/email/previews.ts` renders every email with a sample order, so a new
+email joins that list in the same change. `/admin/todo` no longer shows them:
+the owner sees one empty frame and a field for suggestions, since the wording
+is the developer's.
 
 ## Orders
 

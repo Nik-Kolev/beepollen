@@ -1,0 +1,6 @@
+model OwnerAnswer {
+  key       String   @id
+  text      String
+  updatedBy String
+  updatedAt DateTime @updatedAt
+}

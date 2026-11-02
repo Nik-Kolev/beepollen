@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { missingProductFields, OWNER_TODOS } from "@/lib/owner-todos";
+import { OWNER_TODOS, owedProductFields } from "@/lib/owner-todos";
 
 const NOT_OWED = new Set([
   "src/lib/owner-todos.ts",
@@ -108,12 +108,12 @@ const FILLED = {
 };
 
 test("a product with every field filled owes nothing", () => {
-  assert.deepEqual(missingProductFields(FILLED), []);
+  assert.deepEqual(owedProductFields(FILLED), []);
 });
 
-test("an empty, blank, TODO or Lorem ipsum field is owed, under its label", () => {
+test("an empty, blank, TODO or Lorem ipsum field is owed", () => {
   assert.deepEqual(
-    missingProductFields({
+    owedProductFields({
       ...FILLED,
       description: "Lorem ipsum dolor sit amet.",
       variety: null,
@@ -121,6 +121,6 @@ test("an empty, blank, TODO or Lorem ipsum field is owed, under its label", () =
       composition: "  ",
       origin: "TODO: страна на добив",
     }),
-    ["Описание", "Сорт", "Нетно количество", "Състав", "Произход"],
+    ["description", "variety", "netWeightGrams", "composition", "origin"],
   );
 });

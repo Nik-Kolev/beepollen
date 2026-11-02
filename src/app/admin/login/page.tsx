@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { isAdminEmail } from "@/lib/admin-emails";
+import { adminReturnPath } from "@/lib/admin-return";
 
 import { signInWithGoogle } from "../actions";
 
@@ -14,8 +15,9 @@ export const metadata: Metadata = {
 export default async function AdminLogin({
   searchParams,
 }: PageProps<"/admin/login">) {
-  const [{ error }, session] = await Promise.all([searchParams, auth()]);
-  if (isAdminEmail(session?.user?.email)) redirect("/admin");
+  const [{ error, next }, session] = await Promise.all([searchParams, auth()]);
+  const returnTo = adminReturnPath(Array.isArray(next) ? next[0] : next);
+  if (isAdminEmail(session?.user?.email)) redirect(returnTo);
 
   const code = Array.isArray(error) ? error[0] : error;
   const message =
@@ -51,6 +53,7 @@ export default async function AdminLogin({
         )}
 
         <form action={signInWithGoogle}>
+          <input type="hidden" name="next" value={returnTo} />
           <button
             type="submit"
             className="border-brand-deep text-ink hover:bg-ground flex min-h-11 w-full items-center justify-center gap-2.5 bg-surface rounded-lg border-2 px-4 font-medium transition-colors"

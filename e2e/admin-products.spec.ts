@@ -8,7 +8,7 @@ test("an anonymous visitor to the product list is sent to the login page", async
 }) => {
   await page.goto("/admin/products");
 
-  await expect(page).toHaveURL("/admin/login");
+  await expect(page).toHaveURL("/admin/login?next=%2Fadmin%2Fproducts");
 });
 
 test("every product is listed with its photo, price and stock", async ({

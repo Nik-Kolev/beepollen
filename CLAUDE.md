@@ -581,7 +581,11 @@ exact version, since betas break their API between releases.
 sign-in, so removing an address revokes a session that is still valid. Every
 admin page and every admin server action calls it itself — a layout does not
 re-render on client navigation, and there is no `proxy.ts` to lean on. The
-sign-in callback also requires Google's `email_verified`.
+sign-in callback also requires Google's `email_verified`. A page passes its own
+path, `requireAdmin("/admin/todo")`, so a link to it survives the sign-in;
+`adminReturnPath` accepts only a path under `/admin` and is applied both when
+the login page reads `next` and when the sign-in action does, since the action
+is a public endpoint.
 
 Auth.js reads `AUTH_SECRET`, `AUTH_GOOGLE_ID` and `AUTH_GOOGLE_SECRET` by name,
 which is why `Google()` takes no keys. A production server refuses its own host

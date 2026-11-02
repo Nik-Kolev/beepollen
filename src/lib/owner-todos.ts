@@ -1,4 +1,9 @@
-type OwnerTodo = { text: string; files: string[]; markers: string[] };
+type OwnerTodo = {
+  id?: string;
+  text: string;
+  files: string[];
+  markers: string[];
+};
 
 type OwnerTodoGroup = { title: string; items: OwnerTodo[] };
 
@@ -11,6 +16,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Продавач и правни данни",
     items: [
       {
+        id: "seller-name-address",
         text: "Име и правен статус, адрес по регистрация и за кореспонденция.",
         files: [TERMS],
         markers: [
@@ -20,6 +26,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
+        id: "seller-registration",
         text: "ЕИК, БУЛСТАТ или номер на земеделски производител и регистрация по ЗДДС.",
         files: [TERMS],
         markers: [
@@ -28,21 +35,25 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
+        id: "seller-babh",
         text: "Регистрация в БАБХ и номер.",
         files: [TERMS],
         markers: ["TODO: регистрация в БАБХ и номер"],
       },
       {
+        id: "contact-email",
         text: "Имейл за контакт.",
         files: [TERMS, PRIVACY],
         markers: ["TODO: имейл"],
       },
       {
+        id: "data-controller",
         text: "Администратор на личните данни: име, адрес, телефон и имейл.",
         files: [PRIVACY],
         markers: ["TODO: име, адрес, телефон и имейл на администратора"],
       },
       {
+        id: "publication-date",
         text: "Дата на публикуване на общите условия, поверителността и бисквитките.",
         files: [TERMS, PRIVACY, COOKIES],
         markers: ["TODO: дата на публикуване"],
@@ -53,16 +64,19 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Доставка, плащане, връщане и спорове",
     items: [
       {
+        id: "cod-fee",
         text: "Кой поема таксата на Еконт за наложения платеж.",
         files: [TERMS],
         markers: ["TODO: кой поема таксата на Еконт за наложения платеж"],
       },
       {
+        id: "return-address",
         text: "Адрес за връщане на стоката.",
         files: [TERMS],
         markers: ["TODO: адрес за връщане"],
       },
       {
+        id: "dispute-body",
         text: "Органът за алтернативно решаване на спорове и адресът на сайта му.",
         files: [TERMS],
         markers: [
@@ -75,11 +89,13 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Лични данни",
     items: [
       {
+        id: "order-retention",
         text: "Колко дълго се пазят поръчките и данните за контакт.",
         files: [PRIVACY],
         markers: ["TODO: срок за поръчките и за данните за контакт на клиента"],
       },
       {
+        id: "accounting-retention",
         text: "Срокът по Закона за счетоводството, потвърден от счетоводител, и кой е счетоводителят.",
         files: [PRIVACY],
         markers: [
@@ -88,6 +104,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
+        id: "analytics-retention",
         text: "Колко дълго Google Analytics пази данните — 2 или 14 месеца.",
         files: [PRIVACY],
         markers: [
@@ -95,6 +112,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
+        id: "hosting",
         text: "Хостинг доставчикът и регионът на сървъра.",
         files: [PRIVACY],
         markers: [
@@ -102,6 +120,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
+        id: "offers-sender",
         text: "Кой ще изпраща офертите и напомнянията по имейл.",
         files: [PRIVACY],
         markers: ["TODO: кой изпраща офертите и напомнянията по имейл."],
@@ -153,6 +172,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
+        id: "producers",
         text: "Имената и текстът за двамата пчелари, и техни снимки.",
         files: ["src/components/about-producers.tsx"],
         markers: ["TODO: име на първия пчелар", "TODO: име на втория пчелар"],
@@ -163,21 +183,25 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Отворени въпроси",
     items: [
       {
+        id: "farmer-status",
         text: "Регистриран земеделски производител ли е продавачът? От това зависят правният статус, номерът и ДДС.",
         files: [],
         markers: [],
       },
       {
+        id: "nutrition-declaration",
         text: "Нужна ли е хранителна декларация за прашеца? Решава БАБХ.",
         files: [],
         markers: [],
       },
       {
+        id: "bio-certificate",
         text: "Има ли сертификат за биологично производство? Без него продуктите не се наричат „био“.",
         files: [],
         markers: [],
       },
       {
+        id: "withdrawal-exception",
         text: "Важи ли за прашеца някое изключение от правото на отказ в 14 дни?",
         files: [],
         markers: [],
@@ -186,7 +210,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
   },
 ];
 
-const PRODUCT_FIELD_LABEL = {
+export const PRODUCT_FIELD_LABEL = {
   summary: "Кратко описание",
   description: "Описание",
   variety: "Сорт",
@@ -198,7 +222,7 @@ const PRODUCT_FIELD_LABEL = {
   allergenInfo: "Алергени",
 } as const;
 
-type ProductField = keyof typeof PRODUCT_FIELD_LABEL;
+export type ProductField = keyof typeof PRODUCT_FIELD_LABEL;
 
 type ProductTodoSource = { [field in ProductField]: string | number | null };
 
@@ -212,8 +236,8 @@ function owed(value: string | number | null) {
   );
 }
 
-export function missingProductFields(product: ProductTodoSource): string[] {
-  return (Object.keys(PRODUCT_FIELD_LABEL) as ProductField[])
-    .filter((field) => owed(product[field]))
-    .map((field) => PRODUCT_FIELD_LABEL[field]);
+export function owedProductFields(product: ProductTodoSource): ProductField[] {
+  return (Object.keys(PRODUCT_FIELD_LABEL) as ProductField[]).filter((field) =>
+    owed(product[field]),
+  );
 }

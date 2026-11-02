@@ -1,4 +1,12 @@
 -- CreateTable
+CREATE TABLE "OwnerAnswer" (
+    "key" TEXT NOT NULL PRIMARY KEY,
+    "text" TEXT NOT NULL,
+    "updatedBy" TEXT NOT NULL,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateTable
 CREATE TABLE "Product" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "slug" TEXT NOT NULL,

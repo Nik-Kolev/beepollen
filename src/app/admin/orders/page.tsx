@@ -149,7 +149,7 @@ const STAMPS = [
 export default async function AdminOrders({
   searchParams,
 }: PageProps<"/admin/orders">) {
-  const { email } = await requireAdmin();
+  const { email } = await requireAdmin("/admin/orders");
   const params = await searchParams;
   const filter = parseOrderFilter(params.filter);
   const hideClosed = filter === "all" && parseHideClosed(params.open);

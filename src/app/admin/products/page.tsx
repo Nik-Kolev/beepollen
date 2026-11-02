@@ -20,7 +20,7 @@ const STOCK_OPTIONS = Object.entries(STOCK_LABEL).map(([value, label]) => ({
 }));
 
 export default async function AdminProducts() {
-  const { email } = await requireAdmin();
+  const { email } = await requireAdmin("/admin/products");
   const products = await listProductsForAdmin();
 
   return (

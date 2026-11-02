@@ -3,12 +3,15 @@ import { expect, test } from "@playwright/test";
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
 
+const loginFor = (path: string) =>
+  `/admin/login?next=${encodeURIComponent(path)}`;
+
 test("an anonymous visitor to /admin is sent to the login page", async ({
   page,
 }) => {
   await page.goto("/admin");
 
-  await expect(page).toHaveURL("/admin/login");
+  await expect(page).toHaveURL(loginFor("/admin/orders"));
   await expect(
     page.getByRole("button", { name: "Вход с Google" }),
   ).toBeVisible();
@@ -20,14 +23,59 @@ for (const [name, path] of [
   ["the statistics page", "/admin/analytics"],
   ["the todo page", "/admin/todo"],
 ] as const) {
-  test(`an anonymous visitor to ${name} is sent to the login page`, async ({
+  test(`an anonymous visitor to ${name} is sent to the login page, which will return there`, async ({
     page,
   }) => {
     await page.goto(path);
 
-    await expect(page).toHaveURL("/admin/login");
+    await expect(page).toHaveURL(loginFor(path));
+    await expect(page.locator('input[name="next"]')).toHaveValue(path);
   });
 }
+
+test("signing in from a login link asks Auth.js to return to the page it names", async ({
+  page,
+  context,
+}) => {
+  await page.route("https://accounts.google.com/**", (route) => route.abort());
+  await page.goto("/admin/todo");
+
+  await page.getByRole("button", { name: "Вход с Google" }).click();
+
+  await expect
+    .poll(async () => {
+      const cookies = await context.cookies();
+      const value = cookies.find(({ name }) =>
+        name.endsWith("authjs.callback-url"),
+      )?.value;
+      return value && decodeURIComponent(value);
+    })
+    .toMatch(/\/admin\/todo$/);
+});
+
+test("a signed-in admin following a login link is sent on to the page it names", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+
+  await page.goto(loginFor("/admin/todo"));
+
+  await expect(page).toHaveURL("/admin/todo");
+});
+
+test("a login link naming a page outside the admin returns to the admin instead", async ({
+  page,
+  context,
+}) => {
+  await page.goto("/admin/login?next=https%3A%2F%2Fevil.example%2Fadmin");
+  await expect(page.locator('input[name="next"]')).toHaveValue("/admin");
+
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/login?next=%2F%2Fevil.example%2Fadmin");
+
+  await expect(page).toHaveURL("/admin/orders");
+});
 
 test("a session cookie signed with another secret is treated as no session", async ({
   page,
@@ -37,7 +85,7 @@ test("a session cookie signed with another secret is treated as no session", asy
 
   await page.goto("/admin");
 
-  await expect(page).toHaveURL("/admin/login");
+  await expect(page).toHaveURL(loginFor("/admin/orders"));
   await expect(
     page.getByRole("button", { name: "Вход с Google" }),
   ).toBeVisible();
@@ -117,7 +165,7 @@ test("the shop shows a signed-in admin a bar linking to the admin, and the admin
   await bar.getByRole("button", { name: "Изход", exact: true }).click();
   await expect(page).toHaveURL("/admin/login");
   await page.goto("/admin/orders");
-  await expect(page).toHaveURL("/admin/login");
+  await expect(page).toHaveURL(loginFor("/admin/orders"));
 });
 
 for (const [who, email] of [
@@ -153,7 +201,7 @@ test("a valid session for an address no longer on the list is refused", async ({
 
   await page.goto("/admin");
 
-  await expect(page).toHaveURL("/admin/login");
+  await expect(page).toHaveURL(loginFor("/admin/orders"));
   await expect(page.getByRole("main").getByRole("alert")).toHaveText(
     "Този Google акаунт няма достъп.",
   );
@@ -195,7 +243,7 @@ test("signing out ends the session", async ({ page, context }) => {
 
   await expect(page).toHaveURL("/admin/login");
   await page.goto("/admin");
-  await expect(page).toHaveURL("/admin/login");
+  await expect(page).toHaveURL(loginFor("/admin/orders"));
 });
 
 test("both admin pages ask search engines not to index them", async ({

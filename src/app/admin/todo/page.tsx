@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 const CARD = "bg-surface ring-line rounded-xl p-4 shadow-sm ring-1 sm:p-5";
 
 export default async function AdminTodo() {
-  const { email } = await requireAdmin();
+  const { email } = await requireAdmin("/admin/todo");
   const products = await listPublishedProductsForTodos();
 
   return (

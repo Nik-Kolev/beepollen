@@ -406,9 +406,13 @@ test("a visitor who refused never loads Google Analytics", async ({ page }) => {
     .click();
   await page.reload();
   await waitForHydration(page);
-  await page.waitForLoadState("networkidle");
 
   await expect(bar(page)).toBeHidden();
+  expect(
+    await page
+      .locator('script[src*="googletagmanager.com"], script#_next-ga-init')
+      .count(),
+  ).toBe(0);
   expect(requests).toEqual([]);
 });
 

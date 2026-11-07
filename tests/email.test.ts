@@ -259,16 +259,22 @@ const OUTGOING = {
 const ENV = { RESEND_API_KEY: "re_test", EMAIL_REPLY_TO: "owner@example.com" };
 
 test("with no API key the email is skipped and nothing is sent", async () => {
-  assert.equal(await sendEmail(OUTGOING, {}), "SKIPPED");
+  assert.deepEqual(await sendEmail(OUTGOING, {}), {
+    status: "SKIPPED",
+    resendEmailId: null,
+  });
 });
 
-test("a send carries the sender, reply-to, both versions and the idempotency key", async () => {
+test("a send carries the sender, reply-to, both versions and the idempotency key, and answers with Resend's id", async () => {
   const { client, calls } = fakeClient(async () => ({
     data: { id: "1" },
     error: null,
   }));
 
-  assert.equal(await sendEmail(OUTGOING, ENV, client), "SENT");
+  assert.deepEqual(await sendEmail(OUTGOING, ENV, client), {
+    status: "SENT",
+    resendEmailId: "1",
+  });
   assert.equal(calls.length, 1);
   assert.equal(calls[0].payload.to, ORDER.email);
   assert.equal(calls[0].payload.replyTo, "owner@example.com");
@@ -314,7 +320,10 @@ test("an error Resend answers with, rather than throws, is a failed send", async
     error: { name: "validation_error", message: "domain not verified" },
   }));
 
-  assert.equal(await sendEmail(OUTGOING, ENV, client), "FAILED");
+  assert.deepEqual(await sendEmail(OUTGOING, ENV, client), {
+    status: "FAILED",
+    resendEmailId: null,
+  });
 });
 
 test("a send that throws is a failed send, not a crash", async () => {
@@ -322,7 +331,10 @@ test("a send that throws is a failed send, not a crash", async () => {
     throw new Error("network down");
   });
 
-  assert.equal(await sendEmail(OUTGOING, ENV, client), "FAILED");
+  assert.deepEqual(await sendEmail(OUTGOING, ENV, client), {
+    status: "FAILED",
+    resendEmailId: null,
+  });
 });
 
 test("a key with no reply-to address fails without sending", async () => {
@@ -331,9 +343,9 @@ test("a key with no reply-to address fails without sending", async () => {
     error: null,
   }));
 
-  assert.equal(
+  assert.deepEqual(
     await sendEmail(OUTGOING, { RESEND_API_KEY: "re_test" }, client),
-    "FAILED",
+    { status: "FAILED", resendEmailId: null },
   );
   assert.equal(calls.length, 0);
 });

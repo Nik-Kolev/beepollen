@@ -1,11 +1,10 @@
 import assert from "node:assert/strict";
-import { createHmac } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
 import { POST } from "@/app/api/unsubscribe/route";
-import type { EmailStatus } from "@/generated/prisma/enums";
 import { readEmailToken, signEmailToken } from "@/lib/email-token";
-import type { Outgoing } from "@/lib/email/transport";
+import type { Outgoing, Sent } from "@/lib/email/transport";
 import { sendPlacedEmails } from "@/lib/order-emails";
 import { placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
@@ -19,11 +18,14 @@ after(async () => {
 
 const SECRET = { EMAIL_TOKEN_SECRET: "a".repeat(32) };
 
-function recorder(status: EmailStatus = "SENT") {
+function recorder(status: Sent["status"] = "SENT") {
   const sent: Outgoing[] = [];
   const send = async (outgoing: Outgoing) => {
     sent.push(outgoing);
-    return status;
+    return {
+      status,
+      resendEmailId: status === "SENT" ? randomUUID() : null,
+    };
   };
   return { sent, send };
 }

@@ -30,6 +30,7 @@ The rest of `.env`:
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `ORDERING_OPEN`                 | Only `"true"` accepts orders; anything else shows the shop only; rebuild after changing it                    |
 | `RESEND_API_KEY`                | Sends the emails through Resend; left empty, nothing is sent                                                  |
+| `RESEND_WEBHOOK_SECRET`         | Signing secret of the Resend webhook at `POST /api/webhooks/resend`; empty, every call is refused             |
 | `EMAIL_FROM`                    | Sender address; empty uses Resend's test sender, which delivers only to the Resend account's own address      |
 | `EMAIL_REPLY_TO`                | Where replies go; required once `RESEND_API_KEY` is set                                                       |
 | `OWNER_EMAIL`                   | Receives a notice for every new order and every withdrawal                                                    |

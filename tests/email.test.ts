@@ -8,7 +8,6 @@ import {
   orderSentEmail,
   orderUpdatedEmail,
   ownerNotificationEmail,
-  subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
@@ -185,19 +184,6 @@ test("the sent email names the office and the sum to pay on collection", () => {
   assert.ok(text.includes(`При получаване платете ${formatPrice(5190)}.`));
 });
 
-test("the confirmation email carries its link and the owner's phone in both versions", () => {
-  const url = `${SITE_URL}/subscription/confirm?token=confirm.1.x`;
-  const message = subscriptionConfirmEmail({
-    reference: ORDER.reference,
-    confirmUrl: url,
-  });
-
-  assert.ok(message.text.includes(url));
-  assert.ok(message.html.includes(`href="${url}"`));
-  assert.ok(message.text.includes(OWNER_PHONE.display));
-  assert.ok(message.html.includes(OWNER_PHONE.display));
-});
-
 test("an accepted order says nothing about a subscription unless given an unsubscribe link", () => {
   const url = `${SITE_URL}/subscription/unsubscribe?token=unsubscribe.1.x`;
   const subscribed = orderAcceptedEmail({ ...ORDER, unsubscribeUrl: url });
@@ -231,7 +217,6 @@ test("no field of any email can inject markup", () => {
     orderUpdatedEmail(order),
     withdrawalReceivedEmail({ ...WITHDRAWAL, reference: hostile }),
     orderAcceptedEmail({ ...order, unsubscribeUrl: hostile }),
-    subscriptionConfirmEmail({ reference: hostile, confirmUrl: hostile }),
   ]) {
     assert.ok(!html.includes("<img src=x"), html);
     assert.ok(!html.includes(`"'>`));

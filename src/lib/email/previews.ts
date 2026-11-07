@@ -7,7 +7,6 @@ import {
   orderUpdatedEmail,
   ownerNotificationEmail,
   ownerWithdrawalEmail,
-  subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { SITE_URL } from "@/lib/site";
@@ -54,20 +53,12 @@ export const PREVIEWS: {
   },
   {
     title: "Приета поръчка от абониран купувач — до купувача",
-    trigger: "Когато купувач, вече абониран за офертите, завърши поръчка.",
+    trigger:
+      "Когато купувач завърши поръчка, отметнал офертите при нея или при по-ранна поръчка.",
     render: () =>
       orderAcceptedEmail({
         ...SAMPLE_ORDER,
         unsubscribeUrl: `${SITE_URL}/subscription/unsubscribe?token=preview`,
-      }),
-  },
-  {
-    title: "Потвърждаване на абонамента — до купувача",
-    trigger: "Когато купувач отметне офертите при поръчка и още не е абониран.",
-    render: () =>
-      subscriptionConfirmEmail({
-        reference: SAMPLE_ORDER.reference,
-        confirmUrl: `${SITE_URL}/subscription/confirm?token=preview`,
       }),
   },
   {
@@ -84,8 +75,18 @@ export const PREVIEWS: {
   {
     title: "Обновена поръчка — до купувача",
     trigger:
-      "Когато запишете редакция на нова поръчка и отметката за имейл в прозореца остане включена. Ако сте сменили имейла и купувачът е отметнал офертите, на новия адрес отива и потвърждението на абонамента.",
+      "Когато запишете редакция на нова поръчка и отметката за имейл в прозореца остане включена.",
     render: () => orderUpdatedEmail(SAMPLE_ORDER),
+  },
+  {
+    title: "Обновена поръчка на абониран купувач — до купувача",
+    trigger:
+      "Когато запишете редакция на поръчка на абониран купувач и отметката за имейл в прозореца остане включена.",
+    render: () =>
+      orderUpdatedEmail({
+        ...SAMPLE_ORDER,
+        unsubscribeUrl: `${SITE_URL}/subscription/unsubscribe?token=preview`,
+      }),
   },
   {
     title: "Отказана — до купувача",

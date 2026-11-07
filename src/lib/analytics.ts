@@ -84,15 +84,15 @@ export async function countSubscribers(
   now: Date,
 ): Promise<Record<Period, number>> {
   const consents = await prisma.consent.findMany({
-    where: { kind: "OFFERS", confirmedAt: { not: null }, withdrawnAt: null },
-    select: { confirmedAt: true, order: { select: { customerId: true } } },
-    orderBy: { confirmedAt: "asc" },
+    where: { kind: "OFFERS", withdrawnAt: null },
+    select: { createdAt: true, order: { select: { customerId: true } } },
+    orderBy: { createdAt: "asc" },
   });
 
   const firstByCustomer = new Map<number, Date>();
-  for (const { confirmedAt, order } of consents) {
-    if (confirmedAt && !firstByCustomer.has(order.customerId)) {
-      firstByCustomer.set(order.customerId, confirmedAt);
+  for (const { createdAt, order } of consents) {
+    if (!firstByCustomer.has(order.customerId)) {
+      firstByCustomer.set(order.customerId, createdAt);
     }
   }
 

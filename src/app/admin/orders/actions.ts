@@ -46,10 +46,10 @@ export async function editOrder(input: unknown): Promise<OrderEditResult> {
   const { email } = await requireAdmin();
   const result = await editOrderContact(input, { adminEmail: email });
   if (result.ok && result.eventId !== null) {
-    const { reference, eventId, offersUnconfirmed } = result;
+    const { reference, eventId } = result;
     const notify = orderEditNotify.safeParse(input);
     if (notify.success && notify.data.notify) {
-      after(() => sendEditEmail(reference, eventId, offersUnconfirmed));
+      after(() => sendEditEmail(reference, eventId));
     }
     refresh();
   }

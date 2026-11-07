@@ -5,8 +5,23 @@ cd "$(dirname "$0")"
 
 compose=(docker compose -f compose.prod.yaml)
 
+env_value() {
+  tr -d '\r' <.env | sed -n "s/^$1=\"\{0,1\}\([^\"]*\)\"\{0,1\}\$/\1/p"
+}
+
+B2_KEY_ID=$(env_value B2_KEY_ID)
+B2_APPLICATION_KEY=$(env_value B2_APPLICATION_KEY)
+export B2_KEY_ID B2_APPLICATION_KEY
+
 "${compose[@]}" pull
-"${compose[@]}" run --rm migrate npm run db:backup
+backup=0
+"${compose[@]}" run --rm -e B2_KEY_ID -e B2_APPLICATION_KEY migrate npm run db:backup ||
+  backup=$?
+if [ "$backup" -eq 2 ]; then
+  echo "The backup is on the host but was not uploaded to B2; deploying anyway" >&2
+elif [ "$backup" -ne 0 ]; then
+  exit "$backup"
+fi
 "${compose[@]}" up -d
 
 for attempt in $(seq 1 30); do

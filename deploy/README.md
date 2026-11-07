@@ -220,8 +220,19 @@ nothing is pinged.
 
 Read the runs with `sudo journalctl -t beepollen-backup`. A day keeps one copy,
 the latest, so a deploy between 00:00 and 03:00 loses its pre-migration copy to
-the nightly one: deploy after 03:00. The copies stay in the volume beside the
-database, on the same disk, until an off-host upload exists.
+the nightly one: deploy after 03:00.
+
+With `B2_KEY_ID` and `B2_APPLICATION_KEY` in `.env`, each new copy — the
+nightly one and the one `deploy.sh` takes before migrating — is also uploaded to
+Backblaze B2 as `beepollen-<day>-<UTC time>Z.db`, so a deploy's copy never
+becomes a new version of that night's file, which the bucket's lifecycle would
+delete. Both scripts pass only those two variables into the container. The key
+must be restricted to the backup bucket. A failed upload keeps the local copy
+and exits 2: the nightly run pings Healthchecks with the failure, and a deploy
+prints a warning and carries on. A `B2_KEY_ID` or `B2_APPLICATION_KEY` line the
+scripts cannot read fails the nightly run too: they take `NAME=value` or
+`NAME="value"`, nothing else. Without either variable nothing leaves the host
+and the journal says the upload was skipped.
 
 ## 7. Disk check
 

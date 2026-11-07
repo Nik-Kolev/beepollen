@@ -362,7 +362,9 @@ confirmation never overwrites `BOUNCED` with `SENT`.
 `src/lib/email/previews.ts` renders every email with a sample order, so a new
 email joins that list in the same change. `/admin/todo` no longer shows them:
 the owner sees one empty frame and a field for suggestions, since the wording
-is the developer's.
+is the developer's. Its „Изпрати примерите“ sends every one of them, subject
+prefixed „[Пример]“, to the address typed; each press is a new run with its own
+idempotency keys, and spends one send per preview of Resend's free daily quota.
 
 ## Orders
 

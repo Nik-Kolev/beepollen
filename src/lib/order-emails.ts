@@ -9,7 +9,7 @@ import {
   ownerWithdrawalEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
-import { sendEmail } from "@/lib/email/transport";
+import { sendEmail, type Sent } from "@/lib/email/transport";
 import prisma from "@/lib/prisma";
 import {
   isSubscribed,
@@ -91,6 +91,10 @@ function unsubscribeLinks(customerId: number) {
   }
 }
 
+function recorded(sent: Sent) {
+  return { emailStatus: sent.status, resendEmailId: sent.resendEmailId };
+}
+
 async function report(label: string, work: () => Promise<void>) {
   try {
     await work();
@@ -113,7 +117,7 @@ export function sendPlacedEmails(
     const subscribed = await isSubscribed(customerId);
     const links = subscribed ? unsubscribeLinks(customerId) : null;
 
-    const status = await send({
+    const sent = await send({
       to: data.email,
       message: orderAcceptedEmail({ ...data, unsubscribeUrl: links?.url }),
       idempotencyKey: `order-accepted/${reference}`,
@@ -124,9 +128,12 @@ export function sendPlacedEmails(
       await prisma.orderEvent.updateMany({
         where: {
           id: placed.id,
-          OR: [{ emailStatus: null }, { emailStatus: { not: "SENT" } }],
+          OR: [
+            { emailStatus: null },
+            { emailStatus: { in: ["FAILED", "SKIPPED"] } },
+          ],
         },
-        data: { emailStatus: status },
+        data: recorded(sent),
       });
     }
 
@@ -165,14 +172,14 @@ export function sendStepEmail(
           : null;
     if (!message) return;
 
-    const status = await send({
+    const sent = await send({
       to: data.email,
       message,
       idempotencyKey: `order-${step}/${event.id}`,
     });
     await prisma.orderEvent.update({
       where: { id: event.id },
-      data: { emailStatus: status },
+      data: recorded(sent),
     });
   });
 }
@@ -197,7 +204,7 @@ export function sendEditEmail(
     const links = (await isSubscribed(customerId))
       ? unsubscribeLinks(customerId)
       : null;
-    const status = await send({
+    const sent = await send({
       to: data.email,
       message: orderUpdatedEmail({ ...data, unsubscribeUrl: links?.url }),
       idempotencyKey: `order-edit/${event.id}`,
@@ -205,7 +212,7 @@ export function sendEditEmail(
     });
     await prisma.orderEvent.update({
       where: { id: event.id },
-      data: { emailStatus: status },
+      data: recorded(sent),
     });
   });
 }
@@ -222,7 +229,7 @@ export function sendWithdrawalEmails(
     const { order, data } = loaded;
     const withdrawal = { reference, withdrawnAt, sent: order.sentAt !== null };
 
-    const status = await send({
+    const sent = await send({
       to: data.email,
       message: withdrawalReceivedEmail(withdrawal),
       idempotencyKey: `withdrawal/${reference}`,
@@ -231,7 +238,7 @@ export function sendWithdrawalEmails(
     if (event) {
       await prisma.orderEvent.update({
         where: { id: event.id },
-        data: { emailStatus: status },
+        data: recorded(sent),
       });
     }
 

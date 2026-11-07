@@ -15,6 +15,7 @@ enum EmailStatus {
   SENT
   FAILED
   SKIPPED
+  BOUNCED
 }
 
 enum ConsentKind {
@@ -115,9 +116,10 @@ model OrderEvent {
   kind    OrderEventKind
 
   adminEmail  String?
-  emailStatus EmailStatus?
-  changes     Json?
-  createdAt   DateTime     @default(now())
+  emailStatus   EmailStatus?
+  resendEmailId String?      @unique
+  changes       Json?
+  createdAt     DateTime     @default(now())
 
   @@index([orderId])
 }

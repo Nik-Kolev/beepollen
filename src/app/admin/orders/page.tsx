@@ -562,7 +562,8 @@ export default async function AdminOrders({
                                 {event.emailStatus && (
                                   <span
                                     className={
-                                      event.emailStatus === "FAILED"
+                                      event.emailStatus === "FAILED" ||
+                                      event.emailStatus === "BOUNCED"
                                         ? "text-error font-medium"
                                         : "text-ink-soft"
                                     }

@@ -351,6 +351,14 @@ ids: no other host may share production's secret. Opening
 only the page's button, a form post, acts. The one-click header points at
 `POST /api/unsubscribe`, which mail clients call themselves.
 
+Resend reports back to `POST /api/webhooks/resend`, verified by the SDK's
+`webhooks.verify` against `RESEND_WEBHOOK_SECRET`; with that or
+`RESEND_API_KEY` unset every call is refused. Each buyer email's event keeps
+Resend's id, so `email.bounced` marks that event `BOUNCED`; owner emails keep
+none and their bounces match nothing. `email.complained` withdraws every
+offers consent of the customer with that address. A replayed order's
+confirmation never overwrites `BOUNCED` with `SENT`.
+
 `src/lib/email/previews.ts` renders every email with a sample order, so a new
 email joins that list in the same change. `/admin/todo` no longer shows them:
 the owner sees one empty frame and a field for suggestions, since the wording

@@ -862,6 +862,12 @@ with `EBUSY`. Retention in `src/lib/backup-retention.ts` counts periods that
 have a backup, as restic's `--keep-daily/weekly/monthly` do, rather
 than calendar windows, so backups that stopped are never all pruned at once.
 
+The off-host copy is uploaded from the same script, inside the `migrate`
+container, because the backups live in its volume and the host has neither the
+file nor `jq`. `src/lib/b2-upload.ts` speaks B2's native API v3 with `fetch`:
+v3's authorization names the bucket a restricted key is bound to, which is how
+the upload finds it, and an unrestricted key is refused rather than guessed at.
+
 The seed runs through `tsx`, not `node`. Node strips the types fine, but the
 generated client imports `./enums` and `./internal/class` without extensions and
 Node’s ESM resolver cannot follow those. `db:fresh` chains `prisma db seed`

@@ -6,11 +6,10 @@ import { applyOrderStep } from "@/lib/admin-orders";
 import { deliveryPrice } from "@/lib/delivery";
 import { officeLabel } from "@/lib/econt";
 import { parseOrderChanges } from "@/lib/order-change";
-import { signEmailToken } from "@/lib/email-token";
 import { editOrderContact } from "@/lib/order-edit";
 import { placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
-import { confirmSubscription, isSubscribed } from "@/lib/subscriptions";
+import { isSubscribed } from "@/lib/subscriptions";
 import { withdrawFromOrder } from "@/lib/withdrawal";
 
 import { TEST_OFFICE_CODE, validCheckoutInput } from "./support/checkout";
@@ -371,7 +370,6 @@ test("saving unchanged values writes no event", async () => {
     reference,
     eventId: null,
     changes: [],
-    offersUnconfirmed: false,
   });
   assert.equal((await orderOf(reference)).events.length, 1);
 });
@@ -398,66 +396,36 @@ function offersOf(reference: string) {
   });
 }
 
-test("a corrected email restarts a confirmed offers consent, so the old address's link no longer subscribes anyone", async () => {
+test("a corrected email carries the order's offers consent to the new address unchanged", async () => {
   const reference = await place({ acceptsOffers: true });
   const before = await offersOf(reference);
   if (!before) throw new Error("no offers consent");
-  const oldLink = signEmailToken("confirm", before.id);
-  assert.equal(await confirmSubscription(oldLink), "confirmed");
 
   const result = await editOrderContact(
     await editInput(reference, { email: `fixed-${randomUUID()}@example.com` }),
   );
 
-  assert.equal(result.ok && result.offersUnconfirmed, true);
-  const after = await offersOf(reference);
-  assert.notEqual(after?.id, before.id);
-  assert.equal(after?.confirmedAt, null);
-  assert.equal(after?.withdrawnAt, null);
-  assert.equal(after?.wording, before.wording);
-  assert.deepEqual(after?.createdAt, before.createdAt);
-  assert.equal(await confirmSubscription(oldLink), "invalid");
+  assert.equal(result.ok, true);
+  assert.deepEqual(await offersOf(reference), before);
   const order = await orderOf(reference);
-  assert.equal(await isSubscribed(order.customerId), false);
+  assert.equal(await isSubscribed(order.customerId), true);
 });
 
-test("a corrected email flags an unconfirmed offers consent for a new confirmation", async () => {
+test("a corrected email leaves a withdrawn offers consent withdrawn", async () => {
   const reference = await place({ acceptsOffers: true });
-
-  const result = await editOrderContact(
-    await editInput(reference, { email: `fixed-${randomUUID()}@example.com` }),
-  );
-
-  assert.equal(result.ok && result.offersUnconfirmed, true);
-});
-
-test("no confirmation is flagged when the email is unchanged, the consent is withdrawn or there is none", async () => {
-  const unchangedEmail = await place({ acceptsOffers: true });
-  const withdrawn = await place({ acceptsOffers: true });
   await prisma.consent.updateMany({
-    where: { order: { reference: withdrawn }, kind: "OFFERS" },
+    where: { order: { reference }, kind: "OFFERS" },
     data: { withdrawnAt: new Date() },
   });
-  const none = await place();
 
-  const results = [
-    await editOrderContact(
-      await editInput(unchangedEmail, { name: "Петър Петров" }),
-    ),
-    await editOrderContact(
-      await editInput(withdrawn, { email: `w-${randomUUID()}@example.com` }),
-    ),
-    await editOrderContact(
-      await editInput(none, { email: `n-${randomUUID()}@example.com` }),
-    ),
-  ];
+  const result = await editOrderContact(
+    await editInput(reference, { email: `w-${randomUUID()}@example.com` }),
+  );
 
-  for (const result of results) {
-    assert.equal(result.ok, true);
-    assert.equal(result.ok && result.offersUnconfirmed, false);
-  }
-  const kept = await offersOf(withdrawn);
-  assert.notEqual(kept?.withdrawnAt, null);
+  assert.equal(result.ok, true);
+  assert.notEqual((await offersOf(reference))?.withdrawnAt, null);
+  const order = await orderOf(reference);
+  assert.equal(await isSubscribed(order.customerId), false);
 });
 
 test("fixing one field of an older order leaves the customer's newer contact alone", async () => {
@@ -529,7 +497,6 @@ test("a stray office code on a Попово order is no change", async () => {
     reference,
     eventId: null,
     changes: [],
-    offersUnconfirmed: false,
   });
 });
 

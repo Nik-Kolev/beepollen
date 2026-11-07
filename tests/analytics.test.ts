@@ -39,12 +39,7 @@ const NOW = sofiaToday();
 const daysAgo = (days: number) => new Date(NOW.getTime() - days * DAY);
 const buyer = () => `subscriber-${randomUUID()}@example.com`;
 
-async function place(
-  email: string,
-  acceptsOffers: boolean,
-  placedAt?: Date,
-  { confirmed = true } = {},
-) {
+async function place(email: string, acceptsOffers: boolean, placedAt?: Date) {
   const result = await placeOrder(
     validCheckoutInput({ email, acceptsOffers }),
     null,
@@ -60,12 +55,6 @@ async function place(
     await prisma.consent.updateMany({
       where: { order: { reference } },
       data: { createdAt: placedAt },
-    });
-  }
-  if (confirmed) {
-    await prisma.consent.updateMany({
-      where: { kind: "OFFERS", order: { reference } },
-      data: { confirmedAt: placedAt ?? new Date() },
     });
   }
 }
@@ -107,7 +96,7 @@ test("an order placed without ticking offers adds no subscriber", async () => {
   assert.deepEqual(delta, { week: 0, month: 0, all: 0 });
 });
 
-test("a buyer is counted on the day of their first confirmation, not their latest", async () => {
+test("a buyer is counted on the day they first ticked offers, not the latest", async () => {
   const email = buyer();
 
   const delta = await added(async () => {
@@ -118,7 +107,7 @@ test("a buyer is counted on the day of their first confirmation, not their lates
   assert.deepEqual(delta, { week: 0, month: 0, all: 1 });
 });
 
-test("the earliest confirmation counts even when the older order was recorded last", async () => {
+test("the earliest ticked order counts even when it was recorded last", async () => {
   const email = buyer();
 
   const delta = await added(async () => {
@@ -129,7 +118,7 @@ test("the earliest confirmation counts even when the older order was recorded la
   assert.deepEqual(delta, { week: 0, month: 0, all: 1 });
 });
 
-test("a buyer is counted from their first confirmed offers, not their first order", async () => {
+test("a buyer is counted from their first ticked offers, not their first order", async () => {
   const email = buyer();
 
   const delta = await added(async () => {
@@ -138,14 +127,6 @@ test("a buyer is counted from their first confirmed offers, not their first orde
   });
 
   assert.deepEqual(delta, { week: 1, month: 1, all: 1 });
-});
-
-test("a ticked box that was never confirmed adds no subscriber", async () => {
-  const delta = await added(() =>
-    place(buyer(), true, undefined, { confirmed: false }),
-  );
-
-  assert.deepEqual(delta, { week: 0, month: 0, all: 0 });
 });
 
 test("a subscriber who unsubscribed is no longer counted", async () => {
@@ -170,7 +151,7 @@ const BOUNDARIES: [number, Record<Period, number>][] = [
 ];
 
 for (const [days, expected] of BOUNDARIES) {
-  test(`a first confirmation ${days} Sofia days ago lands in the right periods`, async () => {
+  test(`offers first ticked ${days} Sofia days ago land in the right periods`, async () => {
     const delta = await added(() => place(buyer(), true, daysAgo(days)));
 
     assert.deepEqual(delta, expected);

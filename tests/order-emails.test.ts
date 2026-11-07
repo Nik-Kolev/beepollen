@@ -10,6 +10,7 @@ import {
   recordOrderStep,
 } from "@/lib/admin-orders";
 import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import { readEmailToken } from "@/lib/email-token";
 import type { Outgoing } from "@/lib/email/transport";
 import { editOrderContact } from "@/lib/order-edit";
 import {
@@ -316,7 +317,7 @@ test("an edit emails the buyer the order as it now stands, without their name, a
   const { eventId } = await edit(reference, { email, phone: "0899111222" });
   const { sent, send } = recorder();
 
-  await sendEditEmail(reference, eventId ?? 0, false, send);
+  await sendEditEmail(reference, eventId ?? 0, send);
 
   assert.equal(sent.length, 1);
   assert.equal(sent[0].to, email);
@@ -333,7 +334,7 @@ test("a failed edit email is recorded as failed on the edit", async () => {
   const { eventId } = await edit(reference, { phone: "0899111222" });
   const { send } = recorder("FAILED");
 
-  await sendEditEmail(reference, eventId ?? 0, false, send);
+  await sendEditEmail(reference, eventId ?? 0, send);
 
   assert.equal(await statusOfEvent(eventId ?? 0), "FAILED");
 });
@@ -351,7 +352,7 @@ test("an order switched to Попово is emailed with hand delivery and no off
   });
   const { sent, send } = recorder();
 
-  await sendEditEmail(reference, eventId ?? 0, false, send);
+  await sendEditEmail(reference, eventId ?? 0, send);
 
   const text = sent[0].message.text;
   assert.ok(text.includes(`гр. ${LOCAL_DELIVERY_CITY}`));
@@ -359,55 +360,44 @@ test("an order switched to Попово is emailed with hand delivery and no off
   assert.ok(!text.includes(before.officeStreet));
 });
 
-test("a corrected email with offers ticked also sends the confirmation to the new address", async () => {
+test("a corrected email with offers ticked tells the new address it is subscribed, with its own unsubscribe link", async () => {
   const { reference } = await place({ acceptsOffers: true });
   const email = `fixed-${randomUUID()}@example.com`;
-  const { eventId, offersUnconfirmed } = await edit(reference, { email });
-  const consent = await prisma.consent.findFirstOrThrow({
-    where: { order: { reference }, kind: "OFFERS" },
+  const { eventId } = await edit(reference, { email });
+  const { customerId } = await prisma.order.findUniqueOrThrow({
+    where: { reference },
+    select: { customerId: true },
   });
   const { sent, send } = recorder();
 
-  await sendEditEmail(reference, eventId ?? 0, offersUnconfirmed, send);
+  await sendEditEmail(reference, eventId ?? 0, send);
 
   assert.deepEqual(
     sent.map(({ to, idempotencyKey }) => ({ to, idempotencyKey })),
-    [
-      { to: email, idempotencyKey: `order-edit/${eventId}` },
-      { to: email, idempotencyKey: `subscription-confirm/${consent.id}` },
-    ],
+    [{ to: email, idempotencyKey: `order-edit/${eventId}` }],
   );
-  assert.ok(sent[1].message.text.includes(`token=`));
+  const { message, headers } = sent[0];
+  assert.match(message.text, /Абонирани сте/);
+  assert.match(message.html, /Абонирани сте/);
+  const token = /\/subscription\/unsubscribe\?token=([^\s>"]+)/.exec(
+    message.text,
+  )?.[1];
+  assert.equal(readEmailToken(token ?? "", "unsubscribe"), customerId);
+  assert.equal(
+    headers?.["List-Unsubscribe-Post"],
+    "List-Unsubscribe=One-Click",
+  );
 });
 
-test("no confirmation goes out unless asked for, or to an address already subscribed", async () => {
-  const subscribed = `subscribed-${randomUUID()}@example.com`;
-  const earlier = await place({ email: subscribed, acceptsOffers: true });
-  await prisma.consent.updateMany({
-    where: { order: { reference: earlier.reference }, kind: "OFFERS" },
-    data: { confirmedAt: new Date() },
-  });
-  const unasked = await place({ acceptsOffers: true });
-  const toSubscriber = await place({ acceptsOffers: true });
-  const first = await edit(unasked.reference, {
-    email: `fixed-${randomUUID()}@example.com`,
-  });
-  const second = await edit(toSubscriber.reference, { email: subscribed });
+test("an edit email to a buyer who is not subscribed says nothing about a subscription", async () => {
+  const { reference } = await place();
+  const { eventId } = await edit(reference, { phone: "0899111222" });
   const { sent, send } = recorder();
 
-  await sendEditEmail(unasked.reference, first.eventId ?? 0, false, send);
-  await sendEditEmail(
-    toSubscriber.reference,
-    second.eventId ?? 0,
-    second.offersUnconfirmed,
-    send,
-  );
+  await sendEditEmail(reference, eventId ?? 0, send);
 
-  assert.equal(second.offersUnconfirmed, true);
-  assert.deepEqual(
-    sent.map(({ idempotencyKey }) => idempotencyKey),
-    [`order-edit/${first.eventId}`, `order-edit/${second.eventId}`],
-  );
+  assert.doesNotMatch(sent[0].message.text, /Абонирани сте/);
+  assert.equal(sent[0].headers, undefined);
 });
 
 test("an edit email naming another order's or another kind's event sends nothing", async () => {
@@ -417,8 +407,8 @@ test("an edit email naming another order's or another kind's event sends nothing
   const cancel = await step(reference, "cancel", "new");
   const { sent, send } = recorder();
 
-  await sendEditEmail(reference, foreign.eventId ?? 0, false, send);
-  await sendEditEmail(reference, cancel, false, send);
+  await sendEditEmail(reference, foreign.eventId ?? 0, send);
+  await sendEditEmail(reference, cancel, send);
 
   assert.equal(sent.length, 0);
 });

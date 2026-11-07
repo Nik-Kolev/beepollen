@@ -101,7 +101,6 @@ model Consent {
 
   wording     String
   ipAddress   String?
-  confirmedAt DateTime?
   withdrawnAt DateTime?
   createdAt   DateTime  @default(now())
 

@@ -57,7 +57,6 @@ export type OrderEditResult =
       reference: string;
       eventId: number | null;
       changes: OrderChange[];
-      offersUnconfirmed: boolean;
     }
   | { ok: false; reason: "VALIDATION_ERROR"; fields: string[] }
   | { ok: false; reason: "UNAVAILABLE_ITEMS"; slugs: string[] }
@@ -326,136 +325,96 @@ export async function editOrderContact(
   const linesChanged = changes.some((change) => change.field === "item");
 
   if (changes.length === 0 || dryRun) {
-    return {
-      ok: true,
-      reference: input.reference,
-      eventId: null,
-      changes,
-      offersUnconfirmed: false,
-    };
+    return { ok: true, reference: input.reference, eventId: null, changes };
   }
 
-  const emailChanged = input.email !== current.email;
-
   try {
-    const { eventId, offersUnconfirmed } = await prisma.$transaction(
-      async (tx) => {
-        const customer = await tx.customer.upsert({
-          where: { email: input.email },
-          update: {
-            ...(input.name !== current.name && { name: input.name }),
-            ...(input.phone !== current.phone && { phone: input.phone }),
-          },
-          create: { name: input.name, email: input.email, phone: input.phone },
-          select: { id: true },
-        });
+    const eventId = await prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.upsert({
+        where: { email: input.email },
+        update: {
+          ...(input.name !== current.name && { name: input.name }),
+          ...(input.phone !== current.phone && { phone: input.phone }),
+        },
+        create: { name: input.name, email: input.email, phone: input.phone },
+        select: { id: true },
+      });
 
-        const { count } = await tx.order.updateMany({
-          where: {
-            id: order.id,
-            customerId: order.customerId,
-            contactName: order.contactName,
-            contactPhone: order.contactPhone,
-            deliveryMethod: order.deliveryMethod,
-            officeCode: order.officeCode,
-            itemsCents: order.itemsCents,
-            sentAt: null,
-            paidAt: null,
-            cancelledAt: null,
-            collectedAt: null,
-            withdrawnAt: null,
-          },
-          data: {
-            customerId: customer.id,
-            contactName: input.name,
-            contactPhone: input.phone,
-            deliveryMethod: input.deliveryMethod,
-            ...office,
-            itemsCents,
-            deliveryCents,
-            totalCents,
-          },
-        });
-        if (count !== 1) throw new StaleEdit();
+      const { count } = await tx.order.updateMany({
+        where: {
+          id: order.id,
+          customerId: order.customerId,
+          contactName: order.contactName,
+          contactPhone: order.contactPhone,
+          deliveryMethod: order.deliveryMethod,
+          officeCode: order.officeCode,
+          itemsCents: order.itemsCents,
+          sentAt: null,
+          paidAt: null,
+          cancelledAt: null,
+          collectedAt: null,
+          withdrawnAt: null,
+        },
+        data: {
+          customerId: customer.id,
+          contactName: input.name,
+          contactPhone: input.phone,
+          deliveryMethod: input.deliveryMethod,
+          ...office,
+          itemsCents,
+          deliveryCents,
+          totalCents,
+        },
+      });
+      if (count !== 1) throw new StaleEdit();
 
-        if (linesChanged) {
-          const lines = await tx.orderItem.findMany({
-            where: { orderId: order.id },
-            select: { slug: true, quantity: true },
-          });
-          if (!sameLines(lines, order.items)) throw new StaleEdit();
-          await tx.orderItem.deleteMany({
-            where: { id: { in: removed.map((line) => line.id) } },
-          });
-          for (const line of kept) {
-            if (line.quantity !== line.was.quantity) {
-              await tx.orderItem.update({
-                where: { id: line.id },
-                data: { quantity: line.quantity },
-              });
-            }
-          }
-          if (added.length > 0) {
-            await tx.orderItem.createMany({
-              data: added.map((line) => ({ ...line, orderId: order.id })),
+      if (linesChanged) {
+        const lines = await tx.orderItem.findMany({
+          where: { orderId: order.id },
+          select: { slug: true, quantity: true },
+        });
+        if (!sameLines(lines, order.items)) throw new StaleEdit();
+        await tx.orderItem.deleteMany({
+          where: { id: { in: removed.map((line) => line.id) } },
+        });
+        for (const line of kept) {
+          if (line.quantity !== line.was.quantity) {
+            await tx.orderItem.update({
+              where: { id: line.id },
+              data: { quantity: line.quantity },
             });
           }
         }
-
-        const offers = emailChanged
-          ? await tx.consent.findFirst({
-              where: { orderId: order.id, kind: "OFFERS", withdrawnAt: null },
-              select: {
-                id: true,
-                wording: true,
-                ipAddress: true,
-                createdAt: true,
-              },
-            })
-          : null;
-        if (offers) {
-          await tx.consent.delete({ where: { id: offers.id } });
-          await tx.consent.create({
-            data: {
-              orderId: order.id,
-              kind: "OFFERS",
-              wording: offers.wording,
-              ipAddress: offers.ipAddress,
-              createdAt: offers.createdAt,
-            },
+        if (added.length > 0) {
+          await tx.orderItem.createMany({
+            data: added.map((line) => ({ ...line, orderId: order.id })),
           });
         }
+      }
 
-        if (customer.id !== order.customerId) {
-          const remaining = await tx.order.count({
-            where: { customerId: order.customerId },
-          });
-          if (remaining === 0) {
-            await tx.customer.delete({ where: { id: order.customerId } });
-          }
-        }
-
-        const event = await tx.orderEvent.create({
-          data: {
-            orderId: order.id,
-            kind: "EDIT",
-            adminEmail,
-            changes,
-            createdAt: now,
-          },
-          select: { id: true },
+      if (customer.id !== order.customerId) {
+        const remaining = await tx.order.count({
+          where: { customerId: order.customerId },
         });
-        return { eventId: event.id, offersUnconfirmed: offers !== null };
-      },
-    );
+        if (remaining === 0) {
+          await tx.customer.delete({ where: { id: order.customerId } });
+        }
+      }
 
-    return {
-      ok: true,
-      reference: input.reference,
-      eventId,
-      changes,
-      offersUnconfirmed,
-    };
+      const event = await tx.orderEvent.create({
+        data: {
+          orderId: order.id,
+          kind: "EDIT",
+          adminEmail,
+          changes,
+          createdAt: now,
+        },
+        select: { id: true },
+      });
+      return event.id;
+    });
+
+    return { ok: true, reference: input.reference, eventId, changes };
   } catch (error) {
     if (error instanceof StaleEdit) return { ok: false, reason: "stale" };
     throw error;

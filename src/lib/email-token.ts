@@ -1,8 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-export type EmailTokenPurpose = "confirm" | "unsubscribe";
+export type EmailTokenPurpose = "unsubscribe";
 
-const TOKEN = /^(confirm|unsubscribe)\.([1-9]\d{0,9})\.([A-Za-z0-9_-]{43})$/;
+const TOKEN = /^(unsubscribe)\.([1-9]\d{0,9})\.([A-Za-z0-9_-]{43})$/;
 
 function signature(payload: string, secret: string) {
   return createHmac("sha256", secret).update(payload).digest("base64url");

@@ -74,7 +74,7 @@ test("the shop's pages, the map included, break no rule of the policy", async ({
     "/privacy",
     "/cookies",
     "/withdraw",
-    "/subscription/confirm",
+    "/subscription/unsubscribe",
     "/no-such-page",
   ]) {
     await visit(page, path);

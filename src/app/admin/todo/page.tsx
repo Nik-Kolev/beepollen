@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 
 import { AdminHeader } from "@/components/admin/admin-header";
 import { OwnerAnswerForm } from "@/components/admin/owner-answer-form";
+import { SampleEmailForm } from "@/components/admin/sample-email-form";
 import { requireAdmin } from "@/lib/admin-session";
 import { renderLayout } from "@/lib/email/layout";
+import { SAMPLE_DEFAULT_ADDRESS } from "@/lib/email/samples";
 import {
   EMAIL_ANSWER_KEY,
   EMAIL_ANSWER_QUESTION,
@@ -132,6 +134,7 @@ export default async function AdminTodo() {
           label={EMAIL_ANSWER_QUESTION}
           initial={answers.get(EMAIL_ANSWER_KEY) ?? ""}
         />
+        <SampleEmailForm initial={SAMPLE_DEFAULT_ADDRESS} />
       </section>
     </div>
   );

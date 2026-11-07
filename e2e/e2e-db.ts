@@ -96,7 +96,6 @@ export function backdateOrderSteps(reference: string, hoursAgo: number) {
 export function offersConsent(reference: string): {
   id: number;
   customerId: number;
-  confirmedAt: string | null;
   withdrawnAt: string | null;
 } {
   const script = `
@@ -106,7 +105,6 @@ export function offersConsent(reference: string): {
         where: { kind: "OFFERS", order: { reference: ${JSON.stringify(reference)} } },
         select: {
           id: true,
-          confirmedAt: true,
           withdrawnAt: true,
           order: { select: { customerId: true } },
         },
@@ -115,7 +113,6 @@ export function offersConsent(reference: string): {
       process.stdout.write(JSON.stringify({
         id: consent.id,
         customerId: consent.order.customerId,
-        confirmedAt: consent.confirmedAt,
         withdrawnAt: consent.withdrawnAt,
       }));
     });

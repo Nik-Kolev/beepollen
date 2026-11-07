@@ -8,7 +8,6 @@ import {
   orderSentEmail,
   orderUpdatedEmail,
   ownerNotificationEmail,
-  subscriptionConfirmEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
@@ -185,19 +184,6 @@ test("the sent email names the office and the sum to pay on collection", () => {
   assert.ok(text.includes(`При получаване платете ${formatPrice(5190)}.`));
 });
 
-test("the confirmation email carries its link and the owner's phone in both versions", () => {
-  const url = `${SITE_URL}/subscription/confirm?token=confirm.1.x`;
-  const message = subscriptionConfirmEmail({
-    reference: ORDER.reference,
-    confirmUrl: url,
-  });
-
-  assert.ok(message.text.includes(url));
-  assert.ok(message.html.includes(`href="${url}"`));
-  assert.ok(message.text.includes(OWNER_PHONE.display));
-  assert.ok(message.html.includes(OWNER_PHONE.display));
-});
-
 test("an accepted order says nothing about a subscription unless given an unsubscribe link", () => {
   const url = `${SITE_URL}/subscription/unsubscribe?token=unsubscribe.1.x`;
   const subscribed = orderAcceptedEmail({ ...ORDER, unsubscribeUrl: url });
@@ -231,7 +217,6 @@ test("no field of any email can inject markup", () => {
     orderUpdatedEmail(order),
     withdrawalReceivedEmail({ ...WITHDRAWAL, reference: hostile }),
     orderAcceptedEmail({ ...order, unsubscribeUrl: hostile }),
-    subscriptionConfirmEmail({ reference: hostile, confirmUrl: hostile }),
   ]) {
     assert.ok(!html.includes("<img src=x"), html);
     assert.ok(!html.includes(`"'>`));
@@ -274,16 +259,22 @@ const OUTGOING = {
 const ENV = { RESEND_API_KEY: "re_test", EMAIL_REPLY_TO: "owner@example.com" };
 
 test("with no API key the email is skipped and nothing is sent", async () => {
-  assert.equal(await sendEmail(OUTGOING, {}), "SKIPPED");
+  assert.deepEqual(await sendEmail(OUTGOING, {}), {
+    status: "SKIPPED",
+    resendEmailId: null,
+  });
 });
 
-test("a send carries the sender, reply-to, both versions and the idempotency key", async () => {
+test("a send carries the sender, reply-to, both versions and the idempotency key, and answers with Resend's id", async () => {
   const { client, calls } = fakeClient(async () => ({
     data: { id: "1" },
     error: null,
   }));
 
-  assert.equal(await sendEmail(OUTGOING, ENV, client), "SENT");
+  assert.deepEqual(await sendEmail(OUTGOING, ENV, client), {
+    status: "SENT",
+    resendEmailId: "1",
+  });
   assert.equal(calls.length, 1);
   assert.equal(calls[0].payload.to, ORDER.email);
   assert.equal(calls[0].payload.replyTo, "owner@example.com");
@@ -329,7 +320,10 @@ test("an error Resend answers with, rather than throws, is a failed send", async
     error: { name: "validation_error", message: "domain not verified" },
   }));
 
-  assert.equal(await sendEmail(OUTGOING, ENV, client), "FAILED");
+  assert.deepEqual(await sendEmail(OUTGOING, ENV, client), {
+    status: "FAILED",
+    resendEmailId: null,
+  });
 });
 
 test("a send that throws is a failed send, not a crash", async () => {
@@ -337,7 +331,10 @@ test("a send that throws is a failed send, not a crash", async () => {
     throw new Error("network down");
   });
 
-  assert.equal(await sendEmail(OUTGOING, ENV, client), "FAILED");
+  assert.deepEqual(await sendEmail(OUTGOING, ENV, client), {
+    status: "FAILED",
+    resendEmailId: null,
+  });
 });
 
 test("a key with no reply-to address fails without sending", async () => {
@@ -346,9 +343,9 @@ test("a key with no reply-to address fails without sending", async () => {
     error: null,
   }));
 
-  assert.equal(
+  assert.deepEqual(
     await sendEmail(OUTGOING, { RESEND_API_KEY: "re_test" }, client),
-    "FAILED",
+    { status: "FAILED", resendEmailId: null },
   );
   assert.equal(calls.length, 0);
 });

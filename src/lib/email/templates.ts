@@ -121,12 +121,29 @@ function link(href: string, label: string) {
   return `<a href="${escapeHtml(href)}" style="color:${EMAIL_COLOR.action};">${escapeHtml(label)}</a>`;
 }
 
+const SUBSCRIBED = "Абонирани сте за офертите и напомнянията ни по имейл.";
+
+function subscribedHtml(order: OrderEmailData) {
+  return order.unsubscribeUrl
+    ? [
+        paragraph(
+          `${escapeHtml(SUBSCRIBED)} ${link(order.unsubscribeUrl, "Отписване")}`,
+        ),
+      ]
+    : [];
+}
+
+function subscribedText(order: OrderEmailData) {
+  return order.unsubscribeUrl
+    ? [`${SUBSCRIBED} Отписване: ${order.unsubscribeUrl}`]
+    : [];
+}
+
 export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
   const greeting = `Здравейте! Приехме поръчка ${order.reference}.`;
   const payment = "Плащате при получаване.";
   const withdrawal =
     "Имате право да се откажете от поръчката в срок от 14 дни от получаването ѝ.";
-  const subscribed = "Абонирани сте за офертите и напомнянията ни по имейл.";
 
   return {
     subject: `Поръчка ${order.reference} е приета`,
@@ -141,13 +158,7 @@ export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
         paragraph(
           `${withdrawal} Формулярът за отказ е на ${link(`${SITE_URL}/withdraw`, `${SITE_URL}/withdraw`)}, а условията — на ${link(`${SITE_URL}/terms`, "страницата с общите условия")}.`,
         ),
-        ...(order.unsubscribeUrl
-          ? [
-              paragraph(
-                `${escapeHtml(subscribed)} ${link(order.unsubscribeUrl, "Отписване")}`,
-              ),
-            ]
-          : []),
+        ...subscribedHtml(order),
       ].join("\n"),
     }),
     text: [
@@ -156,9 +167,7 @@ export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
       linesText(order),
       `${deliverySentence(order)} ${payment}`,
       `${withdrawal} Формулярът за отказ: ${SITE_URL}/withdraw. Общите условия: ${SITE_URL}/terms.`,
-      ...(order.unsubscribeUrl
-        ? [`${subscribed} Отписване: ${order.unsubscribeUrl}`]
-        : []),
+      ...subscribedText(order),
       textFooter(),
     ].join("\n\n"),
   };
@@ -262,38 +271,6 @@ export function ownerWithdrawalEmail(
   };
 }
 
-export function subscriptionConfirmEmail(confirmation: {
-  reference: string;
-  confirmUrl: string;
-}): EmailMessage {
-  const asked = `Здравейте! При поръчка ${confirmation.reference} отбелязахте, че искате да получавате оферти и напомняния по имейл.`;
-  const confirm = "Потвърдете абонамента от връзката по-долу.";
-  const ignore =
-    "Ако не сте го искали, не правете нищо — без потвърждение няма да ви пишем.";
-
-  return {
-    subject: "Потвърдете абонамента за офертите",
-    html: renderLayout({
-      preheader: confirm,
-      heading: "Потвърдете абонамента",
-      bodyHtml: [
-        paragraph(escapeHtml(asked)),
-        paragraph(
-          `${escapeHtml(confirm)} ${link(confirmation.confirmUrl, "Потвърждавам абонамента")}`,
-        ),
-        paragraph(escapeHtml(ignore)),
-      ].join("\n"),
-    }),
-    text: [
-      "Потвърдете абонамента",
-      asked,
-      `${confirm} ${confirmation.confirmUrl}`,
-      ignore,
-      textFooter(),
-    ].join("\n\n"),
-  };
-}
-
 export function orderSentEmail(
   order: OrderEmailData & { office: { name: string; street: string } },
 ): EmailMessage {
@@ -335,6 +312,7 @@ export function orderUpdatedEmail(order: OrderEmailData): EmailMessage {
         linesHtml(order),
         paragraph(`${escapeHtml(deliverySentence(order))} ${payment}`),
         paragraph(escapeHtml(phone)),
+        ...subscribedHtml(order),
       ].join("\n"),
     }),
     text: [
@@ -343,6 +321,7 @@ export function orderUpdatedEmail(order: OrderEmailData): EmailMessage {
       linesText(order),
       `${deliverySentence(order)} ${payment}`,
       phone,
+      ...subscribedText(order),
       textFooter(),
     ].join("\n\n"),
   };

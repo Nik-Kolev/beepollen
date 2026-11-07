@@ -520,31 +520,15 @@ export default async function AdminOrders({
                                   {consent.ipAddress &&
                                     ` · IP ${consent.ipAddress}`}
                                 </p>
-                                {consent.kind === "OFFERS" && (
+                                {consent.withdrawnAt && (
                                   <p className="text-ink-soft">
-                                    {consent.withdrawnAt ? (
-                                      <>
-                                        Отписан на{" "}
-                                        <time
-                                          dateTime={consent.withdrawnAt.toISOString()}
-                                          className="tabular-nums"
-                                        >
-                                          {formatOrderTime(consent.withdrawnAt)}
-                                        </time>
-                                      </>
-                                    ) : consent.confirmedAt ? (
-                                      <>
-                                        Потвърдено на{" "}
-                                        <time
-                                          dateTime={consent.confirmedAt.toISOString()}
-                                          className="tabular-nums"
-                                        >
-                                          {formatOrderTime(consent.confirmedAt)}
-                                        </time>
-                                      </>
-                                    ) : (
-                                      "Не е потвърдено от имейла"
-                                    )}
+                                    Отписан на{" "}
+                                    <time
+                                      dateTime={consent.withdrawnAt.toISOString()}
+                                      className="tabular-nums"
+                                    >
+                                      {formatOrderTime(consent.withdrawnAt)}
+                                    </time>
                                   </p>
                                 )}
                               </li>
@@ -578,7 +562,8 @@ export default async function AdminOrders({
                                 {event.emailStatus && (
                                   <span
                                     className={
-                                      event.emailStatus === "FAILED"
+                                      event.emailStatus === "FAILED" ||
+                                      event.emailStatus === "BOUNCED"
                                         ? "text-error font-medium"
                                         : "text-ink-soft"
                                     }

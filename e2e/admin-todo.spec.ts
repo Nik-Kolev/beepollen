@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+import { PREVIEWS } from "@/lib/email/previews";
+
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
 
@@ -195,4 +197,103 @@ test("the admin header's four sections fit a 320px screen without scrolling side
       () => document.documentElement.scrollWidth - window.innerWidth,
     ),
   ).toBeLessThanOrEqual(0);
+});
+
+function sampleForm(page: Page) {
+  return page.locator("form").filter({
+    has: page.getByRole("textbox", {
+      name: "Изпрати всички имейли като примери до",
+    }),
+  });
+}
+
+test("the sample button sends every email and lists how each one went", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/todo");
+
+  const form = sampleForm(page);
+  await expect(form.getByRole("textbox")).toHaveValue("beepollenbg@gmail.com");
+  await form.getByRole("button", { name: "Изпрати примерите" }).click();
+
+  await expect(form.getByRole("status")).toHaveText(
+    `Изпратени 0 от ${PREVIEWS.length}.`,
+  );
+  const lines = form
+    .getByRole("list", { name: "Резултат" })
+    .getByRole("listitem");
+  await expect(lines).toHaveText(
+    PREVIEWS.map(
+      (preview) => `${preview.title}: не е пратен — изпращането не е настроено`,
+    ),
+  );
+
+  const { violations } = await new AxeBuilder({ page })
+    .include("form")
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  expect(violations).toEqual([]);
+});
+
+test("an address that is not an email is refused, and typing clears the refusal", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/todo");
+
+  const form = sampleForm(page);
+  const field = form.getByRole("textbox");
+  await field.fill("abc");
+  await form.getByRole("button", { name: "Изпрати примерите" }).click();
+
+  await expect(form.getByRole("status")).toHaveText(
+    "Въведете валиден имейл адрес.",
+  );
+  await expect(field).toHaveAttribute("aria-invalid", "true");
+  await expect(form.getByRole("list", { name: "Резултат" })).toHaveCount(0);
+
+  await field.fill("owner@example.com");
+  await expect(form.getByRole("status")).toHaveText("");
+  await expect(field).not.toHaveAttribute("aria-invalid");
+});
+
+test("a result that arrives after the address was edited is not shown under the new address", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/todo");
+
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route("**/admin/todo", async (route) => {
+    if (route.request().method() === "POST") await held;
+    await route.continue();
+  });
+
+  const form = sampleForm(page);
+  const posted = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" && request.url().endsWith("/admin/todo"),
+  );
+  await form.getByRole("button", { name: "Изпрати примерите" }).click();
+  await posted;
+  await form.getByRole("textbox").fill("owner@example.com");
+
+  const answered = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/admin/todo"),
+  );
+  release();
+  await answered;
+  await expect(
+    form.getByRole("button", { name: "Изпрати примерите" }),
+  ).toHaveAttribute("aria-disabled", "false");
+
+  await expect(form.getByRole("status")).toHaveText("");
+  await expect(form.getByRole("list", { name: "Резултат" })).toHaveCount(0);
 });

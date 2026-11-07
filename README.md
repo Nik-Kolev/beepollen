@@ -26,17 +26,17 @@ drops it and sets `AUTH_URL` to its own origin.
 
 The rest of `.env`:
 
-| Variable                        | Does                                                                                                          |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `ORDERING_OPEN`                 | Only `"true"` accepts orders; anything else shows the shop only; rebuild after changing it                    |
-| `RESEND_API_KEY`                | Sends the emails through Resend; left empty, nothing is sent                                                  |
-| `RESEND_WEBHOOK_SECRET`         | Signing secret of the Resend webhook at `POST /api/webhooks/resend`; empty, every call is refused             |
-| `EMAIL_FROM`                    | Sender address; empty uses Resend's test sender, which delivers only to the Resend account's own address      |
-| `EMAIL_REPLY_TO`                | Where replies go; required once `RESEND_API_KEY` is set                                                       |
-| `OWNER_EMAIL`                   | Receives a notice for every new order and every withdrawal                                                    |
-| `EMAIL_TOKEN_SECRET`            | Signs the subscribe and unsubscribe links; at least 32 characters; empty, no such link is sent and none opens |
-| `REVALIDATE_SECRET`             | Bearer secret for `POST /api/revalidate`; at least 32 characters; empty, every call is refused                |
-| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics, after cookie consent; read at build time                                                    |
+| Variable                        | Does                                                                                                     |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `ORDERING_OPEN`                 | Only `"true"` accepts orders; anything else shows the shop only; rebuild after changing it               |
+| `RESEND_API_KEY`                | Sends the emails through Resend; left empty, nothing is sent                                             |
+| `RESEND_WEBHOOK_SECRET`         | Signing secret of the Resend webhook at `POST /api/webhooks/resend`; empty, every call is refused        |
+| `EMAIL_FROM`                    | Sender address; empty uses Resend's test sender, which delivers only to the Resend account's own address |
+| `EMAIL_REPLY_TO`                | Where replies go; required once `RESEND_API_KEY` is set                                                  |
+| `OWNER_EMAIL`                   | Receives a notice for every new order and every withdrawal                                               |
+| `EMAIL_TOKEN_SECRET`            | Signs the unsubscribe link; at least 32 characters; empty, no such link is sent and none opens           |
+| `REVALIDATE_SECRET`             | Bearer secret for `POST /api/revalidate`; at least 32 characters; empty, every call is refused           |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics, after cookie consent; read at build time                                               |
 
 ### With Docker
 

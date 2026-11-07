@@ -1,9 +1,21 @@
-import { mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
+import {
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+} from "node:fs";
 import path from "node:path";
 
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 
 import { PrismaClient } from "@/generated/prisma/client";
+import {
+  b2Credentials,
+  UPLOAD_FAILED_EXIT_CODE,
+  uploadName,
+  uploadToB2,
+} from "@/lib/b2-upload";
 import { backupName, backupsToPrune, sofiaDate } from "@/lib/backup-retention";
 
 function client(url: string) {
@@ -68,10 +80,31 @@ async function main() {
   renameSync(pending, target);
   console.log(`Backed up to ${target}`);
 
+  let uploadFailed = false;
+  try {
+    const credentials = b2Credentials(process.env);
+    if (credentials) {
+      const remote = uploadName(name, new Date());
+      const fileId = await uploadToB2(
+        remote,
+        readFileSync(target),
+        credentials,
+      );
+      console.log(`Uploaded ${remote} to B2 (${fileId})`);
+    } else {
+      console.log("B2 upload skipped: B2_KEY_ID and B2_APPLICATION_KEY unset");
+    }
+  } catch (error) {
+    uploadFailed = true;
+    console.error(`Upload of ${name} to B2 failed:`, error);
+  }
+
   for (const old of backupsToPrune(readdirSync(directory))) {
     rmSync(path.join(directory, old));
     console.log(`Pruned ${old}`);
   }
+
+  if (uploadFailed) process.exitCode = UPLOAD_FAILED_EXIT_CODE;
 }
 
 main().catch((error: unknown) => {

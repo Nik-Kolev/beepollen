@@ -20,19 +20,24 @@ export type Outgoing = {
   headers?: Record<string, string>;
 };
 
+export type Sent = {
+  status: Exclude<EmailStatus, "BOUNCED">;
+  resendEmailId: string | null;
+};
+
 export async function sendEmail(
   { to, message, idempotencyKey, headers }: Outgoing,
   env: EmailEnv = process.env,
   client: EmailClient | null = env.RESEND_API_KEY
     ? new Resend(env.RESEND_API_KEY)
     : null,
-): Promise<EmailStatus> {
-  if (!client) return "SKIPPED";
+): Promise<Sent> {
+  if (!client) return { status: "SKIPPED", resendEmailId: null };
 
   try {
     if (!env.EMAIL_REPLY_TO) throw new Error("EMAIL_REPLY_TO is not set");
 
-    const { error } = await client.emails.send(
+    const { data, error } = await client.emails.send(
       {
         from: env.EMAIL_FROM || TEST_SENDER,
         to,
@@ -46,9 +51,9 @@ export async function sendEmail(
     );
     if (error) throw new Error(`${error.name}: ${error.message}`);
 
-    return "SENT";
+    return { status: "SENT", resendEmailId: data?.id ?? null };
   } catch (error) {
     console.error(`Email "${message.subject}" to one recipient failed:`, error);
-    return "FAILED";
+    return { status: "FAILED", resendEmailId: null };
   }
 }

@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
-import type { EmailStatus } from "@/generated/prisma/enums";
 import {
   applyOrderStep,
   type OrderStatus,
@@ -11,7 +10,7 @@ import {
 } from "@/lib/admin-orders";
 import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import { readEmailToken } from "@/lib/email-token";
-import type { Outgoing } from "@/lib/email/transport";
+import type { Outgoing, Sent } from "@/lib/email/transport";
 import { editOrderContact } from "@/lib/order-edit";
 import {
   sendEditEmail,
@@ -31,11 +30,14 @@ after(async () => {
 
 const OWNER = "owner@example.com";
 
-function recorder(status: EmailStatus = "SENT") {
+function recorder(status: Sent["status"] = "SENT") {
   const sent: Outgoing[] = [];
   const send = async (outgoing: Outgoing) => {
     sent.push(outgoing);
-    return status;
+    return {
+      status,
+      resendEmailId: status === "SENT" ? randomUUID() : null,
+    };
   };
   return { sent, send };
 }

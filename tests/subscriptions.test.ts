@@ -1,18 +1,14 @@
 import assert from "node:assert/strict";
+import { createHmac, randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
 import { POST } from "@/app/api/unsubscribe/route";
-import type { EmailStatus } from "@/generated/prisma/enums";
 import { readEmailToken, signEmailToken } from "@/lib/email-token";
-import type { Outgoing } from "@/lib/email/transport";
+import type { Outgoing, Sent } from "@/lib/email/transport";
 import { sendPlacedEmails } from "@/lib/order-emails";
 import { placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
-import {
-  confirmSubscription,
-  isSubscribed,
-  unsubscribe,
-} from "@/lib/subscriptions";
+import { isSubscribed, unsubscribe } from "@/lib/subscriptions";
 
 import { validCheckoutInput } from "./support/checkout";
 
@@ -22,11 +18,14 @@ after(async () => {
 
 const SECRET = { EMAIL_TOKEN_SECRET: "a".repeat(32) };
 
-function recorder(status: EmailStatus = "SENT") {
+function recorder(status: Sent["status"] = "SENT") {
   const sent: Outgoing[] = [];
   const send = async (outgoing: Outgoing) => {
     sent.push(outgoing);
-    return status;
+    return {
+      status,
+      resendEmailId: status === "SENT" ? randomUUID() : null,
+    };
   };
   return { sent, send };
 }
@@ -50,11 +49,8 @@ async function place(overrides: Record<string, unknown> = {}) {
   };
 }
 
-async function subscribedBuyer() {
-  const placed = await place({ acceptsOffers: true });
-  if (placed.offersId === null) throw new Error("no offers consent");
-  await confirmSubscription(signEmailToken("confirm", placed.offersId));
-  return placed;
+function subscribedBuyer() {
+  return place({ acceptsOffers: true });
 }
 
 function tokenIn(text: string, path: string) {
@@ -63,9 +59,36 @@ function tokenIn(text: string, path: string) {
   return match[1];
 }
 
+function assertSubscribedEmail(accepted: Outgoing, customerId: number) {
+  assert.match(accepted.message.text, /Абонирани сте/);
+  assert.match(accepted.message.html, /Абонирани сте/);
+  assert.equal(
+    readEmailToken(
+      tokenIn(accepted.message.text, "/subscription/unsubscribe"),
+      "unsubscribe",
+    ),
+    customerId,
+  );
+  assert.equal(
+    accepted.headers?.["List-Unsubscribe-Post"],
+    "List-Unsubscribe=One-Click",
+  );
+  assert.equal(
+    readEmailToken(
+      tokenIn(accepted.headers?.["List-Unsubscribe"] ?? "", "/api/unsubscribe"),
+      "unsubscribe",
+    ),
+    customerId,
+  );
+}
+
 test("a signed token reads back as its id", () => {
   assert.equal(
-    readEmailToken(signEmailToken("confirm", 42, SECRET), "confirm", SECRET),
+    readEmailToken(
+      signEmailToken("unsubscribe", 42, SECRET),
+      "unsubscribe",
+      SECRET,
+    ),
     42,
   );
 });
@@ -85,80 +108,62 @@ test("a token with a changed id or signature is refused", () => {
   );
 });
 
-test("a confirmation token does not work as an unsubscribe token", () => {
-  const token = signEmailToken("confirm", 7, SECRET);
-  const relabelled = token.replace(/^confirm/, "unsubscribe");
+test("a token in another purpose's format is refused", () => {
+  const token = signEmailToken("unsubscribe", 7, SECRET);
+  const relabelled = token.replace(/^unsubscribe/, "confirm");
 
-  assert.equal(readEmailToken(token, "unsubscribe", SECRET), null);
   assert.equal(readEmailToken(relabelled, "unsubscribe", SECRET), null);
 });
 
+test("the purpose is part of what is signed, so a signature over the id alone is refused", () => {
+  const idOnly = createHmac("sha256", SECRET.EMAIL_TOKEN_SECRET)
+    .update("7")
+    .digest("base64url");
+
+  assert.equal(
+    readEmailToken(`unsubscribe.7.${idOnly}`, "unsubscribe", SECRET),
+    null,
+  );
+});
+
 test("a token signed with another secret is refused", () => {
-  const token = signEmailToken("confirm", 7, {
+  const token = signEmailToken("unsubscribe", 7, {
     EMAIL_TOKEN_SECRET: "b".repeat(32),
   });
 
-  assert.equal(readEmailToken(token, "confirm", SECRET), null);
+  assert.equal(readEmailToken(token, "unsubscribe", SECRET), null);
 });
 
 test("malformed tokens are refused", () => {
-  for (const token of ["", "confirm", "confirm.7", "confirm.0.x", "x.y.z"]) {
-    assert.equal(readEmailToken(token, "confirm", SECRET), null);
+  for (const token of [
+    "",
+    "unsubscribe",
+    "unsubscribe.7",
+    "unsubscribe.0.x",
+    "x.y.z",
+  ]) {
+    assert.equal(readEmailToken(token, "unsubscribe", SECRET), null);
   }
 });
 
 test("signing refuses a missing or short secret", () => {
-  assert.throws(() => signEmailToken("confirm", 1, {}));
+  assert.throws(() => signEmailToken("unsubscribe", 1, {}));
   assert.throws(() =>
-    signEmailToken("confirm", 1, { EMAIL_TOKEN_SECRET: "short" }),
+    signEmailToken("unsubscribe", 1, { EMAIL_TOKEN_SECRET: "short" }),
   );
 });
 
-test("a ticked box is not a subscription until it is confirmed", async () => {
+test("a ticked box makes the buyer a subscriber at once", async () => {
   const { customerId, offersId } = await place({ acceptsOffers: true });
   assert.notEqual(offersId, null);
 
-  assert.equal(await isSubscribed(customerId), false);
-});
-
-test("confirming sets the time once, and a second confirm keeps it", async () => {
-  const { customerId, offersId } = await place({ acceptsOffers: true });
-  const token = signEmailToken("confirm", offersId!);
-  const first = new Date("2026-10-22T08:00:00Z");
-
-  assert.equal(await confirmSubscription(token, first), "confirmed");
-  assert.equal(
-    await confirmSubscription(token, new Date("2026-10-23T08:00:00Z")),
-    "confirmed",
-  );
-
-  const consent = await prisma.consent.findUniqueOrThrow({
-    where: { id: offersId! },
-  });
-  assert.deepEqual(consent.confirmedAt, first);
   assert.equal(await isSubscribed(customerId), true);
 });
 
-test("a forged confirmation token confirms nothing", async () => {
-  const { offersId } = await place({ acceptsOffers: true });
-  const forged = signEmailToken("confirm", offersId!, SECRET);
+test("an unticked box subscribes no one", async () => {
+  const { customerId, offersId } = await place();
+  assert.equal(offersId, null);
 
-  assert.equal(await confirmSubscription(forged), "invalid");
-  const consent = await prisma.consent.findUniqueOrThrow({
-    where: { id: offersId! },
-  });
-  assert.equal(consent.confirmedAt, null);
-});
-
-test("a confirmation link opened after unsubscribing does not resubscribe", async () => {
-  const { customerId, offersId } = await place({ acceptsOffers: true });
-
-  await unsubscribe(signEmailToken("unsubscribe", customerId));
-
-  assert.equal(
-    await confirmSubscription(signEmailToken("confirm", offersId!)),
-    "invalid",
-  );
   assert.equal(await isSubscribed(customerId), false);
 });
 
@@ -210,41 +215,32 @@ test("the one-click endpoint unsubscribes from the token in its URL", async () =
   assert.equal(await isSubscribed(buyer.customerId), false);
 });
 
-test("a new buyer who ticks offers is sent a confirmation link for that consent", async () => {
-  const { reference, email, offersId } = await place({ acceptsOffers: true });
+test("a new buyer who ticks offers gets one email, which already says they are subscribed", async () => {
+  const { reference, customerId } = await place({ acceptsOffers: true });
   const { sent, send } = recorder();
 
   await sendPlacedEmails(reference, false, send, undefined);
 
   assert.deepEqual(
-    sent.map(({ to, idempotencyKey }) => ({ to, idempotencyKey })),
-    [
-      { to: email, idempotencyKey: `order-accepted/${reference}` },
-      { to: email, idempotencyKey: `subscription-confirm/${offersId}` },
-    ],
+    sent.map(({ idempotencyKey }) => idempotencyKey),
+    [`order-accepted/${reference}`],
   );
-  assert.equal(
-    readEmailToken(
-      tokenIn(sent[1].message.text, "/subscription/confirm"),
-      "confirm",
-    ),
-    offersId,
-  );
-  assert.equal(sent[0].headers, undefined);
-  assert.doesNotMatch(sent[0].message.text, /Абонирани сте/);
+  assertSubscribedEmail(sent[0], customerId);
 });
 
-test("a buyer who leaves offers unticked is sent no confirmation", async () => {
+test("a buyer who leaves offers unticked gets an email that says nothing about a subscription", async () => {
   const { reference } = await place();
   const { sent, send } = recorder();
 
   await sendPlacedEmails(reference, false, send, undefined);
 
   assert.equal(sent.length, 1);
+  assert.equal(sent[0].headers, undefined);
+  assert.doesNotMatch(sent[0].message.text, /Абонирани сте/);
 });
 
 for (const acceptsOffers of [true, false]) {
-  test(`a confirmed subscriber's next order (offers ${acceptsOffers ? "ticked" : "unticked"}) says so, with an unsubscribe link and no new confirmation`, async () => {
+  test(`a subscriber's next order (offers ${acceptsOffers ? "ticked" : "unticked"}) says so, with an unsubscribe link`, async () => {
     const buyer = await subscribedBuyer();
     const { reference } = await place({ email: buyer.email, acceptsOffers });
     const { sent, send } = recorder();
@@ -252,30 +248,7 @@ for (const acceptsOffers of [true, false]) {
     await sendPlacedEmails(reference, false, send, undefined);
 
     assert.equal(sent.length, 1);
-    const [accepted] = sent;
-    assert.match(accepted.message.text, /Абонирани сте/);
-    assert.match(accepted.message.html, /Абонирани сте/);
-    assert.equal(
-      readEmailToken(
-        tokenIn(accepted.message.text, "/subscription/unsubscribe"),
-        "unsubscribe",
-      ),
-      buyer.customerId,
-    );
-    assert.equal(
-      accepted.headers?.["List-Unsubscribe-Post"],
-      "List-Unsubscribe=One-Click",
-    );
-    assert.equal(
-      readEmailToken(
-        tokenIn(
-          accepted.headers?.["List-Unsubscribe"] ?? "",
-          "/api/unsubscribe",
-        ),
-        "unsubscribe",
-      ),
-      buyer.customerId,
-    );
+    assertSubscribedEmail(sent[0], buyer.customerId);
   });
 }
 
@@ -325,22 +298,19 @@ test("reading a token with no secret set refuses it instead of throwing", () => 
   }
 });
 
-test("a buyer who unsubscribed and ticks offers again is asked to confirm, and confirming resubscribes", async () => {
+test("a buyer who unsubscribed and ticks offers again is subscribed again by that order", async () => {
   const buyer = await subscribedBuyer();
   await unsubscribe(signEmailToken("unsubscribe", buyer.customerId));
   const again = await place({ email: buyer.email, acceptsOffers: true });
   const { sent, send } = recorder();
 
+  assert.equal(await isSubscribed(buyer.customerId), true);
+
   await sendPlacedEmails(again.reference, false, send, undefined);
 
   assert.deepEqual(
     sent.map(({ idempotencyKey }) => idempotencyKey),
-    [
-      `order-accepted/${again.reference}`,
-      `subscription-confirm/${again.offersId}`,
-    ],
+    [`order-accepted/${again.reference}`],
   );
-  const token = tokenIn(sent[1].message.text, "/subscription/confirm");
-  assert.equal(await confirmSubscription(token), "confirmed");
-  assert.equal(await isSubscribed(buyer.customerId), true);
+  assertSubscribedEmail(sent[0], buyer.customerId);
 });

@@ -50,6 +50,12 @@ visitor and traffic-source counts until GA4 is wired, announced as sample number
 on the page, and deleted when the GA4 read replaces it. Ask before inventing a
 number anywhere else.
 
+The home page's „За нас“ renders only under `next dev` until the owner supplies
+the producers' names and bios: every build, the live site and the e2e suite
+included, leaves it out, and `e2e/about.spec.ts` asserts that. Showing it again
+means dropping the `NODE_ENV` check in `(shop)/page.tsx` and restoring that
+spec's layout tests from git history.
+
 `/admin/todo` lists everything the owner still owes. Product fields are read
 from the database; the rest is `OWNER_TODOS` in `src/lib/owner-todos.ts`, each
 item naming its files and the exact `TODO` text it stands for.
@@ -332,30 +338,39 @@ open the dialog, whose email box starts ticked; only a withdrawal warning in it
 passes `confirmed`, so an ordinary send can never wave a withdrawal through.
 The email after an order edit shows the order as it now stands rather than
 the changes, so a misspelled address it replaced is never mailed to the new
-one. A corrected address also gets the restarted offers confirmation, as an
-email of its own.
+one.
 
-The offers list is double opt-in. A ticked box writes an `OFFERS` consent with
-no `confirmedAt`; only a consent with a `confirmedAt` and no `withdrawnAt` makes
-a buyer a subscriber, which is what `countSubscribers` counts. A buyer who is not
-yet subscribed gets a confirmation email keyed on that consent; one who is gets
-no second confirmation, and their order email says „Абонирани сте“ with an
-unsubscribe link and the RFC 8058 `List-Unsubscribe` headers. Unsubscribing
-withdraws every offers consent of that customer, and a withdrawn consent can
-never be confirmed again. The checkout answers the same whatever address is
-typed, so no page reveals whether an address is subscribed. The links carry an
-HMAC token signed with `EMAIL_TOKEN_SECRET`, naming its purpose so a
-confirmation token cannot unsubscribe. Every host links to `SITE_URL`, so a
-token minted on any other host reaches beepollen.bg naming that host's row ids:
-no other host may share production's secret. Opening `/subscription/confirm` or
+The offers list is single opt-in on purpose: a ticked box writes
+an `OFFERS` consent, and any consent with no `withdrawnAt` makes its customer a
+subscriber at once — there is no confirmation email. `countSubscribers` counts
+each subscriber from their earliest such consent. A subscriber's order email
+and order-edit email — the order that subscribed them included — say
+„Абонирани сте“ with an unsubscribe link and the RFC 8058 `List-Unsubscribe`
+headers, so an address corrected by an edit learns it was subscribed. Unsubscribing
+withdraws every offers consent of that customer; ticking the box on a later
+order subscribes them again. The checkout answers the same whatever address is
+typed, so no page reveals whether an address is subscribed. The link carries an
+HMAC token signed with `EMAIL_TOKEN_SECRET`. Every host links to `SITE_URL`, so
+a token minted on any other host reaches beepollen.bg naming that host's row
+ids: no other host may share production's secret. Opening
 `/subscription/unsubscribe` changes nothing: mail scanners fetch every link, so
 only the page's button, a form post, acts. The one-click header points at
 `POST /api/unsubscribe`, which mail clients call themselves.
 
+Resend reports back to `POST /api/webhooks/resend`, verified by the SDK's
+`webhooks.verify` against `RESEND_WEBHOOK_SECRET`; with that or
+`RESEND_API_KEY` unset every call is refused. Each buyer email's event keeps
+Resend's id, so `email.bounced` marks that event `BOUNCED`; owner emails keep
+none and their bounces match nothing. `email.complained` withdraws every
+offers consent of the customer with that address. A replayed order's
+confirmation never overwrites `BOUNCED` with `SENT`.
+
 `src/lib/email/previews.ts` renders every email with a sample order, so a new
 email joins that list in the same change. `/admin/todo` no longer shows them:
 the owner sees one empty frame and a field for suggestions, since the wording
-is the developer's.
+is the developer's. Its „Изпрати примерите“ sends every one of them, subject
+prefixed „[Пример]“, to the address typed; each press is a new run with its own
+idempotency keys, and spends one send per preview of Resend's free daily quota.
 
 ## Orders
 
@@ -642,9 +657,7 @@ A new order's contact and delivery are edited by `editOrderContact` in
 `original`; the server answers `stale` when the order no longer holds them, and
 the write matches them as read. The email lives on `Customer`, so a corrected
 one moves the order to the customer with that address, writes only the fields
-that changed onto it, and deletes the old customer once it has no orders. The
-order's offers consent is recreated unconfirmed: its confirmation token names
-the consent, and the misspelled address may already have confirmed it.
+that changed onto it, and deletes the old customer once it has no orders.
 Delivery is repriced only when the method changes, and an unchanged office is
 never re-read, so a phone fix can neither reprice an order nor fail on an
 office `econt:sync` dropped. The edit's `OrderEvent` keeps the old and new
@@ -861,6 +874,12 @@ file open after `$disconnect`, so renaming the checked copy into place fails
 with `EBUSY`. Retention in `src/lib/backup-retention.ts` counts periods that
 have a backup, as restic's `--keep-daily/weekly/monthly` do, rather
 than calendar windows, so backups that stopped are never all pruned at once.
+
+The off-host copy is uploaded from the same script, inside the `migrate`
+container, because the backups live in its volume and the host has neither the
+file nor `jq`. `src/lib/b2-upload.ts` speaks B2's native API v3 with `fetch`:
+v3's authorization names the bucket a restricted key is bound to, which is how
+the upload finds it, and an unrestricted key is refused rather than guessed at.
 
 The seed runs through `tsx`, not `node`. Node strips the types fine, but the
 generated client imports `./enums` and `./internal/class` without extensions and

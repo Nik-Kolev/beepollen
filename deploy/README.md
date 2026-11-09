@@ -136,15 +136,16 @@ which reads as an outage. Security headers come from
 
 ## 4. The app
 
-`~/beepollen` (mode 700) holds `compose.prod.yaml`, `deploy.sh` and
-`backup.sh` from this folder and `.env` (mode 600, written under `umask 077`).
-Copy the first three from `main`:
+`~/beepollen` (mode 700) holds `compose.prod.yaml`, `deploy.sh`,
+`backup.sh` and `disk-check.sh` from this folder and `.env` (mode 600, written
+under `umask 077`). Copy the first four from `main`:
 
 ```bash
 ssh <host> 'install -d -m 700 ~/beepollen'
 git show main:compose.prod.yaml | ssh <host> 'cat > ~/beepollen/compose.prod.yaml'
 git show main:deploy/deploy.sh | ssh <host> 'cat > ~/beepollen/deploy.sh && chmod 700 ~/beepollen/deploy.sh'
 git show main:deploy/backup.sh | ssh <host> 'cat > ~/beepollen/backup.sh && chmod 700 ~/beepollen/backup.sh'
+git show main:deploy/disk-check.sh | ssh <host> 'cat > ~/beepollen/disk-check.sh && chmod 700 ~/beepollen/disk-check.sh'
 ```
 
 `.env` holds the variables the README lists. `AUTH_SECRET`,
@@ -219,5 +220,35 @@ nothing is pinged.
 
 Read the runs with `sudo journalctl -t beepollen-backup`. A day keeps one copy,
 the latest, so a deploy between 00:00 and 03:00 loses its pre-migration copy to
-the nightly one: deploy after 03:00. The copies stay in the volume beside the
-database, on the same disk, until an off-host upload exists.
+the nightly one: deploy after 03:00.
+
+With `B2_KEY_ID` and `B2_APPLICATION_KEY` in `.env`, each new copy — the
+nightly one and the one `deploy.sh` takes before migrating — is also uploaded to
+Backblaze B2 as `beepollen-<day>-<UTC time>Z.db`, so a deploy's copy never
+becomes a new version of that night's file, which the bucket's lifecycle would
+delete. Both scripts pass only those two variables into the container. The key
+must be restricted to the backup bucket. A failed upload keeps the local copy
+and exits 2: the nightly run pings Healthchecks with the failure, and a deploy
+prints a warning and carries on. A `B2_KEY_ID` or `B2_APPLICATION_KEY` line the
+scripts cannot read fails the nightly run too: they take `NAME=value` or
+`NAME="value"`, nothing else. Without either variable nothing leaves the host
+and the journal says the upload was skipped.
+
+## 7. Disk check
+
+A full disk stops the database, the backups and the logs at once, while the
+site can still answer UptimeRobot. `disk-check.sh` reads how full `/` is, in
+space and in inodes — Docker's many small layer files can use up the inodes
+first — and pings the Healthchecks.io check whose URL is
+`HEALTHCHECK_DISK_URL` in `.env`: a success while the larger of the two is up
+to 80%, `/fail` above it or when `df` gives no number for space, with both
+percentages as the ping's body. Without the variable it only prints the line.
+It runs every hour from `deploy`'s crontab:
+
+```bash
+( crontab -l 2>/dev/null | grep -v beepollen-disk; echo '0 * * * * /home/deploy/beepollen/disk-check.sh 2>&1 | logger -t beepollen-disk' ) | crontab -
+```
+
+The check's schedule is the cron line's — `0 * * * *`, Europe/Sofia, one
+hour's grace — so a dead cron alerts as well as a full disk. Read the runs with
+`sudo journalctl -t beepollen-disk`.

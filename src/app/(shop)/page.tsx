@@ -65,7 +65,7 @@ export default async function Home() {
           </div>
         </Container>
       </section>
-      <AboutProducers />
+      {process.env.NODE_ENV === "development" && <AboutProducers />}
     </>
   );
 }

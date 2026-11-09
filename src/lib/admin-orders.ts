@@ -375,6 +375,7 @@ export const EMAIL_STATUS_LABEL: Record<EmailStatus, string> = {
   SENT: "имейл до купувача изпратен",
   FAILED: "имейлът до купувача не тръгна",
   SKIPPED: "имейл не е пратен — изпращането не е настроено",
+  BOUNCED: "имейлът до купувача не е доставен",
 };
 
 export const ORDERS_STEP = 5;
@@ -506,7 +507,6 @@ const ORDER_DETAIL = {
       kind: true,
       wording: true,
       ipAddress: true,
-      confirmedAt: true,
       withdrawnAt: true,
       createdAt: true,
     },

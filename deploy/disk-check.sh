@@ -3,6 +3,10 @@ set -u
 
 cd "$(dirname "$0")" || exit 1
 
+env_value() {
+  tr -d '\r' <.env | sed -n "s/^$1=\"\{0,1\}\([^\"]*\)\"\{0,1\}\$/\1/p"
+}
+
 limit=80
 read -r blocks inodes <<<"$(df --output=pcent,ipcent / | tail -n 1 | tr -dc '0-9 -')"
 case $blocks in *[!0-9]* | '') blocks= ;; esac
@@ -22,7 +26,7 @@ if [ -z "$used" ] || [ "$used" -gt "$limit" ]; then
   status=1
 fi
 
-url=$(sed -n 's/^HEALTHCHECK_DISK_URL="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p' .env)
+url=$(env_value HEALTHCHECK_DISK_URL)
 if [ -n "$url" ]; then
   target=$url
   [ "$status" -eq 0 ] || target="$url/fail"

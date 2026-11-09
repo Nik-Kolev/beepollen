@@ -50,6 +50,12 @@ visitor and traffic-source counts until GA4 is wired, announced as sample number
 on the page, and deleted when the GA4 read replaces it. Ask before inventing a
 number anywhere else.
 
+The home page's „За нас“ renders only under `next dev` until the owner supplies
+the producers' names and bios: every build, the live site and the e2e suite
+included, leaves it out, and `e2e/about.spec.ts` asserts that. Showing it again
+means dropping the `NODE_ENV` check in `(shop)/page.tsx` and restoring that
+spec's layout tests from git history.
+
 `/admin/todo` lists everything the owner still owes. Product fields are read
 from the database; the rest is `OWNER_TODOS` in `src/lib/owner-todos.ts`, each
 item naming its files and the exact `TODO` text it stands for.

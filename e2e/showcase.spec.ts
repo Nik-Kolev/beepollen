@@ -1,9 +1,11 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
+import { OWNER_PHONE } from "@/lib/site";
+
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
 
-const NOTICE = "Сайтът е в разработка — поръчки все още не се приемат.";
+const NOTICE = `Сайтът е в разработка — дотогава поръчвайте директно на телефон ${OWNER_PHONE.display}.`;
 
 function banner(page: Page) {
   return page.getByRole("complementary", { name: "Състояние на сайта" });
@@ -39,6 +41,14 @@ for (const path of [
     expect(notice.y + notice.height).toBeLessThanOrEqual(header.y);
   });
 }
+
+test("the banner's phone number dials the owner", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(
+    banner(page).getByRole("link", { name: OWNER_PHONE.display, exact: true }),
+  ).toHaveAttribute("href", OWNER_PHONE.href);
+});
 
 test("the admin has no work-in-progress banner", async ({ page, context }) => {
   await signInAs(context, TEST_ADMIN_EMAIL);

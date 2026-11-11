@@ -212,9 +212,9 @@ branch changes: `feature/` (new user-facing capability), `fix/` (a bug in
 existing behaviour), `chore/` (tooling, config, dependencies, CI, docs — nothing
 the app does changes), `refactor/` (structure changes, behaviour identical).
 
-`develop` is the default branch and the base for every PR. `main` is promoted
-from `develop` once a meaningful chunk of work is finished, and is never the
-target of a feature PR.
+`develop` is the default branch and the base for every PR but the promotion.
+`main` is promoted from `develop`, through a PR from `develop` itself, once a
+meaningful chunk of work is finished, and is never the target of a feature PR.
 
 Every PR runs `.github/workflows/ci.yml`. The `ci` job installs, then runs the
 `format:check`, `lint`, `typecheck`, `test:unit`, `db:setup` and `build` npm
@@ -241,11 +241,16 @@ merge. The workflow file says what is checked; the branch ruleset is what makes 
 mandatory, and it lives in GitHub's settings so a PR cannot remove the rule
 judging it.
 
-PRs land by **rebase merge**, the only method the ruleset allows. Commits are
-replayed onto `develop` with new hashes, so each one stays independently
-revertable and no merge commits appear. A branch is dead once its PR merges — its
-commits no longer exist under those hashes, so pull `develop` and branch again
-rather than reusing it.
+PRs into `develop` land by **rebase merge**. Commits are replayed onto
+`develop` with new hashes, so each one stays independently revertable and no
+merge commits appear. A branch is dead once its PR merges — its commits no
+longer exist under those hashes, so pull `develop` and branch again rather than
+reusing it.
+
+The promotion PR, `develop` into `main`, lands by **merge commit** — the
+ruleset allows both methods on both branches, so nothing stops the wrong one.
+A rebase would give `main` copies of `develop`'s commits under new hashes, and
+the next promotion then conflicts with them.
 
 **Installing a package is not a unit of work.** A dependency carries no
 revertable meaning on its own, so it belongs in the branch and commit of whatever

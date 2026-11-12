@@ -158,6 +158,40 @@ test("credentials are read when both B2 variables are set, skipped when neither 
   }
 });
 
+function untilAborted(init?: RequestInit) {
+  return new Promise<Response>((_, reject) => {
+    const openSocket = setTimeout(() => {}, 5_000);
+    init?.signal?.addEventListener("abort", () => {
+      clearTimeout(openSocket);
+      reject(init.signal?.reason);
+    });
+  });
+}
+
+test("a B2 call that never answers is abandoned at its timeout, whichever step hangs", async () => {
+  const { fetchImpl } = fakeB2();
+
+  for (const hanging of [
+    B2_AUTHORIZE_URL,
+    `${API_URL}/b2api/v3/b2_get_upload_url`,
+    UPLOAD_URL,
+  ]) {
+    const silent = ((input: string | URL | Request, init?: RequestInit) =>
+      String(input) === hanging
+        ? untilAborted(init)
+        : fetchImpl(input, init)) as typeof fetch;
+
+    await assert.rejects(
+      uploadToB2("beepollen-2026-11-07.db", BYTES, CREDENTIALS, silent, {
+        requestMs: 20,
+        uploadMs: 20,
+      }),
+      { name: "TimeoutError" },
+      hanging,
+    );
+  }
+});
+
 test("every upload gets its own name, so a deploy's copy never replaces that night's in the bucket", () => {
   const night = uploadName(
     "beepollen-2026-11-07.db",

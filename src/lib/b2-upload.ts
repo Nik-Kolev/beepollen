@@ -7,6 +7,8 @@ export const B2_AUTHORIZE_URL =
 
 export const UPLOAD_FAILED_EXIT_CODE = 2;
 
+export const B2_TIMEOUTS = { requestMs: 30_000, uploadMs: 5 * 60_000 };
+
 export type B2Credentials = { keyId: string; applicationKey: string };
 
 const authorization = z.object({
@@ -61,6 +63,7 @@ export async function uploadToB2(
   bytes: Buffer,
   { keyId, applicationKey }: B2Credentials,
   fetchImpl: typeof fetch = fetch,
+  { requestMs, uploadMs } = B2_TIMEOUTS,
 ): Promise<string> {
   const basic = Buffer.from(`${keyId}:${applicationKey}`).toString("base64");
   const account = await call(
@@ -68,6 +71,7 @@ export async function uploadToB2(
     authorization,
     await fetchImpl(B2_AUTHORIZE_URL, {
       headers: { Authorization: `Basic ${basic}` },
+      signal: AbortSignal.timeout(requestMs),
     }),
   );
 
@@ -86,6 +90,7 @@ export async function uploadToB2(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ bucketId }),
+      signal: AbortSignal.timeout(requestMs),
     }),
   );
 
@@ -101,6 +106,7 @@ export async function uploadToB2(
         "X-Bz-Content-Sha1": createHash("sha1").update(bytes).digest("hex"),
       },
       body: new Uint8Array(bytes),
+      signal: AbortSignal.timeout(uploadMs),
     }),
   );
   return file.fileId;

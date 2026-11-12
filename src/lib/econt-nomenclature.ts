@@ -96,11 +96,17 @@ export function parseEcontOffices(payload: unknown): EcontOfficeRecord[] {
   return sortOffices(offices);
 }
 
-export async function fetchEcontOffices(): Promise<EcontOfficeRecord[]> {
-  const response = await fetch(OFFICES_URL, {
+export const ECONT_TIMEOUT_MS = 60_000;
+
+export async function fetchEcontOffices(
+  fetchImpl: typeof fetch = fetch,
+  timeoutMs = ECONT_TIMEOUT_MS,
+): Promise<EcontOfficeRecord[]> {
+  const response = await fetchImpl(OFFICES_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", "User-Agent": USER_AGENT },
     body: JSON.stringify({ countryCode: "BGR" }),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   if (!response.ok) {

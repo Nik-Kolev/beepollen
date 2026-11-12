@@ -3,6 +3,7 @@ import { test } from "node:test";
 
 import {
   businessHours,
+  fetchEcontOffices,
   parseEcontOffices,
   streetLine,
 } from "@/lib/econt-nomenclature";
@@ -124,4 +125,17 @@ test("reads a round-the-clock window as Денонощно", () => {
     "Денонощно",
   );
   assert.equal(businessHours(OPENS_AT_NINE, CLOSES_AT_SIX), "09:00 – 18:00");
+});
+
+test("an office request Econt never answers is abandoned at its timeout", async () => {
+  const silent = ((_input: string | URL | Request, init?: RequestInit) =>
+    new Promise<Response>((_, reject) => {
+      const openSocket = setTimeout(() => {}, 5_000);
+      init?.signal?.addEventListener("abort", () => {
+        clearTimeout(openSocket);
+        reject(init.signal?.reason);
+      });
+    })) as typeof fetch;
+
+  await assert.rejects(fetchEcontOffices(silent, 20), { name: "TimeoutError" });
 });

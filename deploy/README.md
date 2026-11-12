@@ -131,7 +131,10 @@ Auth.js cookies belong to the host that set them. `X-Real-IP` and
 `X-Forwarded-For` are overwritten with the peer's address, so a client cannot
 hand the order rate limiter a fresh IP. A client IP over 10 requests a
 second, beyond a burst of 20, is answered 429 rather than Nginx's default 503,
-which reads as an outage. Security headers come from
+which reads as an outage. That limit counts whole addresses: if the droplet
+is ever given an IPv6 address, one client holds a /64 of them and each gets
+its own allowance, so key the zone on the /64 before adding an AAAA record.
+Security headers come from
 `next.config.ts`, not from here, so they are not sent twice.
 
 ## 4. The app

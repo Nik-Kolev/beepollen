@@ -487,7 +487,10 @@ build-generated action id.
 
 The rate limiter is keyed on `x-real-ip`, falling back to the **last**
 `x-forwarded-for` hop. The first hop is whatever the caller wrote, and a fresh
-value per request would hand itself a fresh bucket.
+value per request would hand itself a fresh bucket. `rateLimitSubject` turns
+the address into the bucket's key: an IPv6 address counts as its /64, since one
+client holds the whole block, and an IPv4-mapped one as its IPv4. `Consent`
+still stores the address as it arrived.
 
 The catalogue the page hands the browser is the one the build saw, since the
 route is prerendered. A product unpublished, sold out or zeroed after that build

@@ -43,6 +43,30 @@ test("does not count an order from a different IP address against another addres
   assert.equal(stillAllowed.ok, true);
 });
 
+test("counts every IPv6 address of one /64 against the same limit, and keeps each consent's own address", async () => {
+  resetRateLimits();
+  const block = "2001:db8:12:3400";
+
+  for (let i = 0; i < ORDER_RATE_LIMIT.limit; i++) {
+    const result = await placeOrder(validCheckoutInput(), `${block}::${i + 1}`);
+    assert.equal(result.ok, true);
+  }
+
+  const blocked = await placeOrder(validCheckoutInput(), `${block}:ffff::1`);
+  assert.deepEqual(blocked, { ok: false, code: "REJECTED" });
+
+  const neighbour = await placeOrder(
+    validCheckoutInput(),
+    "2001:db8:12:3401::1",
+  );
+  assert.equal(neighbour.ok, true);
+
+  const consent = await prisma.consent.findFirst({
+    where: { kind: "TERMS", ipAddress: `${block}::3` },
+  });
+  assert.notEqual(consent, null);
+});
+
 test("does not count a submission refused by validation against the address's limit", async () => {
   resetRateLimits();
   const ip = "198.51.100.30";

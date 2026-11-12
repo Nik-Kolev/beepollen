@@ -7,7 +7,7 @@ import {
   invalidFields,
 } from "@/lib/orders";
 import prisma from "@/lib/prisma";
-import { takeToken } from "@/lib/rate-limit";
+import { rateLimitSubject, takeToken } from "@/lib/rate-limit";
 
 export const WITHDRAWAL_RATE_LIMIT = { limit: 10, windowMs: 5 * 60 * 1000 };
 
@@ -57,7 +57,10 @@ export async function withdrawFromOrder(
 
   if (
     ipAddress &&
-    !takeToken(`withdrawal:${ipAddress}`, WITHDRAWAL_RATE_LIMIT)
+    !takeToken(
+      `withdrawal:${rateLimitSubject(ipAddress)}`,
+      WITHDRAWAL_RATE_LIMIT,
+    )
   ) {
     return { ok: false, code: "REJECTED" };
   }

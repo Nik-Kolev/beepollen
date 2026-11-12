@@ -11,7 +11,7 @@ import {
 import { findEcontOffice } from "@/lib/delivery-offices";
 import { orderingOpen } from "@/lib/ordering";
 import prisma from "@/lib/prisma";
-import { takeToken } from "@/lib/rate-limit";
+import { rateLimitSubject, takeToken } from "@/lib/rate-limit";
 
 export const ORDER_RATE_LIMIT = { limit: 10, windowMs: 5 * 60 * 1000 };
 
@@ -160,7 +160,10 @@ export async function placeOrder(
 
   if (input.website) return { ok: false, code: "REJECTED" };
 
-  if (ipAddress && !takeToken(`order:${ipAddress}`, ORDER_RATE_LIMIT)) {
+  if (
+    ipAddress &&
+    !takeToken(`order:${rateLimitSubject(ipAddress)}`, ORDER_RATE_LIMIT)
+  ) {
     return { ok: false, code: "REJECTED" };
   }
 

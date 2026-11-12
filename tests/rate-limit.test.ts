@@ -1,10 +1,57 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 
-import { MAX_KEYS, resetRateLimits, takeToken } from "@/lib/rate-limit";
+import {
+  MAX_KEYS,
+  rateLimitSubject,
+  resetRateLimits,
+  takeToken,
+} from "@/lib/rate-limit";
 
 beforeEach(() => {
   resetRateLimits();
+});
+
+test("an IPv4 address is its own subject", () => {
+  assert.equal(rateLimitSubject("198.51.100.10"), "198.51.100.10");
+  assert.notEqual(
+    rateLimitSubject("198.51.100.10"),
+    rateLimitSubject("198.51.100.11"),
+  );
+});
+
+test("every IPv6 address in one /64 is the same subject, however it is written", () => {
+  const subject = "2001:db8:12:3400::/64";
+
+  for (const address of [
+    "2001:db8:12:3400::1",
+    "2001:0db8:0012:3400:0000:0000:0000:0001",
+    "2001:DB8:12:3400:ffff:ffff:ffff:ffff",
+    "2001:db8:12:3400:a:b:c:d",
+    "2001:db8:12:3400::192.0.2.1",
+    "2001:db8:12:3400::1%eth0",
+  ]) {
+    assert.equal(rateLimitSubject(address), subject, address);
+  }
+});
+
+test("IPv6 addresses in neighbouring /64 blocks are different subjects", () => {
+  assert.equal(
+    rateLimitSubject("2001:db8:12:3401::1"),
+    "2001:db8:12:3401::/64",
+  );
+  assert.equal(rateLimitSubject("2001:db8::1"), "2001:db8:0:0::/64");
+  assert.equal(rateLimitSubject("::1"), "0:0:0:0::/64");
+});
+
+test("an IPv4 address written as IPv6 is counted with the plain IPv4 address", () => {
+  assert.equal(rateLimitSubject("::ffff:198.51.100.10"), "198.51.100.10");
+  assert.equal(rateLimitSubject("::ffff:c633:640a"), "198.51.100.10");
+});
+
+test("a value that is no address at all is passed through as its own subject", () => {
+  assert.equal(rateLimitSubject("unknown"), "unknown");
+  assert.equal(rateLimitSubject("2001:db8::1::2"), "2001:db8::1::2");
 });
 
 test("allows up to the configured limit of tokens inside one window and blocks the next", () => {

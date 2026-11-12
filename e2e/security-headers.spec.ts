@@ -48,6 +48,7 @@ test("every response carries the security headers", async ({ request }) => {
     expect(headers["permissions-policy"]).toBe(
       "camera=(), microphone=(), geolocation=(), payment=()",
     );
+    expect(headers["x-powered-by"]).toBeUndefined();
   }
 });
 

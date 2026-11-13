@@ -109,12 +109,11 @@ test("an unsent order whose office Econt no longer lists says so on its card and
 
   await card.getByRole("button", { name: "Редакция" }).click();
   const form = card.getByRole("form", { name: `Редакция на ${reference}` });
+  const noteText = `Сегашният офис — ${SMALL_CITY}, ${SMALL_CITY_OFFICE_A.street} — вече не е в списъка на Еконт. Ако не изберете друг, поръчката остава с него.`;
+  await expect(form.getByText(noteText, { exact: true })).toBeVisible();
   await expect(
-    form.getByText(
-      `Сегашният офис — ${SMALL_CITY}, ${SMALL_CITY_OFFICE_A.street} — вече не е в списъка на Еконт. Ако не изберете друг, поръчката остава с него.`,
-      { exact: true },
-    ),
-  ).toBeVisible();
+    form.getByRole("button", { name: `Промени града ${SMALL_CITY}` }),
+  ).toHaveAccessibleDescription(noteText);
   await expectNoAxeViolations(page);
 
   await form.getByLabel("Телефон", { exact: true }).fill("0899 111 222");
@@ -150,13 +149,12 @@ test("an order whose whole city is gone starts its office choice from the city, 
 
   await card.getByRole("button", { name: "Редакция" }).click();
   const form = card.getByRole("form", { name: `Редакция на ${reference}` });
-  const note = form.getByText(
-    `Сегашният офис — ${goneCity}, ${SMALL_CITY_OFFICE_A.street} — вече не е в списъка на Еконт. Ако не изберете друг, поръчката остава с него.`,
-    { exact: true },
-  );
+  const noteText = `Сегашният офис — ${goneCity}, ${SMALL_CITY_OFFICE_A.street} — вече не е в списъка на Еконт. Ако не изберете друг, поръчката остава с него.`;
+  const note = form.getByText(noteText, { exact: true });
   await expect(note).toBeVisible();
   const city = form.getByLabel("Град", { exact: true });
   await expect(city).toHaveValue("");
+  await expect(city).toHaveAccessibleDescription(noteText);
   expect(await form.getByText("Няма офис с това име.").count()).toBe(0);
 
   await city.fill(SMALL_CITY);

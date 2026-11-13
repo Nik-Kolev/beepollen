@@ -65,11 +65,13 @@ function ChangeButton({
   label,
   text,
   onClick,
+  describedBy,
 }: {
   ref?: Ref<HTMLButtonElement>;
   label: string;
   text: string;
   onClick: () => void;
+  describedBy?: string;
 }) {
   return (
     <button
@@ -77,6 +79,7 @@ function ChangeButton({
       type="button"
       onClick={onClick}
       aria-label={label}
+      aria-describedby={describedBy}
       className="min-h-11 shrink-0 rounded-full px-3 text-base font-medium text-action underline transition-colors hover:bg-ground"
     >
       {text}
@@ -91,6 +94,7 @@ export function OfficeCityPicker({
   initialOfficeCode = null,
   onSelect,
   onCityChange,
+  describedBy,
 }: {
   offices: EcontOffice[];
   error?: { id: string; message: string } | null;
@@ -98,6 +102,7 @@ export function OfficeCityPicker({
   initialOfficeCode?: string | null;
   onSelect?: (office: EcontOffice | null) => void;
   onCityChange?: (city: string | null) => void;
+  describedBy?: string;
 }) {
   const [cityQuery, setCityQuery] = useState("");
   const [officeQuery, setOfficeQuery] = useState("");
@@ -302,6 +307,11 @@ export function OfficeCityPicker({
       : {};
   }
 
+  const cityDescription =
+    [describedBy, errorOn === "city" ? error?.id : undefined]
+      .filter(Boolean)
+      .join(" ") || undefined;
+
   function errorLine(target: ErrorTarget) {
     return error && errorOn === target ? (
       <p id={error.id} className={INPUT_ERROR_TEXT}>
@@ -324,6 +334,7 @@ export function OfficeCityPicker({
                 label={`Промени града ${city}`}
                 text="Промени"
                 onClick={clearCity}
+                describedBy={describedBy}
               />
             </div>
           ) : (
@@ -363,6 +374,7 @@ export function OfficeCityPicker({
                   autoComplete="off"
                   className={errorOn === "city" ? FIELD_INVALID : FIELD}
                   {...errorProps("city")}
+                  aria-describedby={cityDescription}
                 />
 
                 <ul

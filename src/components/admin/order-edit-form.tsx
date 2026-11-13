@@ -140,6 +140,7 @@ export function OrderEditForm({
   const focusRow = useRef<number | null>(null);
   const router = useRouter();
   const id = useId();
+  const closedOfficeNoteId = `${id}-closed-office`;
   const titleId = `${id}-title`;
   const textId = `${id}-text`;
 
@@ -573,7 +574,10 @@ export function OrderEditForm({
         officeClosed &&
         openedFrom.office &&
         openedFrom.officeCity && (
-          <p className="text-error text-sm font-semibold">
+          <p
+            id={closedOfficeNoteId}
+            className="text-error text-sm font-semibold"
+          >
             Сегашният офис —{" "}
             {officeLabel(openedFrom.office.name, openedFrom.officeCity)},{" "}
             {openedFrom.office.street} — вече не е в списъка на Еконт. Ако не
@@ -585,6 +589,11 @@ export function OrderEditForm({
         (offices ? (
           <OfficeCityPicker
             offices={offices}
+            describedBy={
+              officeClosed && openedFrom.office && openedFrom.officeCity
+                ? closedOfficeNoteId
+                : undefined
+            }
             initialCity={
               answers.officeCode && cityListed ? openedFrom.officeCity : null
             }

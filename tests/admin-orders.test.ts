@@ -510,6 +510,27 @@ test("hiding closed orders lists only the open ones, newest first", async () => 
   );
 });
 
+test("the withdrawal filter lists every order the buyer withdrew from, whatever its status, newest first", async () => {
+  const before = (await countOrdersByView()).withdrawn;
+  const fresh = await placedIn("new");
+  const paid = await placedIn("paid");
+  const kept = await placedIn("new");
+  await prisma.order.updateMany({
+    where: { reference: { in: [fresh, paid] } },
+    data: { withdrawnAt: new Date() },
+  });
+
+  const listed = (await listOrders("withdrawn", ORDERS_MAX)).map(
+    (order) => order.reference,
+  );
+  assert.deepEqual(
+    listed.filter((reference) => [fresh, paid, kept].includes(reference)),
+    [paid, fresh],
+  );
+  assert.equal((await countOrdersByView()).withdrawn, before + 2);
+  assert.equal(parseOrderFilter("withdrawn"), "withdrawn");
+});
+
 test("the closed-orders switch applies to the full list only", () => {
   assert.equal(orderView("all", true), "open");
   assert.equal(orderView("all", false), "all");

@@ -141,6 +141,27 @@ test("a withdrawal is refused for a mismatched email, then confirmed, repeated w
       .getByRole("listitem")
       .filter({ hasText: "Заявен отказ от купувача" }),
   ).toContainText("имейл не е пратен — изпращането не е настроено");
+
+  const kept = placeEcontOrder(
+    `withdraw-kept-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  await page.reload();
+  await page
+    .getByRole("navigation", { name: "Филтър на поръчките" })
+    .getByRole("link", { name: /^Заявен отказ/ })
+    .click();
+  await expect(page).toHaveURL("/admin/orders?filter=withdrawn");
+  await expect(card).toBeVisible();
+  expect(
+    await page.getByRole("heading", { name: kept, exact: true }).count(),
+  ).toBe(0);
+  expect(
+    await page
+      .getByRole("article")
+      .filter({ hasNot: page.getByText(/^Заявен отказ · /) })
+      .count(),
+  ).toBe(0);
 });
 
 test("a withdrawal that lands while the admin is open stops the hand-over until the owner confirms it", async ({

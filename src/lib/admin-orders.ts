@@ -278,6 +278,7 @@ export const ORDER_FILTERS = [
   "returned",
   "paid",
   "cancelled",
+  "withdrawn",
 ] as const;
 export type OrderFilter = (typeof ORDER_FILTERS)[number];
 export type OrderView = OrderFilter | "open";
@@ -291,6 +292,7 @@ export const ORDER_FILTER_LABEL: Record<OrderFilter, string> = {
   returned: "За прибиране",
   paid: "Платени",
   cancelled: "Отказани",
+  withdrawn: "Заявен отказ",
 };
 
 export function orderView(filter: OrderFilter, hideClosed: boolean): OrderView {
@@ -327,6 +329,7 @@ const ORDER_VIEW_WHERE: Record<OrderView, Prisma.OrderWhereInput> = {
     cancelledAt: { not: null },
     OR: [{ sentAt: null }, { collectedAt: { not: null } }],
   },
+  withdrawn: { withdrawnAt: { not: null } },
   all: {},
 };
 

@@ -8,6 +8,7 @@ import type {
   OrderEventKind,
 } from "@/generated/prisma/enums";
 import { DeliveryMethod, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import { contactEmailSchema, contactPhoneSchema } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 
 export const ORDER_STATUSES = [
@@ -418,6 +419,59 @@ export function listOrders(view: OrderView = "all", shown = ORDERS_STEP) {
     take: Math.min(shown, ORDERS_MAX),
     select: ORDER_DETAIL,
   });
+}
+
+export type OrderSearch = {
+  kind: "reference" | "phone" | "email" | "unknown";
+  value: string;
+};
+
+export const ORDER_SEARCH_MAX_LENGTH = 200;
+
+export function parseOrderSearch(raw: unknown): OrderSearch | null {
+  if (typeof raw !== "string") return null;
+
+  const value = raw.trim();
+  if (!value) return null;
+  if (value.length > ORDER_SEARCH_MAX_LENGTH) return { kind: "unknown", value };
+
+  const reference = value.replace(/^[ВвБбBb][РрПпPp]/, "BP");
+  if (/^BP\d{7,}$/.test(reference)) {
+    return { kind: "reference", value: reference };
+  }
+
+  const phone = contactPhoneSchema.safeParse(value);
+  if (phone.success) return { kind: "phone", value: phone.data };
+
+  const email = contactEmailSchema.safeParse(value);
+  if (email.success) return { kind: "email", value: email.data };
+
+  return { kind: "unknown", value };
+}
+
+const SEARCH_WHERE: Record<
+  Exclude<OrderSearch["kind"], "unknown">,
+  (value: string) => Prisma.OrderWhereInput
+> = {
+  reference: (value) => ({ reference: value }),
+  phone: (value) => ({ contactPhone: value }),
+  email: (value) => ({ customer: { email: value } }),
+};
+
+export async function searchOrders(search: OrderSearch) {
+  if (search.kind === "unknown") return { orders: [], truncated: false };
+
+  const found = await prisma.order.findMany({
+    where: SEARCH_WHERE[search.kind](search.value),
+    orderBy: { id: "desc" },
+    take: ORDERS_MAX + 1,
+    select: ORDER_DETAIL,
+  });
+
+  return {
+    orders: found.slice(0, ORDERS_MAX),
+    truncated: found.length > ORDERS_MAX,
+  };
 }
 
 export const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;

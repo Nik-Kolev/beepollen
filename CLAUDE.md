@@ -666,7 +666,9 @@ An unknown `/products/[slug]` returns `notFoundMetadata` from
 on the 404, and `{}` falls back to the root title. Orders have no page of their
 own; their details expand in place on `/admin/orders`, which lists at most
 `ORDERS_MAX`: past roughly a thousand orders the nested items, consents and events queries
-exceed SQLite's bound-parameter limit.
+exceed SQLite's bound-parameter limit. An older order is reached through the
+search, `?q=`, which `parseOrderSearch` reads as an exact reference, a phone
+normalised as checkout stores it, or an email, and which ignores the filters.
 
 An order's state is four nullable timestamps — `sentAt`, `paidAt`,
 `cancelledAt`, `collectedAt` — and its status is derived from them by

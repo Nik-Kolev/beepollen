@@ -27,7 +27,9 @@ import {
   orderView,
   parseHideClosed,
   parseOrderFilter,
+  parseOrderSearch,
   parseOrderShown,
+  searchOrders,
   undoTarget,
 } from "@/lib/admin-orders";
 import { CONSENT_WORDING } from "@/lib/consent";
@@ -819,6 +821,74 @@ test("a Popovo order has no office to lose", async () => {
   const reference = await placedIn("new", LOCAL);
 
   assert.equal((await closedAmong(reference)).size, 0);
+});
+
+test("a search reads an order number, a phone however it is written, or an email", () => {
+  for (const reference of [
+    " bp1311261 ",
+    "ВР1311261",
+    "вр1311261",
+    "бп1311261",
+  ]) {
+    assert.deepEqual(
+      parseOrderSearch(reference),
+      { kind: "reference", value: "BP1311261" },
+      reference,
+    );
+  }
+  for (const phone of ["0888 123 456", "+359888123456", "00359 888-123-456"]) {
+    assert.deepEqual(
+      parseOrderSearch(phone),
+      { kind: "phone", value: "+359888123456" },
+      phone,
+    );
+  }
+  assert.deepEqual(parseOrderSearch(" Ivan@Example.com "), {
+    kind: "email",
+    value: "ivan@example.com",
+  });
+  assert.deepEqual(parseOrderSearch("Иван"), {
+    kind: "unknown",
+    value: "Иван",
+  });
+  assert.equal(
+    parseOrderSearch(`BP1311261${" ".repeat(250)}x`)?.kind,
+    "unknown",
+  );
+  assert.equal(parseOrderSearch("   "), null);
+  assert.equal(parseOrderSearch(undefined), null);
+  assert.equal(parseOrderSearch(["BP1311261"]), null);
+});
+
+test("a search finds an order by its number, every order of a phone or an email, newest first, and nothing else", async () => {
+  const email = `search-${randomUUID()}@example.com`;
+  const phone = `0887${String(Date.now()).slice(-6)}`;
+  const first = await place({ email, phone });
+  const second = await place({ email: email.toUpperCase(), phone });
+  await place();
+
+  const byReference = await searchOrders(
+    parseOrderSearch(first.reference.toLowerCase())!,
+  );
+  assert.deepEqual(
+    byReference.orders.map((order) => order.reference),
+    [first.reference],
+  );
+
+  for (const query of [phone, `+359 ${phone.slice(1)}`, email]) {
+    const found = await searchOrders(parseOrderSearch(query)!);
+    assert.deepEqual(
+      found.orders.map((order) => order.reference),
+      [second.reference, first.reference],
+      query,
+    );
+    assert.equal(found.truncated, false, query);
+  }
+
+  assert.deepEqual(await searchOrders(parseOrderSearch("Иван")!), {
+    orders: [],
+    truncated: false,
+  });
 });
 
 test("the Viber link opens a chat with the buyer's stored number", () => {

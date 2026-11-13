@@ -519,3 +519,90 @@ test("two orders from one email within a day each name the other as a possible d
   await expect(flag(alone)).toHaveCount(0);
   await expectNoAxeViolations(page);
 });
+
+test("a search by phone finds the order, survives a reload, and clearing it brings back the list", async ({
+  page,
+  context,
+}) => {
+  const phone = `0899${randomInt(100_000, 1_000_000)}`;
+  const reference = placeEcontOrder(
+    `admin.search-${randomUUID()}@example.com`,
+    phone,
+  );
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders");
+
+  const search = page.getByRole("searchbox", {
+    name: "Търсене по номер, телефон или имейл",
+  });
+  const cards = page
+    .getByRole("region", { name: "Поръчки" })
+    .getByRole("article");
+  const found = page.getByText("Намерени: 1.", { exact: false });
+
+  await search.fill(`+359 ${phone.slice(1, 4)} ${phone.slice(4)}`);
+  await search.press("Enter");
+
+  await expect(page).toHaveURL(/[?&]q=/);
+  await expect(found).toBeVisible();
+  await expect(cards).toHaveCount(1);
+  await expect(
+    cards.getByRole("heading", { name: reference, exact: true }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.reload();
+  await expect(cards).toHaveCount(1);
+  await expect(search).toHaveValue(`+359${phone.slice(1)}`);
+
+  await page.getByRole("link", { name: "Изчисти търсенето" }).click();
+  await expect(page).toHaveURL("/admin/orders");
+  await expect(search).toHaveValue("");
+  await expect(found).toHaveCount(0);
+
+  await search.fill("Иван");
+  await search.press("Enter");
+  await expect(
+    page.getByText("Въведете номер на поръчка (BP…), телефон или имейл."),
+  ).toBeVisible();
+  await expect(cards).toHaveCount(0);
+  await expect(page.getByText("Няма поръчки за това търсене.")).toHaveCount(0);
+  await expectNoAxeViolations(page);
+
+  await search.fill(`0899${randomInt(100_000, 1_000_000)}`);
+  await search.press("Enter");
+  await expect(
+    page.getByText("Няма поръчки за това търсене.", { exact: true }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+});
+
+test("an edit that takes an order out of the search results leaves focus on the list", async ({
+  page,
+  context,
+}) => {
+  const phone = `0899${randomInt(100_000, 1_000_000)}`;
+  const reference = placeEcontOrder(
+    `admin.search-edit-${randomUUID()}@example.com`,
+    phone,
+  );
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto(`/admin/orders?q=${phone}`);
+
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: reference }) });
+  await card.getByRole("button", { name: "Редакция" }).click();
+  const form = card.getByRole("form", { name: `Редакция на ${reference}` });
+  await form
+    .getByLabel("Телефон", { exact: true })
+    .fill(`0898${randomInt(100_000, 1_000_000)}`);
+  await form.getByRole("button", { name: "Запази" }).click();
+  await page
+    .getByRole("dialog", { name: "Сигурни ли сте?" })
+    .getByRole("button", { name: "Да, запази" })
+    .click();
+
+  await expect(card).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Поръчки" })).toBeFocused();
+});

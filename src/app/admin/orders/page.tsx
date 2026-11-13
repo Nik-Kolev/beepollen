@@ -9,6 +9,8 @@ import {
   OrderSteps,
   type StepConfirmation,
 } from "@/components/admin/order-steps";
+import { FIELD, LABEL } from "@/components/form-styles";
+import { TEXT_LINK } from "@/components/link-styles";
 import {
   CARRIER_LABEL,
   CONSENT_LABEL,
@@ -26,8 +28,10 @@ import {
   ORDER_FILTER_LABEL,
   ORDER_FILTERS,
   ORDER_STATUS_LABEL,
+  ORDER_SEARCH_MAX_LENGTH,
   ORDER_STEP_LABEL,
   orderListHref,
+  ORDERS_MAX,
   ORDERS_STEP,
   orderStatus,
   type OrderStatus,
@@ -35,7 +39,9 @@ import {
   orderView,
   parseHideClosed,
   parseOrderFilter,
+  parseOrderSearch,
   parseOrderShown,
+  searchOrders,
   undoTarget,
   viberChatHref,
 } from "@/lib/admin-orders";
@@ -157,7 +163,10 @@ export default async function AdminOrders({
   const view = orderView(filter, hideClosed);
   const counts = await countOrdersByView();
   const shown = parseOrderShown(params.shown, counts[view]);
-  const orders = await listOrders(view, shown);
+  const search = parseOrderSearch(params.q);
+  const { orders, truncated } = search
+    ? await searchOrders(search)
+    : { orders: await listOrders(view, shown), truncated: false };
   const next = nextOrderShown(orders.length, counts[view]);
   const [duplicates, closedOffices] = await Promise.all([
     findPossibleDuplicates(orders),
@@ -224,6 +233,41 @@ export default async function AdminOrders({
         </p>
       </details>
 
+      <form action="/admin/orders" role="search" className="mt-4">
+        <label htmlFor="order-search" className={LABEL}>
+          Търсене по номер, телефон или имейл
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="order-search"
+            name="q"
+            type="search"
+            maxLength={ORDER_SEARCH_MAX_LENGTH}
+            defaultValue={search?.value ?? ""}
+            className={`${FIELD} min-w-0`}
+          />
+          <button
+            type="submit"
+            className="bg-action border-action text-action-ink hover:bg-action-hover mt-2 inline-flex min-h-12 shrink-0 items-center rounded-md border-2 px-5 font-semibold shadow-sm transition-colors"
+          >
+            Търси
+          </button>
+        </div>
+      </form>
+
+      {search && (
+        <p className="mt-3 text-sm">
+          {search.kind === "unknown"
+            ? "Въведете номер на поръчка (BP…), телефон или имейл."
+            : truncated
+              ? `Намерени: над ${ORDERS_MAX} (показани са най-новите ${ORDERS_MAX}).`
+              : `Намерени: ${orders.length}.`}{" "}
+          <Link href="/admin/orders" className={TEXT_LINK}>
+            Изчисти търсенето
+          </Link>
+        </p>
+      )}
+
       <nav aria-label="Филтър на поръчките" className="mt-4">
         <ul role="list" className="flex flex-wrap gap-2">
           {ORDER_FILTERS.map((option) => (
@@ -255,13 +299,15 @@ export default async function AdminOrders({
         aria-label="Поръчки"
         className="rounded-xl"
       >
-        {orders.length === 0 ? (
+        {search?.kind === "unknown" ? null : orders.length === 0 ? (
           <p className="text-ink-soft mt-8">
-            {view === "all"
-              ? "Още няма поръчки."
-              : view === "open"
-                ? "Няма поръчки, които чакат нещо от вас."
-                : "Няма такива поръчки."}
+            {search
+              ? "Няма поръчки за това търсене."
+              : view === "all"
+                ? "Още няма поръчки."
+                : view === "open"
+                  ? "Няма поръчки, които чакат нещо от вас."
+                  : "Няма такива поръчки."}
           </p>
         ) : (
           <ul
@@ -622,7 +668,7 @@ export default async function AdminOrders({
         )}
       </section>
 
-      {orders.length < counts[view] && (
+      {!search && orders.length < counts[view] && (
         <div className="mt-6 flex flex-col items-center gap-2">
           {next !== null && (
             <Link

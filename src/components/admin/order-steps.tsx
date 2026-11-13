@@ -88,6 +88,7 @@ export function OrderSteps({
   }, [confirming]);
 
   function request(step: OrderStep) {
+    if (saving.current) return;
     if (confirmations[step]) {
       setNotify(true);
       setConfirming(step);

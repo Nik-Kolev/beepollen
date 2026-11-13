@@ -988,4 +988,6 @@ version decision that was postponed on purpose.
 Every action in `.github/workflows/` is pinned to a full commit SHA, since a
 tag can be repointed, with its release written after it as `# vX.Y.Z` — the
 comment is what Dependabot reads to move the pin. A new action is added the
-same way, the SHA read from `git ls-remote` for the release's tag.
+same way, the SHA read from `git ls-remote` for the release's tag — the peeled
+`^{}` line when the tag is annotated, since the plain line is then the tag
+object's, not the commit's.

@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
-    "@lhci/cli": "^0.15.1",
+    "@lhci/cli": "^0.16.1",
     "@playwright/test": "1.63.0",
     "@tailwindcss/postcss": "^4",
     "@types/leaflet": "^1.9.22",
@@ -52,7 +52,7 @@
     "eslint-config-next": "16.4.6",
     "prettier": "^3.9.6",
     "prisma": "^7.10.1",
-    "puppeteer-core": "^24.43.1",
+    "puppeteer-core": "^25.17.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5"

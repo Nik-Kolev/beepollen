@@ -219,7 +219,8 @@ export default async function AdminOrders({
           сайта. Ако още не е изпратена, не я изпращайте — „
           {ORDER_STEP_LABEL.send}“ и „{ORDER_STEP_LABEL.handOver}“ първо питат
           дали сте сигурни. Ако вече е изпратена, обадете се, за да уговорите
-          връщането.
+          връщането. Филтърът „{ORDER_FILTER_LABEL.withdrawn}“ ги събира всички
+          на едно място.
         </p>
         <p className="mb-3 text-sm">
           „Възможен дубликат“ значи, че същият имейл е поръчал още веднъж в

@@ -264,6 +264,52 @@ test("a step the server fails to save says so, a returned parcel shows in the er
   await expect(badge(card, "Върната — за прибиране")).toBeVisible();
 });
 
+test("a step that asks first does not open its dialog while another step is still saving", async ({
+  page,
+  context,
+}) => {
+  const orderReference = placeEcontOrder(
+    `admin.busy-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders");
+
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: orderReference }) });
+  await markSent(page, card);
+  await expect(badge(card, "Чака плащане")).toBeVisible();
+
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/admin/orders*", async (route) => {
+    if (route.request().method() === "POST") await held;
+    await route.continue();
+  });
+
+  const saving = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" && request.url().includes("/admin/orders"),
+  );
+  await card.getByRole("button", { name: "Платена" }).click();
+  await saving;
+
+  await card.getByRole("button", { name: "Върната" }).click({ force: true });
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  expect(await page.getByRole("dialog").isVisible()).toBe(false);
+
+  release();
+  await expect(badge(card, "Платена")).toBeVisible();
+});
+
 test("the list shows five orders, loads five more on request, and filters always start from five", async ({
   page,
   context,

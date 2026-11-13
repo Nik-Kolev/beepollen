@@ -311,6 +311,7 @@ export function OrderEditForm({
     save(async () => {
       const result = await editOrder({ ...payload(), notify });
       if (!result.ok) return refusal(result);
+      reloaded.current = true;
       stopEditing();
     });
   }

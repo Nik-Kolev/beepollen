@@ -3,6 +3,17 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
+if [ -z "${IMAGE_TAG:-}" ] && [ -n "${SSH_ORIGINAL_COMMAND:-}" ]; then
+  if [[ ! "$SSH_ORIGINAL_COMMAND" =~ ^[0-9a-f]{40}$ ]]; then
+    echo "Refusing to deploy: the command is not a 40-character commit sha" >&2
+    exit 1
+  fi
+  IMAGE_TAG=$SSH_ORIGINAL_COMMAND
+fi
+if [ -n "${IMAGE_TAG:-}" ]; then
+  export IMAGE_TAG
+fi
+
 compose=(docker compose -f compose.prod.yaml)
 
 env_value() {

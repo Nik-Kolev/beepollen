@@ -184,8 +184,11 @@ deploy.
 Every push to `main` also runs it from GitHub: `image.yml`'s `deploy` job
 waits for both images, then logs in as `deploy` with a key whose
 `authorized_keys` line can run nothing but this script, and fails when the
-script does. It deploys `latest`, and copies no files, so a changed
-`compose.prod.yaml` or script still goes over by hand first. The job's log is
+script does. It sends the commit's sha as the SSH command, which the forced
+command hands the script in `SSH_ORIGINAL_COMMAND`, so it deploys the images
+that commit built rather than whatever `latest` names by the time it runs; the
+script refuses anything there but a 40-character sha. It copies no files, so a
+changed `compose.prod.yaml` or script still goes over by hand first. The job's log is
 public, so the script prints the container's log only to a terminal. Set it up
 from the developer's machine with a fresh key made for it alone, outside any
 working tree:

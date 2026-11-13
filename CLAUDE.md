@@ -759,7 +759,10 @@ because GHCR refuses capitals and `github.repository` is `Nik-Kolev/beepollen`.
 The `org.opencontainers.image.source` label is what links each package to the
 repository. Its `deploy` job then runs the host's `deploy.sh` over SSH, from
 `main` only, so a manual run on another branch publishes a tag and deploys
-nothing.
+nothing. It passes `$GITHUB_SHA` as the SSH command, and `deploy.sh` deploys
+that tag, so two promotions close together each deploy their own build. The
+key's forced command hands that string to the script unchecked, which is why the
+script accepts only a 40-character hex sha there.
 
 The image prerenders the shop pages from the builder's own seeded database, not
 the volume's, so after every start they show seed prices and default stock

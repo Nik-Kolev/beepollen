@@ -107,6 +107,28 @@ docker compose -f compose.prod.yaml up -d
 Then call the revalidate route above. A backup kept outside the volume is
 mounted in with `-v /its/folder:/backups:ro` and copied from `/backups/`.
 
+### Erasing a customer
+
+When a buyer asks to be deleted, `npm run customer:erase -- <email>` lists
+their orders with their status and changes nothing; with `--yes` it removes
+their name, email, phone, IP addresses, withdrawal name and the contact entries
+of their edit history, and withdraws their offers consent. Each order stays,
+under „Изтрит клиент“, with its products, totals, dates and office. It refuses
+while any order is still open — new, sent or returned — since that order still
+needs the buyer's name and phone. In production, with a leading space, which
+keeps the address out of the shell history where `HISTCONTROL` ignores spaces:
+
+```bash
+ docker compose -f compose.prod.yaml run --rm migrate npm run customer:erase -- buyer@example.com
+ docker compose -f compose.prod.yaml run --rm migrate npm run customer:erase -- buyer@example.com --yes
+```
+
+A restore from a backup taken before the erasure brings the data back, so run
+it again after any restore. The new-order and withdrawal emails to the owner
+also carry the buyer's name, phone and email: delete those for the listed
+orders from the owner's inbox. Resend's own log keeps them until its retention
+runs out.
+
 ## Scripts
 
 | Command                    | Does                                      |
@@ -131,6 +153,7 @@ mounted in with `-v /its/folder:/backups:ro` and copied from `/backups/`.
 | `npm run db:sample-orders` | Sample orders in each status, subscribers |
 | `npm run db:backup`        | Checked, dated copy; prunes old ones      |
 | `npm run econt:sync`       | Refresh the Econt office list             |
+| `npm run customer:erase`   | Strip one customer's personal data        |
 | `npm run test:unit`        | Unit tests, own throwaway DB              |
 | `npm run test:e2e`         | E2E and accessibility tests               |
 | `npm run test:perf`        | Lighthouse, not on Windows                |

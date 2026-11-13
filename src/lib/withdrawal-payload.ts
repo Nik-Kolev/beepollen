@@ -6,6 +6,6 @@ export function withdrawalPayload(formData: FormData) {
     name: text(formData.get("name")),
     email: text(formData.get("email")),
     phone: text(formData.get("phone")),
-    website: text(formData.get("website")),
+    extra_info: text(formData.get("extra_info")),
   };
 }

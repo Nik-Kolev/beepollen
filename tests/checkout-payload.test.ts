@@ -27,7 +27,7 @@ test("a missing field reads as an empty string rather than null", () => {
     acceptsTerms: false,
     acceptsOffers: false,
     idempotencyKey: "",
-    website: "",
+    extra_info: "",
   });
 });
 
@@ -81,7 +81,7 @@ test("a File under a text field becomes an empty string, not a thrown error", ()
       ["email", file],
       ["phone", file],
       ["idempotencyKey", file],
-      ["website", file],
+      ["extra_info", file],
     ]),
   );
 
@@ -89,7 +89,7 @@ test("a File under a text field becomes an empty string, not a thrown error", ()
   assert.equal(payload.email, "");
   assert.equal(payload.phone, "");
   assert.equal(payload.idempotencyKey, "");
-  assert.equal(payload.website, "");
+  assert.equal(payload.extra_info, "");
 });
 
 test("a File under items becomes an empty list, not a thrown error", () => {

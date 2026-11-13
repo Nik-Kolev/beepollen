@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
@@ -41,7 +41,11 @@ function badge(card: Locator, label: string) {
   return card.getByText(label, { exact: true });
 }
 
-async function placeOrder(page: Page, email: string) {
+async function placeOrder(
+  page: Page,
+  email: string,
+  phone = `0899${randomInt(100_000, 1_000_000)}`,
+) {
   await seedCart(page, {
     version: 2,
     items: [
@@ -56,7 +60,7 @@ async function placeOrder(page: Page, email: string) {
   await page.goto("/checkout");
   await page.getByLabel("Име и фамилия").fill("Админ Тестов");
   await page.getByLabel("Имейл", { exact: true }).fill(email);
-  await page.getByLabel("Телефон", { exact: true }).fill("0899555444");
+  await page.getByLabel("Телефон", { exact: true }).fill(phone);
   await page
     .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
     .check();
@@ -86,7 +90,11 @@ test("an order placed through checkout appears in the order list and expands in 
     "Ordering is rate limited, so it is exercised in the mobile project only.",
   );
 
-  const orderReference = await placeOrder(page, "admin.list@example.com");
+  const orderReference = await placeOrder(
+    page,
+    "admin.list@example.com",
+    "0899555444",
+  );
 
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/orders?filter=new");

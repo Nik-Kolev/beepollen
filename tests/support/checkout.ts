@@ -13,6 +13,16 @@ export const TEST_OFFICE_SNAPSHOT = {
   officeStreet: SMALL_CITY_OFFICE_A.street,
 } as const;
 
+let buyers = 0;
+
+export function distinctBuyer() {
+  buyers += 1;
+  return {
+    email: `buyer-${randomUUID()}@example.com`,
+    phone: `0887${String(buyers).padStart(6, "0")}`,
+  };
+}
+
 export function validCheckoutInput(
   overrides: Record<string, unknown> = {},
 ): Record<string, unknown> {

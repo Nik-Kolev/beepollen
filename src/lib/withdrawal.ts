@@ -21,7 +21,7 @@ export const withdrawalInputSchema = z.object({
   name: contactNameSchema,
   email: contactEmailSchema,
   phone: contactPhoneSchema,
-  website: z.string().optional(),
+  extra_info: z.string().optional(),
 });
 
 export type WithdrawalResult =
@@ -53,7 +53,7 @@ export async function withdrawFromOrder(
 
   const input = parsed.data;
 
-  if (input.website) return { ok: false, code: "REJECTED" };
+  if (input.extra_info) return { ok: false, code: "REJECTED" };
 
   if (
     ipAddress &&

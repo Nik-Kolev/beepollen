@@ -291,7 +291,7 @@ test("rejects a name shorter than two characters, naming the field", async () =>
 test("rejects a submission with a non-empty honeypot value and writes nothing", async () => {
   const idempotencyKey = randomUUID();
   const result = await placeOrder(
-    validCheckoutInput({ idempotencyKey, website: "https://spam.example" }),
+    validCheckoutInput({ idempotencyKey, extra_info: "https://spam.example" }),
     null,
   );
 
@@ -302,7 +302,7 @@ test("rejects a submission with a non-empty honeypot value and writes nothing", 
 test("rejects a long honeypot value the same way, without naming the field", async () => {
   const idempotencyKey = randomUUID();
   const result = await placeOrder(
-    validCheckoutInput({ idempotencyKey, website: "x".repeat(201) }),
+    validCheckoutInput({ idempotencyKey, extra_info: "x".repeat(201) }),
     null,
   );
 
@@ -311,7 +311,7 @@ test("rejects a long honeypot value the same way, without naming the field", asy
 });
 
 test("accepts a submission with an empty honeypot string", async () => {
-  const result = await placeOrder(validCheckoutInput({ website: "" }), null);
+  const result = await placeOrder(validCheckoutInput({ extra_info: "" }), null);
   assert.equal(result.ok, true);
 });
 
@@ -319,7 +319,7 @@ test("a honeypot rejection is indistinguishable from a rate-limit rejection, so 
   resetRateLimits();
 
   const honeypotResult = await placeOrder(
-    validCheckoutInput({ website: "spam" }),
+    validCheckoutInput({ extra_info: "spam" }),
     null,
   );
 

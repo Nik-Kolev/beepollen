@@ -1,3 +1,5 @@
+import { randomInt, randomUUID } from "node:crypto";
+
 import { expect, type Page, test } from "@playwright/test";
 
 import { CHECKOUT_SCROLL_KEY } from "@/lib/checkout-draft";
@@ -54,10 +56,17 @@ async function chooseOffice(page: Page) {
     .click();
 }
 
-async function fillContact(page: Page, email: string) {
+function freshBuyer() {
+  return {
+    email: `checkout-${randomUUID()}@example.com`,
+    phone: `0899${randomInt(100_000, 1_000_000)}`,
+  };
+}
+
+async function fillContact(page: Page, email: string, phone = "0899777888") {
   await page.getByLabel("Име и фамилия").fill("Мария Иванова");
   await emailField(page).fill(email);
-  await page.getByLabel("Телефон", { exact: true }).fill("0899777888");
+  await page.getByLabel("Телефон", { exact: true }).fill(phone);
   await page
     .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
     .check();
@@ -883,7 +892,8 @@ test.describe("placing an order", () => {
     });
     await page.goto("/checkout");
 
-    await fillContact(page, "maria.ivanova@example.com");
+    const buyer = freshBuyer();
+    await fillContact(page, buyer.email, buyer.phone);
     await page.getByLabel(/Поръчката е за гр\. Попово/).check();
     await page
       .getByRole("button", { name: "Поръчай с плащане при доставка" })
@@ -904,7 +914,8 @@ test.describe("placing an order", () => {
     });
     await page.goto("/checkout");
 
-    await fillContact(page, "maria.ivanova@example.com");
+    const buyer = freshBuyer();
+    await fillContact(page, buyer.email, buyer.phone);
     await chooseOffice(page);
     await page
       .getByRole("button", { name: "Поръчай с плащане при доставка" })
@@ -924,7 +935,8 @@ test.describe("placing an order", () => {
     });
     await page.goto("/checkout");
 
-    await fillContact(page, "maria.ivanova@example.com");
+    const buyer = freshBuyer();
+    await fillContact(page, buyer.email, buyer.phone);
     await chooseOffice(page);
     await page
       .getByRole("button", { name: "Поръчай с плащане при доставка" })

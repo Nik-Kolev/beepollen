@@ -6,10 +6,90 @@ import {
   rateLimitSubject,
   resetRateLimits,
   takeToken,
+  takeTokens,
 } from "@/lib/rate-limit";
 
 beforeEach(() => {
   resetRateLimits();
+});
+
+test("several limits are taken together when every one allows it", () => {
+  const wide = { limit: 3, windowMs: 1000 };
+  const narrow = { limit: 1, windowMs: 1000 };
+  const both = [
+    { key: "wide", options: wide },
+    { key: "narrow", options: narrow },
+  ];
+
+  assert.equal(takeTokens(both, 0), true);
+  assert.equal(takeTokens([{ key: "narrow", options: narrow }], 1), false);
+  assert.equal(takeTokens([{ key: "wide", options: wide }], 1), true);
+  assert.equal(takeTokens([{ key: "wide", options: wide }], 2), true);
+  assert.equal(takeTokens([{ key: "wide", options: wide }], 3), false);
+});
+
+test("when one limit refuses, none of the others is spent", () => {
+  const wide = { limit: 2, windowMs: 1000 };
+  const narrow = { limit: 1, windowMs: 1000 };
+  takeTokens([{ key: "narrow", options: narrow }], 0);
+
+  for (let at = 1; at <= 5; at++) {
+    assert.equal(
+      takeTokens(
+        [
+          { key: "wide", options: wide },
+          { key: "narrow", options: narrow },
+        ],
+        at,
+      ),
+      false,
+    );
+  }
+
+  assert.equal(takeTokens([{ key: "wide", options: wide }], 6), true);
+  assert.equal(takeTokens([{ key: "wide", options: wide }], 7), true);
+  assert.equal(takeTokens([{ key: "wide", options: wide }], 8), false);
+});
+
+test("a day-long limit is kept by its own window when an hour-long one is taken later", () => {
+  const day = { limit: 1, windowMs: 24 * 60 * 60 * 1000 };
+  const hour = { limit: 30, windowMs: 60 * 60 * 1000 };
+  const twoHours = 2 * 60 * 60 * 1000;
+
+  assert.equal(takeTokens([{ key: "contact", options: day }], 0), true);
+  assert.equal(takeTokens([{ key: "orders", options: hour }], twoHours), true);
+  assert.equal(
+    takeTokens([{ key: "contact", options: day }], twoHours + 1),
+    false,
+  );
+});
+
+test("a day-long limit outlives a flood of short address limits filling their own store", () => {
+  const day = { limit: 1, windowMs: 24 * 60 * 60 * 1000 };
+  const fiveMinutes = { limit: 10, windowMs: 5 * 60 * 1000 };
+  const later = 10 * 60 * 1000;
+
+  assert.equal(takeTokens([{ key: "orders-email:x", options: day }], 0), true);
+  for (let i = 0; i <= MAX_KEYS; i++) {
+    takeToken(`order:${i}`, fiveMinutes, later);
+  }
+
+  assert.equal(
+    takeTokens([{ key: "orders-email:x", options: day }], later + 1),
+    false,
+  );
+});
+
+test("several limits open again once their window has passed", () => {
+  const options = { limit: 1, windowMs: 1000 };
+  const requests = [
+    { key: "a", options },
+    { key: "b", options },
+  ];
+
+  assert.equal(takeTokens(requests, 0), true);
+  assert.equal(takeTokens(requests, 999), false);
+  assert.equal(takeTokens(requests, 1001), true);
 });
 
 test("an IPv4 address is its own subject", () => {

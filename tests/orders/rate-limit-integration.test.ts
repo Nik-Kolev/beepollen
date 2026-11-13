@@ -5,7 +5,7 @@ import { ORDER_RATE_LIMIT, placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 import { resetRateLimits } from "@/lib/rate-limit";
 
-import { validCheckoutInput } from "../support/checkout";
+import { distinctBuyer, validCheckoutInput } from "../support/checkout";
 
 before(() => {
   resetRateLimits();
@@ -20,11 +20,11 @@ test("allows exactly the configured limit of orders from one IP address before r
   const ip = "198.51.100.10";
 
   for (let i = 0; i < ORDER_RATE_LIMIT.limit; i++) {
-    const result = await placeOrder(validCheckoutInput(), ip);
+    const result = await placeOrder(validCheckoutInput(distinctBuyer()), ip);
     assert.equal(result.ok, true);
   }
 
-  const blocked = await placeOrder(validCheckoutInput(), ip);
+  const blocked = await placeOrder(validCheckoutInput(distinctBuyer()), ip);
   assert.deepEqual(blocked, { ok: false, code: "REJECTED" });
 });
 
@@ -34,12 +34,15 @@ test("does not count an order from a different IP address against another addres
   const otherIp = "198.51.100.21";
 
   for (let i = 0; i < ORDER_RATE_LIMIT.limit; i++) {
-    await placeOrder(validCheckoutInput(), busyIp);
+    await placeOrder(validCheckoutInput(distinctBuyer()), busyIp);
   }
-  const blocked = await placeOrder(validCheckoutInput(), busyIp);
+  const blocked = await placeOrder(validCheckoutInput(distinctBuyer()), busyIp);
   assert.deepEqual(blocked, { ok: false, code: "REJECTED" });
 
-  const stillAllowed = await placeOrder(validCheckoutInput(), otherIp);
+  const stillAllowed = await placeOrder(
+    validCheckoutInput(distinctBuyer()),
+    otherIp,
+  );
   assert.equal(stillAllowed.ok, true);
 });
 
@@ -48,15 +51,21 @@ test("counts every IPv6 address of one /64 against the same limit, and keeps eac
   const block = "2001:db8:12:3400";
 
   for (let i = 0; i < ORDER_RATE_LIMIT.limit; i++) {
-    const result = await placeOrder(validCheckoutInput(), `${block}::${i + 1}`);
+    const result = await placeOrder(
+      validCheckoutInput(distinctBuyer()),
+      `${block}::${i + 1}`,
+    );
     assert.equal(result.ok, true);
   }
 
-  const blocked = await placeOrder(validCheckoutInput(), `${block}:ffff::1`);
+  const blocked = await placeOrder(
+    validCheckoutInput(distinctBuyer()),
+    `${block}:ffff::1`,
+  );
   assert.deepEqual(blocked, { ok: false, code: "REJECTED" });
 
   const neighbour = await placeOrder(
-    validCheckoutInput(),
+    validCheckoutInput(distinctBuyer()),
     "2001:db8:12:3401::1",
   );
   assert.equal(neighbour.ok, true);

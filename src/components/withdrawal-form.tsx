@@ -261,10 +261,10 @@ export function WithdrawalForm() {
         </button>
 
         <div className="sr-only" aria-hidden="true">
-          <label htmlFor="website">Website</label>
+          <label htmlFor="extra_info">Extra info</label>
           <input
-            id="website"
-            name="website"
+            id="extra_info"
+            name="extra_info"
             type="text"
             tabIndex={-1}
             autoComplete="off"

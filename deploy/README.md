@@ -258,3 +258,22 @@ It runs every hour from `deploy`'s crontab:
 The check's schedule is the cron line's — `0 * * * *`, Europe/Sofia, one
 hour's grace — so a dead cron alerts as well as a full disk. Read the runs with
 `sudo journalctl -t beepollen-disk`.
+
+## 8. Email check
+
+Resend's free plan sends 100 emails a day, and each order sends two. The app
+records every send that reached Resend, its outcome and time only, and
+`email-check.sh` counts the sent ones of the last 24 hours in the `migrate`
+container (`npm run email:count`). It pings the Healthchecks.io check whose URL
+is `HEALTHCHECK_EMAIL_URL` in `.env`: a success under 80, `/fail` from 80 or
+when the count does not run, with the count as the ping's body. Healthchecks
+emails only when the check goes down, so nothing arrives while the count is
+low. It runs every hour from `deploy`'s crontab, at half past so it never meets
+the disk check:
+
+```bash
+( crontab -l 2>/dev/null | grep -v beepollen-email; echo '30 * * * * /home/deploy/beepollen/email-check.sh 2>&1 | logger -t beepollen-email' ) | crontab -
+```
+
+The check's schedule is `30 * * * *`, Europe/Sofia, one hour's grace. Read the
+runs with `sudo journalctl -t beepollen-email`.

@@ -21,6 +21,7 @@
     "econt:sync": "tsx scripts/econt-sync.ts",
     "db:backup": "tsx --env-file-if-exists=.env scripts/db-backup.ts",
     "customer:erase": "tsx --env-file-if-exists=.env scripts/erase-customer.ts",
+    "email:count": "tsx --env-file-if-exists=.env scripts/email-count.ts",
     "db:fresh": "prisma migrate reset --force && prisma db seed",
     "typecheck": "prisma generate && next typegen && tsc --noEmit",
     "test:unit": "node scripts/test-unit.mjs",

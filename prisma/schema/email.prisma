@@ -1,0 +1,7 @@
+model EmailSend {
+  id        Int         @id @default(autoincrement())
+  status    EmailStatus
+  createdAt DateTime    @default(now())
+
+  @@index([createdAt])
+}

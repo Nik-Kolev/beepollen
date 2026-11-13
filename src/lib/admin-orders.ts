@@ -469,6 +469,50 @@ export async function findPossibleDuplicates(orders: DuplicateCandidate[]) {
   return duplicates;
 }
 
+type OfficeCandidate = {
+  reference: string;
+  deliveryMethod: DeliveryMethod;
+  officeCarrier: Carrier | null;
+  officeCode: string | null;
+  sentAt: Date | null;
+  cancelledAt: Date | null;
+  withdrawnAt: Date | null;
+};
+
+export async function findClosedOffices(orders: OfficeCandidate[]) {
+  const unsent = orders.flatMap((order) =>
+    order.deliveryMethod === DeliveryMethod.ECONT_OFFICE &&
+    !order.sentAt &&
+    !order.cancelledAt &&
+    !order.withdrawnAt &&
+    order.officeCarrier &&
+    order.officeCode
+      ? [
+          {
+            reference: order.reference,
+            carrier: order.officeCarrier,
+            code: order.officeCode,
+          },
+        ]
+      : [],
+  );
+  if (unsent.length === 0) return new Set<string>();
+
+  const listed = await prisma.deliveryOffice.findMany({
+    where: {
+      OR: unsent.map(({ carrier, code }) => ({ carrier, code })),
+    },
+    select: { carrier: true, code: true },
+  });
+  const open = new Set(listed.map(({ carrier, code }) => `${carrier}:${code}`));
+
+  return new Set(
+    unsent
+      .filter(({ carrier, code }) => !open.has(`${carrier}:${code}`))
+      .map(({ reference }) => reference),
+  );
+}
+
 const ORDER_DETAIL = {
   reference: true,
   customerId: true,

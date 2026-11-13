@@ -10,6 +10,7 @@ import {
   deliveryLabel,
   viberChatHref,
   DUPLICATE_WINDOW_MS,
+  findClosedOffices,
   findPossibleDuplicates,
   formatOrderTime,
   listOrders,
@@ -758,6 +759,66 @@ test("with several duplicates an order names the one placed closest to it", asyn
   assert.equal(duplicates.get(early), middle);
   assert.equal(duplicates.get(middle), late);
   assert.equal(duplicates.get(late), middle);
+});
+
+async function closedAmong(...references: string[]) {
+  return findClosedOffices(
+    await prisma.order.findMany({ where: { reference: { in: references } } }),
+  );
+}
+
+async function moveOffice(
+  reference: string,
+  data: { officeCode?: string; officeCarrier?: "ECONT" | "SPEEDY" },
+) {
+  await prisma.order.update({ where: { reference }, data });
+}
+
+test("an unsent Econt order is flagged once its office is no longer listed, and one whose office is still listed is not", async () => {
+  const gone = await placedIn("new");
+  const listed = await placedIn("new");
+  await moveOffice(gone, { officeCode: `closed-${randomUUID()}` });
+
+  assert.deepEqual([...(await closedAmong(gone, listed))], [gone]);
+});
+
+test("the office is matched by carrier as well as code", async () => {
+  const reference = await placedIn("new");
+  await moveOffice(reference, { officeCarrier: "SPEEDY" });
+
+  assert.deepEqual([...(await closedAmong(reference))], [reference]);
+});
+
+test("an order already sent, settled or cancelled is not flagged when its office goes", async () => {
+  for (const status of [
+    "sent",
+    "paid",
+    "returned",
+    "collected",
+    "cancelled",
+  ] as OrderStatus[]) {
+    const reference = await placedIn(status);
+    await moveOffice(reference, { officeCode: `closed-${randomUUID()}` });
+
+    assert.equal((await closedAmong(reference)).size, 0, status);
+  }
+});
+
+test("an unsent order the buyer withdrew is not flagged, since it is not to be sent", async () => {
+  const reference = await placedIn("new");
+  await moveOffice(reference, { officeCode: `closed-${randomUUID()}` });
+  await prisma.order.update({
+    where: { reference },
+    data: { withdrawnAt: new Date() },
+  });
+
+  assert.equal((await closedAmong(reference)).size, 0);
+});
+
+test("a Popovo order has no office to lose", async () => {
+  const reference = await placedIn("new", LOCAL);
+
+  assert.equal((await closedAmong(reference)).size, 0);
 });
 
 test("the Viber link opens a chat with the buyer's stored number", () => {

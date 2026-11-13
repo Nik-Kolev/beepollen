@@ -16,6 +16,7 @@ import {
   daysAgoLabel,
   deliveryLabel,
   EMAIL_STATUS_LABEL,
+  findClosedOffices,
   findPossibleDuplicates,
   formatOrderTime,
   listOrders,
@@ -158,7 +159,10 @@ export default async function AdminOrders({
   const shown = parseOrderShown(params.shown, counts[view]);
   const orders = await listOrders(view, shown);
   const next = nextOrderShown(orders.length, counts[view]);
-  const duplicates = await findPossibleDuplicates(orders);
+  const [duplicates, closedOffices] = await Promise.all([
+    findPossibleDuplicates(orders),
+    findClosedOffices(orders),
+  ]);
   const now = new Date();
 
   return (
@@ -322,6 +326,11 @@ export default async function AdminOrders({
                         <span className="tabular-nums">{duplicateOf}</span>
                       </p>
                     )}
+                    {closedOffices.has(order.reference) && (
+                      <p className="text-error mt-1 text-sm font-semibold">
+                        Офисът е закрит — обадете се на купувача
+                      </p>
+                    )}
                     {status === "sent" && order.sentAt && (
                       <p className="mt-1 text-sm font-semibold">
                         {daysAgoLabel("Изпратена", order.sentAt, now)}
@@ -358,6 +367,14 @@ export default async function AdminOrders({
                           })),
                         }}
                         officeCity={order.officeCity}
+                        office={
+                          order.officeName && order.officeStreet
+                            ? {
+                                name: order.officeName,
+                                street: order.officeStreet,
+                              }
+                            : null
+                        }
                       />
                     )}
 

@@ -12,8 +12,9 @@ comments, documentation, commit messages, PR descriptions. A Bulgarian string in
 the codebase should be user-facing copy and nothing else.
 
 Code carries no comments. The exceptions are the cart glyph's licence
-attribution and an `eslint-disable` line's stated reason; a reason worth keeping
-goes in this file instead.
+attribution, an `eslint-disable` line's stated reason, and the `# vX.Y.Z` after
+a workflow action's commit SHA; a reason worth keeping goes in this file
+instead.
 
 Route segments follow that rule — `/products`, not `/produkti`. A product slug is
 the exception: it is the Bulgarian name transliterated into latin letters
@@ -944,3 +945,8 @@ unreviewed script anyway and only prints a notice, so the run stays green.
 Dependabot watches the `github-actions` ecosystem only. npm version updates stay
 off until the lint and test tooling is settled, so the bot cannot reopen a
 version decision that was postponed on purpose.
+
+Every action in `.github/workflows/` is pinned to a full commit SHA, since a
+tag can be repointed, with its release written after it as `# vX.Y.Z` — the
+comment is what Dependabot reads to move the pin. A new action is added the
+same way, the SHA read from `git ls-remote` for the release's tag.

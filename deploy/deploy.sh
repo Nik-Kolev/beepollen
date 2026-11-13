@@ -51,6 +51,12 @@ for attempt in $(seq 1 30); do
   sleep 2
 done
 
+if [ -n "${IMAGE_TAG:-}" ] && [ "$IMAGE_TAG" != "latest" ]; then
+  for image in $("${compose[@]}" config --images); do
+    docker tag "$image" "${image%:*}:latest"
+  done
+fi
+
 secret=$("${compose[@]}" exec -T web node -e \
   'process.stdout.write(process.env.REVALIDATE_SECRET ?? "")')
 if [ -z "$secret" ]; then

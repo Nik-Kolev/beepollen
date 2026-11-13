@@ -122,6 +122,10 @@ export function OrderEditForm({
     !offices.some((listed) => listed.code === answers.officeCode);
   const cityListed =
     offices?.some((listed) => listed.city === openedFrom.officeCity) ?? false;
+  const closedNote =
+    officeClosed && openedFrom.office && openedFrom.officeCity
+      ? { office: openedFrom.office, city: openedFrom.officeCity }
+      : null;
   const nextKey = useRef(1000);
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [failure, setFailure] = useState<Failure | null>(null);
@@ -570,30 +574,20 @@ export function OrderEditForm({
         Доставка на ръка в гр. {LOCAL_DELIVERY_CITY}
       </label>
 
-      {!answers.local &&
-        officeClosed &&
-        openedFrom.office &&
-        openedFrom.officeCity && (
-          <p
-            id={closedOfficeNoteId}
-            className="text-error text-sm font-semibold"
-          >
-            Сегашният офис —{" "}
-            {officeLabel(openedFrom.office.name, openedFrom.officeCity)},{" "}
-            {openedFrom.office.street} — вече не е в списъка на Еконт. Ако не
-            изберете друг, поръчката остава с него.
-          </p>
-        )}
+      {!answers.local && closedNote && (
+        <p id={closedOfficeNoteId} className="text-error text-sm font-semibold">
+          Сегашният офис —{" "}
+          {officeLabel(closedNote.office.name, closedNote.city)},{" "}
+          {closedNote.office.street} — вече не е в списъка на Еконт. Ако не
+          изберете друг, поръчката остава с него.
+        </p>
+      )}
 
       {!answers.local &&
         (offices ? (
           <OfficeCityPicker
             offices={offices}
-            describedBy={
-              officeClosed && openedFrom.office && openedFrom.officeCity
-                ? closedOfficeNoteId
-                : undefined
-            }
+            describedBy={closedNote ? closedOfficeNoteId : undefined}
             initialCity={
               answers.officeCode && cityListed ? openedFrom.officeCity : null
             }

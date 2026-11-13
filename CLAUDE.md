@@ -330,7 +330,10 @@ shows the old ones.
 refuses to send without `EMAIL_REPLY_TO`. Resend reports a rejected email as
 `{ error }` rather than a throw, which is why the result is checked.
 Without a verified domain, the default test sender delivers only to the Resend
-account's own address.
+account's own address. Every send that reaches Resend writes an `EmailSend`
+row, outcome and time only, never the recipient, so the daily count for
+`deploy/email-check.sh` covers the owner's and the sample emails as well as the
+buyer's; a failure to write it is logged and never fails the send.
 
 Sending runs in `after()` from the checkout, withdrawal and admin step actions,
 so a slow or failed send never delays or fails what the buyer or owner did, and

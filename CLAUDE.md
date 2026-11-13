@@ -421,6 +421,20 @@ snapshots a product: `Customer` is the latest-known contact, never the record of
 what an order was placed with. A `Consent` row stores the wording exactly as it
 was shown, so editing `CONSENT_WORDING` never rewrites what someone agreed to.
 
+`eraseCustomer` in `src/lib/customer-erasure.ts`, run by `npm run
+customer:erase`, is the deletion `/privacy` promises. It anonymises rather than
+deletes: the orders stay as sales, while every field that names a person is
+blanked, and an edit event keeps its item and price entries but loses its
+name, email and phone ones. A new personal field on `Customer`, `Order`,
+`Consent` or `OrderEvent`, or a new personal `changes` field, joins it in the
+same change. It refuses while an order is open, because that order still needs
+the buyer's name and phone, and it reads and writes in one transaction, so an
+order placed meanwhile fails the write rather than escaping it. Undo still
+works on an erased order and reopens it with no name or phone; that is left to
+the owner. The customer's email becomes
+`erased-<id>@invalid`, which keeps the unique index and lets the address order
+again as a new customer.
+
 The honeypot field is named `extra_info`, a name no common autofill heuristic matches —
 `website` risked a real buyer's autofill filling it and the order being refused.
 It is checked after parsing rather than in the schema, so its rejection is

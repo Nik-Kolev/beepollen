@@ -421,11 +421,26 @@ snapshots a product: `Customer` is the latest-known contact, never the record of
 what an order was placed with. A `Consent` row stores the wording exactly as it
 was shown, so editing `CONSENT_WORDING` never rewrites what someone agreed to.
 
-The honeypot field is named `website` and is checked after parsing rather than in
-the schema, so its rejection is byte-identical to the rate limiter's — a
-validation error naming the field would tell a bot which check caught it. The
-rate limiter is in-process and resets on deploy, which suits one Node process on
-one host and would count per instance on any other.
+The honeypot field is named `extra_info`, a name no common autofill heuristic matches —
+`website` risked a real buyer's autofill filling it and the order being refused.
+It is checked after parsing rather than in the schema, so its rejection is
+byte-identical to the rate limiter's — a validation error naming the field would
+tell a bot which check caught it. The rate limiter is in-process and resets on
+deploy, which suits one Node process on one host and would count per instance on
+any other.
+
+`ORDER_CAPS` adds three more in-process limits, taken together by `takeTokens`
+once an order has passed every other check and just before it is written: 30
+orders an hour across every address, and 3 a day per phone and per inbox, where
+`inboxOf` drops a `+tag` and Gmail's dots so one mailbox cannot be reached under
+many spellings. A replayed submission is answered before them and never refused
+by them, and a refused one — unknown office, unavailable product — spends
+nothing, so a request that writes no order cannot close the shop. They keep their own store, each
+entry expiring by its own window, so a flood of per-address keys cannot evict a
+day-long count. They apply only when an IP is passed, like the limiter, so a
+unit test that passes one gives each order its own contact with
+`distinctBuyer()`. A browser checkout always carries an IP, so an e2e helper
+that places more than three orders gives each its own phone and email.
 
 `deliveryCents` is priced by `placeOrder` from the delivery method alone and never
 read from the caller — the tariff for an Econt office, zero for `LOCAL`.
@@ -761,7 +776,9 @@ on outside CI, so a local run silently attaches to whatever already holds the
 port. With `npm run dev` up, the whole suite tests Turbopack dev instead of the
 build and can fail on differences that do not exist in what ships. Stop the dev
 server before a local suite run, or point the suite at a free port with
-`E2E_PORT`, which it hands `next start` as `PORT`.
+`E2E_PORT`, which it hands `next start` as `PORT`. A reused server also keeps
+the order caps it has counted for up to a day, so a second run against it can
+see a fixed-contact checkout refused.
 Dev runs Turbopack and is not what ships, so a smoke test against it proves less
 than the seconds it saves. The suite runs twice, mobile project first, because
 mobile is the priority everything else here is built around.

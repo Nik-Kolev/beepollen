@@ -22,6 +22,11 @@ export function promoPriceCents(regularCents: number, terms: PromotionTerms) {
     : null;
 }
 
+export function discountPercent(priceCents: number, regularCents: number) {
+  const percent = Math.round((1 - priceCents / regularCents) * 100);
+  return percent < 1 ? null : Math.min(percent, 99);
+}
+
 export function activePromotionQuery(today: string) {
   return {
     where: { startsOn: { lte: today }, endsOn: { gte: today }, endedAt: null },

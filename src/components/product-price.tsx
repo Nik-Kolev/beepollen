@@ -1,4 +1,5 @@
 import { formatPrice } from "@/lib/money";
+import { discountPercent } from "@/lib/promotions";
 
 const PRICE_TEXT = {
   card: "text-brand-deep font-head text-lg font-bold",
@@ -57,14 +58,16 @@ export function ProductPrice({
     );
   }
 
-  const percent = Math.round((1 - priceCents / regularPriceCents) * 100);
+  const percent = discountPercent(priceCents, regularPriceCents);
   return (
     <p className="flex flex-wrap items-center gap-x-2 gap-y-1 tabular-nums">
       {promo}
       {regular}
-      <span className="bg-honey text-ink inline-flex h-5 items-center rounded-full px-2 text-xs leading-none font-semibold">
-        −{percent}%
-      </span>
+      {percent !== null && (
+        <span className="bg-honey text-ink inline-flex h-5 items-center rounded-full px-2 text-xs leading-none font-semibold">
+          −{percent}%
+        </span>
+      )}
     </p>
   );
 }

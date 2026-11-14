@@ -5,7 +5,12 @@ import { after, test } from "node:test";
 import { placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 import { getPublishedProductBySlug } from "@/lib/products";
-import { promoPriceCents, sofiaToday, withPromotion } from "@/lib/promotions";
+import {
+  discountPercent,
+  promoPriceCents,
+  sofiaToday,
+  withPromotion,
+} from "@/lib/promotions";
 
 import { validCheckoutInput } from "./support/checkout";
 
@@ -97,6 +102,12 @@ test("withPromotion without a promotion leaves the price and no regular price", 
     priceCents: 1000,
     regularPriceCents: null,
   });
+});
+
+test("the shown discount is a whole percent from 1 to 99, or none below 1", () => {
+  assert.equal(discountPercent(1960, 2450), 20);
+  assert.equal(discountPercent(999, 1000), null);
+  assert.equal(discountPercent(1, 1000), 99);
 });
 
 test("an order is charged the promotion price on its first and last day", async () => {

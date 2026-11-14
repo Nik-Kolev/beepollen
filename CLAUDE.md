@@ -472,7 +472,9 @@ Prerendered pages only change on a revalidation, which is why a date taking
 effect needs one. The struck-through price shown beside a promotion is always the
 regular price — the owner's decision, made knowing that the Omnibus rule in ЗЗП
 asks for the lowest price of the previous 30 days, so a promotion repeated within
-30 days strictly needs the earlier promotion's price instead.
+30 days strictly needs the earlier promotion's price instead. `ProductPrice`
+draws every product price in the shop, the struck price and the percentage
+with it, so a new place that shows one renders it too.
 
 Promotions are added, edited and ended under each product on
 `/admin/products`, by `savePromotion` and `endPromotion` in

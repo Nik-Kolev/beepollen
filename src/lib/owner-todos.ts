@@ -140,8 +140,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
       {
         text: "„TODO: цена“ се показва навсякъде, където продукт няма цена.",
         files: [
-          "src/app/(shop)/products/[slug]/page.tsx",
-          "src/components/product-card.tsx",
+          "src/components/product-price.tsx",
           "src/components/cart-contents.tsx",
           "src/components/checkout-form.tsx",
         ],

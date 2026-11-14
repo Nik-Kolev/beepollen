@@ -3,12 +3,18 @@ import Image from "next/image";
 
 import { AdminHeader } from "@/components/admin/admin-header";
 import { ProductEditForm } from "@/components/admin/product-edit-form";
+import { PromotionPanel } from "@/components/admin/promotion-panel";
 import {
   formatPriceInput,
   listProductsForAdmin,
   STOCK_LABEL,
 } from "@/lib/admin-products";
+import {
+  listPromotionsForAdmin,
+  promotionStatus,
+} from "@/lib/admin-promotions";
 import { requireAdmin } from "@/lib/admin-session";
+import { sofiaToday } from "@/lib/promotions";
 
 export const metadata: Metadata = {
   title: "Продукти",
@@ -21,7 +27,11 @@ const STOCK_OPTIONS = Object.entries(STOCK_LABEL).map(([value, label]) => ({
 
 export default async function AdminProducts() {
   const { email } = await requireAdmin("/admin/products");
-  const products = await listProductsForAdmin();
+  const [products, promotions] = await Promise.all([
+    listProductsForAdmin(),
+    listPromotionsForAdmin(),
+  ]);
+  const today = sofiaToday();
 
   return (
     <div className="w-full">
@@ -29,7 +39,7 @@ export default async function AdminProducts() {
         title="Продукти"
         email={email}
         current="/admin/products"
-        legend="Сменете цената или наличността и натиснете „Запази“ — магазинът показва промяната веднага."
+        legend="Сменете цената или наличността и натиснете „Запази“ — магазинът показва промяната веднага. Промоцията важи от първия до последния ден включително."
       />
 
       <ul role="list" className="mt-6 flex flex-col gap-4">
@@ -58,6 +68,24 @@ export default async function AdminProducts() {
                     price={formatPriceInput(product.priceCents)}
                     stock={product.stock}
                     stockOptions={STOCK_OPTIONS}
+                  />
+                  <PromotionPanel
+                    slug={product.slug}
+                    name={product.name}
+                    regularCents={product.priceCents}
+                    today={today}
+                    promotions={promotions
+                      .filter(
+                        (promotion) => promotion.product.slug === product.slug,
+                      )
+                      .map((promotion) => ({
+                        id: promotion.id,
+                        kind: promotion.kind,
+                        value: promotion.value,
+                        startsOn: promotion.startsOn,
+                        endsOn: promotion.endsOn,
+                        status: promotionStatus(promotion, today),
+                      }))}
                   />
                 </div>
               </article>

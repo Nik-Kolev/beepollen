@@ -23,7 +23,7 @@ test.describe.configure({ mode: "serial" });
 
 async function saveProduct(page: Page, price: string, stock: string) {
   await page.goto("/admin/products");
-  const form = page.getByRole("form", { name: PRODUCT });
+  const form = page.getByRole("form", { name: PRODUCT, exact: true });
   await form.getByLabel("Цена (€)").fill(price);
   await form.getByLabel("Наличност").selectOption(stock);
   await form.getByRole("button", { name: "Запази" }).click();
@@ -87,7 +87,7 @@ test("a price and stock saved in the admin reach the prerendered shop pages", as
   await expect(page.getByText("Общо:")).toHaveText(`Общо: ${formatPrice(0)}`);
 
   await page.goto("/admin/products");
-  const form = page.getByRole("form", { name: PRODUCT });
+  const form = page.getByRole("form", { name: PRODUCT, exact: true });
   await expect(form.getByLabel("Цена (€)")).toHaveValue("47,30");
   await expect(form.getByLabel("Наличност")).toHaveValue("NONE");
 });

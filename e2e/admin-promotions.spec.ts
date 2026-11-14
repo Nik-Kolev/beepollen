@@ -68,7 +68,27 @@ test("a promotion is added, refused when it overlaps, edited and ended", async (
   await expect(form.getByRole("status")).toHaveText("Запазено.");
   await expect(row).toContainText("−25%");
 
+  const laterStarts = sofiaDay(5);
+  const laterEnds = sofiaDay(6);
+  await form.getByLabel("Процент (%)").fill("15");
+  await form.getByLabel("От").fill(laterStarts);
+  await form.getByLabel("До (включително)").fill(laterEnds);
+  await form.getByRole("button", { name: "Добави промоция" }).click();
+  await expect(form.getByRole("status")).toHaveText("Запазено.");
+  const later = article
+    .getByRole("listitem")
+    .filter({ hasText: `${shown(laterStarts)} – ${shown(laterEnds)}` });
+  await later.getByRole("button", { name: "Редактирай" }).click();
+
   await row.getByRole("button", { name: "Прекрати" }).click();
   await expect(row).toContainText("Прекратена");
   await expect(row.getByRole("button", { name: "Прекрати" })).toHaveCount(0);
+  await expect(form.getByLabel("Процент (%)")).toHaveValue("15");
+  await expect(
+    form.getByRole("button", { name: "Запази промоцията" }),
+  ).toBeVisible();
+
+  await later.getByRole("button", { name: "Прекрати" }).click();
+  await expect(later).toContainText("Прекратена");
+  await expect(form.getByLabel("Процент (%)")).toHaveValue("");
 });

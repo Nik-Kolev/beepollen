@@ -92,6 +92,70 @@ test("a price and stock saved in the admin reach the prerendered shop pages", as
   await expect(form.getByLabel("Наличност")).toHaveValue("NONE");
 });
 
+test("a promotion started today shows the struck regular price on every shop page until it is ended", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await saveProduct(page, SEEDED.price, SEEDED.stock);
+
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Sofia",
+  }).format(new Date());
+  const article = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: PRODUCT, exact: true }) });
+  const form = article.getByRole("form", { name: `Промоция за ${PRODUCT}` });
+  await form.getByLabel("Процент (%)").fill("20");
+  await form.getByLabel("От").fill(today);
+  await form.getByLabel("До (включително)").fill(today);
+  await form.getByRole("button", { name: "Добави промоция" }).click();
+  await expect(form.getByRole("status")).toHaveText("Запазено.");
+
+  const main = page.getByRole("main");
+  await page.goto("/");
+  const card = page.getByRole("article").filter({ hasText: PRODUCT });
+  await expect(card).toContainText("Промоционална цена 36,72 €");
+  await expect(card.locator("s")).toHaveText("Редовна цена 45,90 €");
+  await expect(card).toContainText("−20%");
+
+  await page.goto(`/products/${SLUG}`);
+  await expect(main).toContainText("Промоционална цена 36,72 €");
+  await expect(main.locator("s")).toHaveText("Редовна цена 45,90 €");
+
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: SLUG, name: PRODUCT, quantity: 2 }],
+  });
+  await page.goto("/cart");
+  await expect(main).toContainText("Промоционална цена 36,72 € / бр.");
+  await expect(main.locator("s")).toHaveText("Редовна цена 45,90 €");
+  await expect(page.getByText("Общо:")).toHaveText("Общо: 73,44 €");
+
+  await page.goto("/checkout");
+  await page.getByRole("button", { name: /^Вашата поръчка/ }).click();
+  const summaryLine = main
+    .getByRole("listitem")
+    .filter({ hasText: PRODUCT })
+    .first();
+  await expect(summaryLine).toContainText("Промоционална цена 73,44 €");
+  await expect(summaryLine.locator("s")).toHaveText("Редовна цена 91,80 €");
+
+  await page.goto("/admin/products");
+  await article
+    .getByRole("listitem")
+    .filter({ hasText: "Активна" })
+    .getByRole("button", { name: "Прекрати" })
+    .click();
+  await expect(article.getByRole("listitem").first()).toContainText(
+    "Прекратена",
+  );
+
+  await page.goto(`/products/${SLUG}`);
+  await expect(main.getByText("45,90 €", { exact: true })).toBeVisible();
+  await expect(main.locator("s")).toHaveCount(0);
+});
+
 test("an item sold out after the checkout page loaded is refused and can be removed", async ({
   page,
   browser,

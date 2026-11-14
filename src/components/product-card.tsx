@@ -8,7 +8,7 @@ import {
   HoneycombMark,
   type HoneycombVariant,
 } from "@/components/art/honeycomb-mark";
-import { formatPrice } from "@/lib/money";
+import { ProductPrice } from "@/components/product-price";
 import type { ProductListItem } from "@/lib/products";
 import { productPhotoTransitionName } from "@/lib/view-transition";
 
@@ -90,11 +90,11 @@ export function ProductCard({
             {product.summary}
           </p>
           <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pt-3">
-            <p className="text-brand-deep font-head text-lg font-bold">
-              {product.priceCents > 0
-                ? formatPrice(product.priceCents)
-                : "TODO: цена"}
-            </p>
+            <ProductPrice
+              priceCents={product.priceCents}
+              regularPriceCents={product.regularPriceCents}
+              size="card"
+            />
             <span
               aria-hidden="true"
               className="text-brand-deep font-head inline-flex items-center gap-1.5 text-sm font-semibold underline-offset-4 group-hover:underline"

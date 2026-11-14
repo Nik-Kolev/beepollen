@@ -15,6 +15,7 @@ import {
   purchasableTotal,
 } from "@/lib/cart";
 import { blockedReason } from "@/lib/checkout-messages";
+import { ProductPrice } from "@/components/product-price";
 import { formatPrice } from "@/lib/money";
 import type { CartProduct } from "@/lib/products";
 
@@ -154,11 +155,14 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                     {product.name}
                   </Link>
                 </h2>
-                <p className="text-brand-deep mt-1 font-semibold">
-                  {product.priceCents > 0
-                    ? `${formatPrice(product.priceCents)} / бр.`
-                    : "TODO: цена"}
-                </p>
+                <div className="mt-1">
+                  <ProductPrice
+                    priceCents={product.priceCents}
+                    regularPriceCents={product.regularPriceCents}
+                    size="line"
+                    perUnit
+                  />
+                </div>
                 {product.priceCents > 0 && quantity > 1 && (
                   <p className="text-ink-soft mt-1 text-sm tabular-nums">
                     {quantity} × {formatPrice(product.priceCents)} ={" "}

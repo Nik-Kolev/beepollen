@@ -17,6 +17,11 @@ import {
   invalidFields,
 } from "@/lib/orders";
 import prisma from "@/lib/prisma";
+import {
+  activePromotionQuery,
+  sofiaToday,
+  withPromotion,
+} from "@/lib/promotions";
 
 const lineSchema = z.object({
   slug: z.string().min(1).max(200),
@@ -193,15 +198,23 @@ export async function editOrderContact(
     .map((line) => line.slug);
   const products =
     raisedSlugs.length > 0
-      ? await prisma.product.findMany({
-          where: {
-            slug: { in: raisedSlugs },
-            isPublished: true,
-            stock: { not: "NONE" },
-            priceCents: { gt: 0 },
-          },
-          select: { id: true, slug: true, name: true, priceCents: true },
-        })
+      ? (
+          await prisma.product.findMany({
+            where: {
+              slug: { in: raisedSlugs },
+              isPublished: true,
+              stock: { not: "NONE" },
+              priceCents: { gt: 0 },
+            },
+            select: {
+              id: true,
+              slug: true,
+              name: true,
+              priceCents: true,
+              promotions: activePromotionQuery(sofiaToday()),
+            },
+          })
+        ).map(withPromotion)
       : [];
   const sellable = new Map(products.map((product) => [product.slug, product]));
   const unavailable = raisedSlugs.filter((slug) => !sellable.has(slug));

@@ -25,11 +25,32 @@ model Product {
 
   images     ProductImage[]
   orderItems OrderItem[]
+  promotions Promotion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([isPublished, sortOrder])
+}
+
+enum PromotionKind {
+  PERCENT
+  PRICE
+}
+
+model Promotion {
+  id        Int           @id @default(autoincrement())
+  productId Int
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  kind      PromotionKind
+  value     Int
+  startsOn  String
+  endsOn    String
+  endedAt   DateTime?
+  createdBy String
+  createdAt DateTime      @default(now())
+
+  @@index([productId, startsOn])
 }
 
 model ProductImage {

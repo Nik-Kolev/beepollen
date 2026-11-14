@@ -1,9 +1,14 @@
 import { cache } from "react";
 
 import prisma from "@/lib/prisma";
+import {
+  activePromotionQuery,
+  sofiaToday,
+  withPromotion,
+} from "@/lib/promotions";
 
-export function listPublishedProducts() {
-  return prisma.product.findMany({
+export async function listPublishedProducts() {
+  const products = await prisma.product.findMany({
     where: { isPublished: true },
     orderBy: { sortOrder: "asc" },
     select: {
@@ -17,16 +22,19 @@ export function listPublishedProducts() {
         take: 1,
         select: { path: true, alt: true },
       },
+      promotions: activePromotionQuery(sofiaToday()),
     },
   });
+
+  return products.map(withPromotion);
 }
 
 export type ProductListItem = Awaited<
   ReturnType<typeof listPublishedProducts>
 >[number];
 
-export function listPublishedProductsForCart() {
-  return prisma.product.findMany({
+export async function listPublishedProductsForCart() {
+  const products = await prisma.product.findMany({
     where: { isPublished: true },
     orderBy: { sortOrder: "asc" },
     select: {
@@ -39,8 +47,11 @@ export function listPublishedProductsForCart() {
         take: 1,
         select: { path: true, alt: true },
       },
+      promotions: activePromotionQuery(sofiaToday()),
     },
   });
+
+  return products.map(withPromotion);
 }
 
 export type CartProduct = Awaited<
@@ -54,8 +65,8 @@ export function listPublishedProductSlugs() {
   });
 }
 
-export const getPublishedProductBySlug = cache((slug: string) =>
-  prisma.product.findUnique({
+export const getPublishedProductBySlug = cache(async (slug: string) => {
+  const product = await prisma.product.findUnique({
     where: { slug, isPublished: true },
     select: {
       slug: true,
@@ -75,9 +86,12 @@ export const getPublishedProductBySlug = cache((slug: string) =>
         orderBy: { sortOrder: "asc" },
         select: { id: true, path: true, alt: true },
       },
+      promotions: activePromotionQuery(sofiaToday()),
     },
-  }),
-);
+  });
+
+  return product && withPromotion(product);
+});
 
 export type ProductDetail = NonNullable<
   Awaited<ReturnType<typeof getPublishedProductBySlug>>

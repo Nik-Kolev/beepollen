@@ -11,6 +11,11 @@ import {
 import { findEcontOffice } from "@/lib/delivery-offices";
 import { orderingOpen } from "@/lib/ordering";
 import prisma from "@/lib/prisma";
+import {
+  activePromotionQuery,
+  sofiaToday,
+  withPromotion,
+} from "@/lib/promotions";
 import { rateLimitSubject, takeToken, takeTokens } from "@/lib/rate-limit";
 
 export const ORDER_RATE_LIMIT = { limit: 10, windowMs: 5 * 60 * 1000 };
@@ -192,15 +197,23 @@ export async function placeOrder(
 
   const items = collapseDuplicates(input.items);
 
-  const products = await prisma.product.findMany({
-    where: {
-      slug: { in: items.map((item) => item.slug) },
-      isPublished: true,
-      stock: { not: "NONE" },
-      priceCents: { gt: 0 },
-    },
-    select: { id: true, slug: true, name: true, priceCents: true },
-  });
+  const products = (
+    await prisma.product.findMany({
+      where: {
+        slug: { in: items.map((item) => item.slug) },
+        isPublished: true,
+        stock: { not: "NONE" },
+        priceCents: { gt: 0 },
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        priceCents: true,
+        promotions: activePromotionQuery(sofiaToday()),
+      },
+    })
+  ).map(withPromotion);
 
   const sellable = new Map(products.map((product) => [product.slug, product]));
   const lines: {

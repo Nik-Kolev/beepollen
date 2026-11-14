@@ -462,6 +462,18 @@ that places more than three orders gives each its own phone and email.
 `deliveryCents` is priced by `placeOrder` from the delivery method alone and never
 read from the caller — the tariff for an Econt office, zero for `LOCAL`.
 
+A `Promotion` lowers one product's price, as a percentage or a fixed price, from
+`startsOn` to `endsOn` inclusive — calendar days in `Europe/Sofia`, stored as
+`YYYY-MM-DD` strings so they compare as text. Every catalogue and order query
+passes its product through `withPromotion`, so `priceCents` is the price being
+charged today and `regularPriceCents` is the undiscounted one, or `null` when no
+promotion applies; code that wants the regular price reads the second field.
+Prerendered pages only change on a revalidation, which is why a date taking
+effect needs one. The struck-through price shown beside a promotion is always the
+regular price — the owner's decision, made knowing that the Omnibus rule in ЗЗП
+asks for the lowest price of the previous 30 days, so a promotion repeated within
+30 days strictly needs the earlier promotion's price instead.
+
 ## Checkout
 
 `/checkout` is one page — contact fields, the office picker, consents and the

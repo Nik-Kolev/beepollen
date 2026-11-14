@@ -10,7 +10,7 @@ import {
 } from "../tests/support/fixture-offices";
 import { TEST_ADMIN_EMAIL, TEST_REVALIDATE_SECRET } from "./admin-env";
 import { signInAs } from "./admin-session";
-import { setProductPrice } from "./e2e-db";
+import { endOpenPromotions, setProductPrice } from "./e2e-db";
 import { seedCart } from "./seed-cart";
 
 const PRODUCT = "Пчелен прашец 1 кг";
@@ -35,6 +35,7 @@ test.afterAll(async ({ browser }, testInfo) => {
     baseURL: testInfo.project.use.baseURL,
   });
   await signInAs(context, TEST_ADMIN_EMAIL);
+  endOpenPromotions(SLUG);
   await saveProduct(await context.newPage(), SEEDED.price, SEEDED.stock);
   await context.close();
 });
@@ -142,14 +143,12 @@ test("a promotion started today shows the struck regular price on every shop pag
   await expect(summaryLine.locator("s")).toHaveText("Редовна цена 91,80 €");
 
   await page.goto("/admin/products");
-  await article
+  const [year, month, day] = today.split("-");
+  const todays = article
     .getByRole("listitem")
-    .filter({ hasText: "Активна" })
-    .getByRole("button", { name: "Прекрати" })
-    .click();
-  await expect(article.getByRole("listitem").first()).toContainText(
-    "Прекратена",
-  );
+    .filter({ hasText: `${day}.${month}.${year} – ${day}.${month}.${year}` });
+  await todays.getByRole("button", { name: "Прекрати" }).click();
+  await expect(todays).toContainText("Прекратена");
 
   await page.goto(`/products/${SLUG}`);
   await expect(main.getByText("45,90 €", { exact: true })).toBeVisible();

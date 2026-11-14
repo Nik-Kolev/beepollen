@@ -179,6 +179,15 @@ export function setProductPrice(slug: string, priceCents: number) {
   `);
 }
 
+export function endOpenPromotions(slug: string) {
+  runInE2eDb(`
+    await prisma.promotion.updateMany({
+      where: { product: { slug: ${JSON.stringify(slug)} }, endedAt: null },
+      data: { endedAt: new Date() },
+    });
+  `);
+}
+
 function runInE2eDb(body: string) {
   const script = `
     import("@/lib/prisma").then(async (module) => {

@@ -474,6 +474,14 @@ regular price — the owner's decision, made knowing that the Omnibus rule in З
 asks for the lowest price of the previous 30 days, so a promotion repeated within
 30 days strictly needs the earlier promotion's price instead.
 
+Promotions are added, edited and ended under each product on
+`/admin/products`, by `savePromotion` and `endPromotion` in
+`src/lib/admin-promotions.ts`. An open promotion may not share a day with
+another open one on the same product; the check reads then writes inside one
+transaction, which suits a single admin and would let two simultaneous saves
+through. An ended or finished promotion stays as history and is never edited;
+ending one takes effect at once.
+
 ## Checkout
 
 `/checkout` is one page — contact fields, the office picker, consents and the

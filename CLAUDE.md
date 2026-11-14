@@ -12,8 +12,9 @@ comments, documentation, commit messages, PR descriptions. A Bulgarian string in
 the codebase should be user-facing copy and nothing else.
 
 Code carries no comments. The exceptions are the cart glyph's licence
-attribution and an `eslint-disable` line's stated reason; a reason worth keeping
-goes in this file instead.
+attribution, an `eslint-disable` line's stated reason, and the `# vX.Y.Z` after
+a workflow action's commit SHA; a reason worth keeping goes in this file
+instead.
 
 Route segments follow that rule — `/products`, not `/produkti`. A product slug is
 the exception: it is the Bulgarian name transliterated into latin letters
@@ -212,9 +213,9 @@ branch changes: `feature/` (new user-facing capability), `fix/` (a bug in
 existing behaviour), `chore/` (tooling, config, dependencies, CI, docs — nothing
 the app does changes), `refactor/` (structure changes, behaviour identical).
 
-`develop` is the default branch and the base for every PR. `main` is promoted
-from `develop` once a meaningful chunk of work is finished, and is never the
-target of a feature PR.
+`develop` is the default branch and the base for every PR but the promotion.
+`main` is promoted from `develop`, through a PR from `develop` itself, once a
+meaningful chunk of work is finished, and is never the target of a feature PR.
 
 Every PR runs `.github/workflows/ci.yml`. The `ci` job installs, then runs the
 `format:check`, `lint`, `typecheck`, `test:unit`, `db:setup` and `build` npm
@@ -241,11 +242,16 @@ merge. The workflow file says what is checked; the branch ruleset is what makes 
 mandatory, and it lives in GitHub's settings so a PR cannot remove the rule
 judging it.
 
-PRs land by **rebase merge**, the only method the ruleset allows. Commits are
-replayed onto `develop` with new hashes, so each one stays independently
-revertable and no merge commits appear. A branch is dead once its PR merges — its
-commits no longer exist under those hashes, so pull `develop` and branch again
-rather than reusing it.
+PRs into `develop` land by **rebase merge**. Commits are replayed onto
+`develop` with new hashes, so each one stays independently revertable and no
+merge commits appear. A branch is dead once its PR merges — its commits no
+longer exist under those hashes, so pull `develop` and branch again rather than
+reusing it.
+
+The promotion PR, `develop` into `main`, lands by **merge commit** — the
+ruleset allows both methods on both branches, so nothing stops the wrong one.
+A rebase would give `main` copies of `develop`'s commits under new hashes, and
+the next promotion then conflicts with them.
 
 **Installing a package is not a unit of work.** A dependency carries no
 revertable meaning on its own, so it belongs in the branch and commit of whatever
@@ -324,7 +330,10 @@ shows the old ones.
 refuses to send without `EMAIL_REPLY_TO`. Resend reports a rejected email as
 `{ error }` rather than a throw, which is why the result is checked.
 Without a verified domain, the default test sender delivers only to the Resend
-account's own address.
+account's own address. Every send that reaches Resend writes an `EmailSend`
+row, outcome and time only, never the recipient, so the daily count for
+`deploy/email-check.sh` covers the owner's and the sample emails as well as the
+buyer's; a failure to write it is logged and never fails the send.
 
 Sending runs in `after()` from the checkout, withdrawal and admin step actions,
 so a slow or failed send never delays or fails what the buyer or owner did, and
@@ -415,11 +424,40 @@ snapshots a product: `Customer` is the latest-known contact, never the record of
 what an order was placed with. A `Consent` row stores the wording exactly as it
 was shown, so editing `CONSENT_WORDING` never rewrites what someone agreed to.
 
-The honeypot field is named `website` and is checked after parsing rather than in
-the schema, so its rejection is byte-identical to the rate limiter's — a
-validation error naming the field would tell a bot which check caught it. The
-rate limiter is in-process and resets on deploy, which suits one Node process on
-one host and would count per instance on any other.
+`eraseCustomer` in `src/lib/customer-erasure.ts`, run by `npm run
+customer:erase`, is the deletion `/privacy` promises. It anonymises rather than
+deletes: the orders stay as sales, while every field that names a person is
+blanked, and an edit event keeps its item and price entries but loses its
+name, email and phone ones. A new personal field on `Customer`, `Order`,
+`Consent` or `OrderEvent`, or a new personal `changes` field, joins it in the
+same change. It refuses while an order is open, because that order still needs
+the buyer's name and phone, and it reads and writes in one transaction, so an
+order placed meanwhile fails the write rather than escaping it. Undo still
+works on an erased order and reopens it with no name or phone; that is left to
+the owner. The customer's email becomes
+`erased-<id>@invalid`, which keeps the unique index and lets the address order
+again as a new customer.
+
+The honeypot field is named `extra_info`, a name no common autofill heuristic matches —
+`website` risked a real buyer's autofill filling it and the order being refused.
+It is checked after parsing rather than in the schema, so its rejection is
+byte-identical to the rate limiter's — a validation error naming the field would
+tell a bot which check caught it. The rate limiter is in-process and resets on
+deploy, which suits one Node process on one host and would count per instance on
+any other.
+
+`ORDER_CAPS` adds three more in-process limits, taken together by `takeTokens`
+once an order has passed every other check and just before it is written: 30
+orders an hour across every address, and 3 a day per phone and per inbox, where
+`inboxOf` drops a `+tag` and Gmail's dots so one mailbox cannot be reached under
+many spellings. A replayed submission is answered before them and never refused
+by them, and a refused one — unknown office, unavailable product — spends
+nothing, so a request that writes no order cannot close the shop. They keep their own store, each
+entry expiring by its own window, so a flood of per-address keys cannot evict a
+day-long count. They apply only when an IP is passed, like the limiter, so a
+unit test that passes one gives each order its own contact with
+`distinctBuyer()`. A browser checkout always carries an IP, so an e2e helper
+that places more than three orders gives each its own phone and email.
 
 `deliveryCents` is priced by `placeOrder` from the delivery method alone and never
 read from the caller — the tariff for an Econt office, zero for `LOCAL`.
@@ -482,7 +520,10 @@ build-generated action id.
 
 The rate limiter is keyed on `x-real-ip`, falling back to the **last**
 `x-forwarded-for` hop. The first hop is whatever the caller wrote, and a fresh
-value per request would hand itself a fresh bucket.
+value per request would hand itself a fresh bucket. `rateLimitSubject` turns
+the address into the bucket's key: an IPv6 address counts as its /64, since one
+client holds the whole block, and an IPv4-mapped one as its IPv4. `Consent`
+still stores the address as it arrived.
 
 The catalogue the page hands the browser is the one the build saw, since the
 route is prerendered. A product unpublished, sold out or zeroed after that build
@@ -628,7 +669,9 @@ An unknown `/products/[slug]` returns `notFoundMetadata` from
 on the 404, and `{}` falls back to the root title. Orders have no page of their
 own; their details expand in place on `/admin/orders`, which lists at most
 `ORDERS_MAX`: past roughly a thousand orders the nested items, consents and events queries
-exceed SQLite's bound-parameter limit.
+exceed SQLite's bound-parameter limit. An older order is reached through the
+search, `?q=`, which `parseOrderSearch` reads as an exact reference, a phone
+normalised as checkout stores it, or an email, and which ignores the filters.
 
 An order's state is four nullable timestamps — `sentAt`, `paidAt`,
 `cancelledAt`, `collectedAt` — and its status is derived from them by
@@ -719,7 +762,10 @@ because GHCR refuses capitals and `github.repository` is `Nik-Kolev/beepollen`.
 The `org.opencontainers.image.source` label is what links each package to the
 repository. Its `deploy` job then runs the host's `deploy.sh` over SSH, from
 `main` only, so a manual run on another branch publishes a tag and deploys
-nothing.
+nothing. It passes `$GITHUB_SHA` as the SSH command, and `deploy.sh` deploys
+that tag, so two promotions close together each deploy their own build. The
+key's forced command hands that string to the script unchecked, which is why the
+script accepts only a 40-character hex sha there.
 
 The image prerenders the shop pages from the builder's own seeded database, not
 the volume's, so after every start they show seed prices and default stock
@@ -752,7 +798,9 @@ on outside CI, so a local run silently attaches to whatever already holds the
 port. With `npm run dev` up, the whole suite tests Turbopack dev instead of the
 build and can fail on differences that do not exist in what ships. Stop the dev
 server before a local suite run, or point the suite at a free port with
-`E2E_PORT`, which it hands `next start` as `PORT`.
+`E2E_PORT`, which it hands `next start` as `PORT`. A reused server also keeps
+the order caps it has counted for up to a day, so a second run against it can
+see a fixed-contact checkout refused.
 Dev runs Turbopack and is not what ships, so a smoke test against it proves less
 than the seconds it saves. The suite runs twice, mobile project first, because
 mobile is the priority everything else here is built around.
@@ -936,3 +984,10 @@ unreviewed script anyway and only prints a notice, so the run stays green.
 Dependabot watches the `github-actions` ecosystem only. npm version updates stay
 off until the lint and test tooling is settled, so the bot cannot reopen a
 version decision that was postponed on purpose.
+
+Every action in `.github/workflows/` is pinned to a full commit SHA, since a
+tag can be repointed, with its release written after it as `# vX.Y.Z` — the
+comment is what Dependabot reads to move the pin. A new action is added the
+same way, the SHA read from `git ls-remote` for the release's tag — the peeled
+`^{}` line when the tag is annotated, since the plain line is then the tag
+object's, not the commit's.

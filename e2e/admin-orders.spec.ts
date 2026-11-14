@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
@@ -41,7 +41,11 @@ function badge(card: Locator, label: string) {
   return card.getByText(label, { exact: true });
 }
 
-async function placeOrder(page: Page, email: string) {
+async function placeOrder(
+  page: Page,
+  email: string,
+  phone = `0899${randomInt(100_000, 1_000_000)}`,
+) {
   await seedCart(page, {
     version: 2,
     items: [
@@ -56,7 +60,7 @@ async function placeOrder(page: Page, email: string) {
   await page.goto("/checkout");
   await page.getByLabel("Име и фамилия").fill("Админ Тестов");
   await page.getByLabel("Имейл", { exact: true }).fill(email);
-  await page.getByLabel("Телефон", { exact: true }).fill("0899555444");
+  await page.getByLabel("Телефон", { exact: true }).fill(phone);
   await page
     .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
     .check();
@@ -86,7 +90,11 @@ test("an order placed through checkout appears in the order list and expands in 
     "Ordering is rate limited, so it is exercised in the mobile project only.",
   );
 
-  const orderReference = await placeOrder(page, "admin.list@example.com");
+  const orderReference = await placeOrder(
+    page,
+    "admin.list@example.com",
+    "0899555444",
+  );
 
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/orders?filter=new");
@@ -262,6 +270,52 @@ test("a step the server fails to save says so, a returned parcel shows in the er
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/orders");
   await expect(badge(card, "Върната — за прибиране")).toBeVisible();
+});
+
+test("a step that asks first does not open its dialog while another step is still saving", async ({
+  page,
+  context,
+}) => {
+  const orderReference = placeEcontOrder(
+    `admin.busy-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders");
+
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: orderReference }) });
+  await markSent(page, card);
+  await expect(badge(card, "Чака плащане")).toBeVisible();
+
+  let release = () => {};
+  const held = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/admin/orders*", async (route) => {
+    if (route.request().method() === "POST") await held;
+    await route.continue();
+  });
+
+  const saving = page.waitForRequest(
+    (request) =>
+      request.method() === "POST" && request.url().includes("/admin/orders"),
+  );
+  await card.getByRole("button", { name: "Платена" }).click();
+  await saving;
+
+  await card.getByRole("button", { name: "Върната" }).click({ force: true });
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve)),
+      ),
+  );
+  expect(await page.getByRole("dialog").isVisible()).toBe(false);
+
+  release();
+  await expect(badge(card, "Платена")).toBeVisible();
 });
 
 test("the list shows five orders, loads five more on request, and filters always start from five", async ({
@@ -464,4 +518,91 @@ test("two orders from one email within a day each name the other as a possible d
   await expect(card(alone)).toBeVisible();
   await expect(flag(alone)).toHaveCount(0);
   await expectNoAxeViolations(page);
+});
+
+test("a search by phone finds the order, survives a reload, and clearing it brings back the list", async ({
+  page,
+  context,
+}) => {
+  const phone = `0899${randomInt(100_000, 1_000_000)}`;
+  const reference = placeEcontOrder(
+    `admin.search-${randomUUID()}@example.com`,
+    phone,
+  );
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/orders");
+
+  const search = page.getByRole("searchbox", {
+    name: "Търсене по номер, телефон или имейл",
+  });
+  const cards = page
+    .getByRole("region", { name: "Поръчки" })
+    .getByRole("article");
+  const found = page.getByText("Намерени: 1.", { exact: false });
+
+  await search.fill(`+359 ${phone.slice(1, 4)} ${phone.slice(4)}`);
+  await search.press("Enter");
+
+  await expect(page).toHaveURL(/[?&]q=/);
+  await expect(found).toBeVisible();
+  await expect(cards).toHaveCount(1);
+  await expect(
+    cards.getByRole("heading", { name: reference, exact: true }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+
+  await page.reload();
+  await expect(cards).toHaveCount(1);
+  await expect(search).toHaveValue(`+359${phone.slice(1)}`);
+
+  await page.getByRole("link", { name: "Изчисти търсенето" }).click();
+  await expect(page).toHaveURL("/admin/orders");
+  await expect(search).toHaveValue("");
+  await expect(found).toHaveCount(0);
+
+  await search.fill("Иван");
+  await search.press("Enter");
+  await expect(
+    page.getByText("Въведете номер на поръчка (BP…), телефон или имейл."),
+  ).toBeVisible();
+  await expect(cards).toHaveCount(0);
+  await expect(page.getByText("Няма поръчки за това търсене.")).toHaveCount(0);
+  await expectNoAxeViolations(page);
+
+  await search.fill(`0899${randomInt(100_000, 1_000_000)}`);
+  await search.press("Enter");
+  await expect(
+    page.getByText("Няма поръчки за това търсене.", { exact: true }),
+  ).toBeVisible();
+  await expectNoAxeViolations(page);
+});
+
+test("an edit that takes an order out of the search results leaves focus on the list", async ({
+  page,
+  context,
+}) => {
+  const phone = `0899${randomInt(100_000, 1_000_000)}`;
+  const reference = placeEcontOrder(
+    `admin.search-edit-${randomUUID()}@example.com`,
+    phone,
+  );
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto(`/admin/orders?q=${phone}`);
+
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: reference }) });
+  await card.getByRole("button", { name: "Редакция" }).click();
+  const form = card.getByRole("form", { name: `Редакция на ${reference}` });
+  await form
+    .getByLabel("Телефон", { exact: true })
+    .fill(`0898${randomInt(100_000, 1_000_000)}`);
+  await form.getByRole("button", { name: "Запази" }).click();
+  await page
+    .getByRole("dialog", { name: "Сигурни ли сте?" })
+    .getByRole("button", { name: "Да, запази" })
+    .click();
+
+  await expect(card).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Поръчки" })).toBeFocused();
 });

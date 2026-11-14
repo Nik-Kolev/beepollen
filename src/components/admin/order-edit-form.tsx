@@ -25,7 +25,7 @@ import {
 } from "@/components/form-styles";
 import { FIELD_ERROR, UNKNOWN_OFFICE } from "@/lib/checkout-messages";
 import { DeliveryMethod, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
-import type { EcontOffice } from "@/lib/econt";
+import { type EcontOffice, officeLabel } from "@/lib/econt";
 import {
   changeText,
   ORDER_CHANGE_LABEL,
@@ -99,16 +99,33 @@ export function OrderEditForm({
   reference,
   original,
   officeCity,
+  office,
 }: {
   reference: string;
   original: Original;
   officeCity: string | null;
+  office: { name: string; street: string } | null;
 }) {
   const [editing, setEditing] = useState(false);
-  const [openedFrom, setOpenedFrom] = useState({ original, officeCity });
+  const [openedFrom, setOpenedFrom] = useState({
+    original,
+    officeCity,
+    office,
+  });
   const [answers, setAnswers] = useState(() => answersFrom(original));
   const [options, setOptions] = useState<Options | null>(null);
   const offices = options?.offices ?? null;
+  const officeClosed =
+    offices !== null &&
+    answers.officeCode !== "" &&
+    answers.officeCode === openedFrom.original.officeCode &&
+    !offices.some((listed) => listed.code === answers.officeCode);
+  const cityListed =
+    offices?.some((listed) => listed.city === openedFrom.officeCity) ?? false;
+  const closedNote =
+    officeClosed && openedFrom.office && openedFrom.officeCity
+      ? { office: openedFrom.office, city: openedFrom.officeCity }
+      : null;
   const nextKey = useRef(1000);
   const [invalid, setInvalid] = useState<Set<string>>(new Set());
   const [failure, setFailure] = useState<Failure | null>(null);
@@ -127,6 +144,7 @@ export function OrderEditForm({
   const focusRow = useRef<number | null>(null);
   const router = useRouter();
   const id = useId();
+  const closedOfficeNoteId = `${id}-closed-office`;
   const titleId = `${id}-title`;
   const textId = `${id}-text`;
 
@@ -182,7 +200,7 @@ export function OrderEditForm({
   }, [changes]);
 
   function startEditing() {
-    setOpenedFrom({ original, officeCity });
+    setOpenedFrom({ original, officeCity, office });
     setAnswers(answersFrom(original));
     setInvalid(new Set());
     setFailure(null);
@@ -298,6 +316,7 @@ export function OrderEditForm({
     save(async () => {
       const result = await editOrder({ ...payload(), notify });
       if (!result.ok) return refusal(result);
+      reloaded.current = true;
       stopEditing();
     });
   }
@@ -555,11 +574,23 @@ export function OrderEditForm({
         Доставка на ръка в гр. {LOCAL_DELIVERY_CITY}
       </label>
 
+      {!answers.local && closedNote && (
+        <p id={closedOfficeNoteId} className="text-error text-sm font-semibold">
+          Сегашният офис —{" "}
+          {officeLabel(closedNote.office.name, closedNote.city)},{" "}
+          {closedNote.office.street} — вече не е в списъка на Еконт. Ако не
+          изберете друг, поръчката остава с него.
+        </p>
+      )}
+
       {!answers.local &&
         (offices ? (
           <OfficeCityPicker
             offices={offices}
-            initialCity={answers.officeCode ? openedFrom.officeCity : null}
+            describedBy={closedNote ? closedOfficeNoteId : undefined}
+            initialCity={
+              answers.officeCode && cityListed ? openedFrom.officeCity : null
+            }
             initialOfficeCode={answers.officeCode || null}
             error={
               invalid.has("officeCode")

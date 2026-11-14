@@ -5,7 +5,16 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
-import { editEvents, placeEcontOrder, renameOrderContact } from "./e2e-db";
+import {
+  SMALL_CITY,
+  SMALL_CITY_OFFICE_A,
+} from "../tests/support/fixture-offices";
+import {
+  closeOrderOffice,
+  editEvents,
+  placeEcontOrder,
+  renameOrderContact,
+} from "./e2e-db";
 
 async function expectNoAxeViolations(page: Page) {
   const { violations } = await new AxeBuilder({ page })
@@ -78,6 +87,94 @@ test("a corrected phone is confirmed from → to, saved, and listed in the histo
   await expect
     .poll(() => editEvents(reference))
     .toEqual([{ emailStatus: null }, { emailStatus: "SKIPPED" }]);
+});
+
+test("an unsent order whose office Econt no longer lists says so on its card and in its edit form, and still saves a phone fix", async ({
+  page,
+}) => {
+  const reference = placeEcontOrder(
+    `edit-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  closeOrderOffice(reference);
+
+  await page.goto("/admin/orders?filter=new");
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: reference }) });
+  const closed = card.getByText("Офисът е закрит — обадете се на купувача", {
+    exact: true,
+  });
+  await expect(closed).toBeVisible();
+
+  await card.getByRole("button", { name: "Редакция" }).click();
+  const form = card.getByRole("form", { name: `Редакция на ${reference}` });
+  const noteText = `Сегашният офис — ${SMALL_CITY}, ${SMALL_CITY_OFFICE_A.street} — вече не е в списъка на Еконт. Ако не изберете друг, поръчката остава с него.`;
+  await expect(form.getByText(noteText, { exact: true })).toBeVisible();
+  await expect(
+    form.getByRole("button", { name: `Промени града ${SMALL_CITY}` }),
+  ).toHaveAccessibleDescription(noteText);
+  await expectNoAxeViolations(page);
+
+  await form.getByLabel("Телефон", { exact: true }).fill("0899 111 222");
+  await form.getByRole("button", { name: "Запази" }).click();
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  await expect(dialog.getByRole("listitem")).toHaveText([
+    "Телефон+359888123456 → +359899111222",
+  ]);
+  await dialog.getByRole("button", { name: "Да, запази" }).click();
+
+  await expect(card.getByRole("button", { name: "Редакция" })).toBeFocused();
+  await expect(closed).toBeVisible();
+});
+
+test("an order whose whole city is gone starts its office choice from the city, and choosing a listed office clears the warning", async ({
+  page,
+}) => {
+  const reference = placeEcontOrder(
+    `edit-${randomUUID()}@example.com`,
+    "0888123456",
+  );
+  const goneCity = "Закрито село";
+  closeOrderOffice(reference, goneCity);
+
+  await page.goto("/admin/orders?filter=new");
+  const card = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: reference }) });
+  const closed = card.getByText("Офисът е закрит — обадете се на купувача", {
+    exact: true,
+  });
+  await expect(closed).toBeVisible();
+
+  await card.getByRole("button", { name: "Редакция" }).click();
+  const form = card.getByRole("form", { name: `Редакция на ${reference}` });
+  const noteText = `Сегашният офис — ${goneCity}, ${SMALL_CITY_OFFICE_A.street} — вече не е в списъка на Еконт. Ако не изберете друг, поръчката остава с него.`;
+  const note = form.getByText(noteText, { exact: true });
+  await expect(note).toBeVisible();
+  const city = form.getByLabel("Град", { exact: true });
+  await expect(city).toHaveValue("");
+  await expect(city).toHaveAccessibleDescription(noteText);
+  expect(await form.getByText("Няма офис с това име.").count()).toBe(0);
+
+  await city.fill(SMALL_CITY);
+  await form.getByRole("option", { name: SMALL_CITY, exact: true }).click();
+  await form
+    .getByRole("radiogroup", { name: "Офиси на Еконт" })
+    .locator("label")
+    .filter({ hasText: SMALL_CITY_OFFICE_A.street })
+    .click();
+  await expect(note).toHaveCount(0);
+  await form.getByRole("button", { name: "Запази" }).click();
+  await page
+    .getByRole("dialog", { name: "Сигурни ли сте?" })
+    .getByRole("button", { name: "Да, запази" })
+    .click();
+
+  await expect(closed).toHaveCount(0);
+  await card.getByRole("button", { name: "Редакция" }).click();
+  await expect(form.getByText("Избран офис", { exact: true })).toBeVisible();
+  expect(await note.count()).toBe(0);
 });
 
 test("a refused value is announced, focused and described by its error", async ({

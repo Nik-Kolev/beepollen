@@ -157,6 +157,19 @@ export function renameOrderContact(reference: string, name: string) {
   `);
 }
 
+export function closeOrderOffice(reference: string, city?: string) {
+  const data = {
+    officeCode: `closed-${randomUUID()}`,
+    ...(city && { officeName: city, officeCity: city }),
+  };
+  runInE2eDb(`
+    await prisma.order.update({
+      where: { reference: ${JSON.stringify(reference)} },
+      data: ${JSON.stringify(data)},
+    });
+  `);
+}
+
 export function setProductPrice(slug: string, priceCents: number) {
   runInE2eDb(`
     await prisma.product.update({

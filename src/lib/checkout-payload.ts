@@ -24,7 +24,7 @@ export function checkoutPayload(formData: FormData) {
     acceptsTerms: formData.get("acceptsTerms") === "on",
     acceptsOffers: formData.get("acceptsOffers") === "on",
     idempotencyKey: text(formData.get("idempotencyKey")),
-    website: text(formData.get("website")),
+    extra_info: text(formData.get("extra_info")),
   };
 }
 

@@ -25,7 +25,7 @@ test("a draft never carries a consent or the honeypot back", () => {
     ...JSON.parse(serializeDraft(DRAFT)),
     acceptsTerms: true,
     acceptsOffers: true,
-    website: "https://spam.example",
+    extra_info: "https://spam.example",
   });
 
   assert.deepEqual(parseDraft(raw), DRAFT);

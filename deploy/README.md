@@ -131,7 +131,10 @@ Auth.js cookies belong to the host that set them. `X-Real-IP` and
 `X-Forwarded-For` are overwritten with the peer's address, so a client cannot
 hand the order rate limiter a fresh IP. A client IP over 10 requests a
 second, beyond a burst of 20, is answered 429 rather than Nginx's default 503,
-which reads as an outage. Security headers come from
+which reads as an outage. That limit counts whole addresses: if the droplet
+is ever given an IPv6 address, one client holds a /64 of them and each gets
+its own allowance, so key the zone on the /64 before adding an AAAA record.
+Security headers come from
 `next.config.ts`, not from here, so they are not sent twice.
 
 ## 4. The app
@@ -181,8 +184,14 @@ deploy.
 Every push to `main` also runs it from GitHub: `image.yml`'s `deploy` job
 waits for both images, then logs in as `deploy` with a key whose
 `authorized_keys` line can run nothing but this script, and fails when the
-script does. It deploys `latest`, and copies no files, so a changed
-`compose.prod.yaml` or script still goes over by hand first. The job's log is
+script does. It sends the commit's sha as the SSH command, which the forced
+command hands the script in `SSH_ORIGINAL_COMMAND`, so it deploys the images
+that commit built rather than whatever `latest` names by the time it runs; the
+script refuses anything there but a 40-character sha. Once the site answers on
+a deployed tag, the script tags those images `latest` too, so the backup and
+email checks, which run the `migrate` image with no tag, use the build that is
+live. It copies no files, so a
+changed `compose.prod.yaml` or script still goes over by hand first. The job's log is
 public, so the script prints the container's log only to a terminal. Set it up
 from the developer's machine with a fresh key made for it alone, outside any
 working tree:
@@ -252,3 +261,22 @@ It runs every hour from `deploy`'s crontab:
 The check's schedule is the cron line's — `0 * * * *`, Europe/Sofia, one
 hour's grace — so a dead cron alerts as well as a full disk. Read the runs with
 `sudo journalctl -t beepollen-disk`.
+
+## 8. Email check
+
+Resend's free plan sends 100 emails a day, and each order sends two. The app
+records every send that reached Resend, its outcome and time only, and
+`email-check.sh` counts the sent ones of the last 24 hours in the `migrate`
+container (`npm run email:count`). It pings the Healthchecks.io check whose URL
+is `HEALTHCHECK_EMAIL_URL` in `.env`: a success under 80, `/fail` from 80 or
+when the count does not run, with the count as the ping's body. Healthchecks
+emails only when the check goes down, so nothing arrives while the count is
+low. It runs every hour from `deploy`'s crontab, at half past so it never meets
+the disk check:
+
+```bash
+( crontab -l 2>/dev/null | grep -v beepollen-email; echo '30 * * * * /home/deploy/beepollen/email-check.sh 2>&1 | logger -t beepollen-email' ) | crontab -
+```
+
+The check's schedule is `30 * * * *`, Europe/Sofia, one hour's grace. Read the
+runs with `sudo journalctl -t beepollen-email`.

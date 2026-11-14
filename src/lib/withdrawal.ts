@@ -7,7 +7,7 @@ import {
   invalidFields,
 } from "@/lib/orders";
 import prisma from "@/lib/prisma";
-import { takeToken } from "@/lib/rate-limit";
+import { rateLimitSubject, takeToken } from "@/lib/rate-limit";
 
 export const WITHDRAWAL_RATE_LIMIT = { limit: 10, windowMs: 5 * 60 * 1000 };
 
@@ -21,7 +21,7 @@ export const withdrawalInputSchema = z.object({
   name: contactNameSchema,
   email: contactEmailSchema,
   phone: contactPhoneSchema,
-  website: z.string().optional(),
+  extra_info: z.string().optional(),
 });
 
 export type WithdrawalResult =
@@ -53,11 +53,14 @@ export async function withdrawFromOrder(
 
   const input = parsed.data;
 
-  if (input.website) return { ok: false, code: "REJECTED" };
+  if (input.extra_info) return { ok: false, code: "REJECTED" };
 
   if (
     ipAddress &&
-    !takeToken(`withdrawal:${ipAddress}`, WITHDRAWAL_RATE_LIMIT)
+    !takeToken(
+      `withdrawal:${rateLimitSubject(ipAddress)}`,
+      WITHDRAWAL_RATE_LIMIT,
+    )
   ) {
     return { ok: false, code: "REJECTED" };
   }

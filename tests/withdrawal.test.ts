@@ -233,7 +233,7 @@ test("a filled honeypot is refused like the rate limit and records nothing", asy
   const input = await placedOrder();
 
   const result = await withdrawFromOrder(
-    { ...input, website: "https://spam.example" },
+    { ...input, extra_info: "https://spam.example" },
     null,
   );
 
@@ -260,6 +260,25 @@ test("an address is refused after the configured number of attempts, matching or
 
   const otherAddress = await withdrawFromOrder(input, "198.51.100.71");
   assert.equal(otherAddress.ok, true);
+});
+
+test("attempts from every IPv6 address of one /64 count against the same limit", async () => {
+  resetRateLimits();
+  const input = await placedOrder();
+
+  for (let i = 0; i < WITHDRAWAL_RATE_LIMIT.limit; i++) {
+    const miss = await withdrawFromOrder(
+      { ...input, reference: "BP0101990" },
+      `2001:db8:12:3500::${i + 1}`,
+    );
+    assert.deepEqual(miss, { ok: false, code: "NOT_FOUND" });
+  }
+
+  const blocked = await withdrawFromOrder(input, "2001:db8:12:3500:ffff::1");
+  assert.deepEqual(blocked, { ok: false, code: "REJECTED" });
+
+  const neighbour = await withdrawFromOrder(input, "2001:db8:12:3501::1");
+  assert.equal(neighbour.ok, true);
 });
 
 test("withdrawal attempts do not spend the same address's order limit", async () => {
@@ -292,7 +311,7 @@ test("the payload reads a file sent under a field name as an empty string", () =
     name: "",
     email: "a@example.com",
     phone: "",
-    website: "",
+    extra_info: "",
   });
 });
 
@@ -318,7 +337,7 @@ test("the summary names a missing order, a refusal and a field the form cannot s
     withdrawalSummaryError({
       ok: false,
       code: "VALIDATION_ERROR",
-      fields: ["email", "website"],
+      fields: ["email", "extra_info"],
     }),
     INCOMPLETE_WITHDRAWAL,
   );

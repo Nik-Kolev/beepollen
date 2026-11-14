@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { after, test } from "node:test";
 
 import {
   orderAcceptedEmail,
@@ -12,8 +12,14 @@ import {
 } from "@/lib/email/templates";
 import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import { type EmailClient, sendEmail } from "@/lib/email/transport";
+import { EMAIL_WARNING_LIMIT, emailUsage } from "@/lib/email/usage";
 import { formatPrice } from "@/lib/money";
+import prisma from "@/lib/prisma";
 import { OWNER_PHONE, SITE_URL } from "@/lib/site";
+
+after(async () => {
+  await prisma.$disconnect();
+});
 
 const OFFICE = { name: "Павликени", street: "пл. Стефан Караджа №16" };
 
@@ -258,10 +264,120 @@ const OUTGOING = {
 
 const ENV = { RESEND_API_KEY: "re_test", EMAIL_REPLY_TO: "owner@example.com" };
 
+async function recordedSince(since: Date) {
+  return (
+    await prisma.emailSend.findMany({
+      where: { createdAt: { gte: since } },
+      orderBy: { id: "asc" },
+    })
+  ).map((send) => send.status);
+}
+
 test("with no API key the email is skipped and nothing is sent", async () => {
+  const since = new Date();
   assert.deepEqual(await sendEmail(OUTGOING, {}), {
     status: "SKIPPED",
     resendEmailId: null,
+  });
+  assert.deepEqual(await recordedSince(since), []);
+});
+
+test("every send that reaches Resend is recorded with its outcome, and one stopped before it is not", async () => {
+  const since = new Date();
+
+  await sendEmail(
+    OUTGOING,
+    ENV,
+    fakeClient(async () => ({ data: { id: "1" }, error: null })).client,
+  );
+  await sendEmail(
+    OUTGOING,
+    ENV,
+    fakeClient(async () => ({
+      data: null,
+      error: { name: "validation_error", message: "domain not verified" },
+    })).client,
+  );
+  await sendEmail(
+    OUTGOING,
+    ENV,
+    fakeClient(async () => {
+      throw new Error("network down");
+    }).client,
+  );
+  await sendEmail(
+    OUTGOING,
+    { RESEND_API_KEY: "re_test" },
+    fakeClient(async () => ({ data: { id: "2" }, error: null })).client,
+  );
+
+  assert.deepEqual(await recordedSince(since), ["SENT", "FAILED", "FAILED"]);
+});
+
+test("a send that cannot be recorded still answers with its outcome", async () => {
+  const sent = await sendEmail(
+    OUTGOING,
+    ENV,
+    fakeClient(async () => ({ data: { id: "1" }, error: null })).client,
+    async () => {
+      throw new Error("database locked");
+    },
+  );
+  assert.deepEqual(sent, { status: "SENT", resendEmailId: "1" });
+
+  const failed = await sendEmail(
+    OUTGOING,
+    ENV,
+    fakeClient(async () => {
+      throw new Error("network down");
+    }).client,
+    async () => {
+      throw new Error("database locked");
+    },
+  );
+  assert.deepEqual(failed, { status: "FAILED", resendEmailId: null });
+});
+
+test("the usage counts sent emails of the last 24 hours and warns from the limit", async () => {
+  const now = new Date("2001-01-01T12:00:00Z");
+  const hour = 60 * 60 * 1000;
+  await prisma.emailSend.deleteMany({
+    where: { createdAt: { lt: new Date("2002-01-01T00:00:00Z") } },
+  });
+  await prisma.emailSend.createMany({
+    data: [
+      ...Array.from({ length: EMAIL_WARNING_LIMIT - 1 }, () => ({
+        status: "SENT" as const,
+        createdAt: new Date(now.getTime() - hour),
+      })),
+      { status: "FAILED", createdAt: new Date(now.getTime() - hour) },
+      { status: "SENT", createdAt: new Date(now.getTime() - 25 * hour) },
+      { status: "SENT", createdAt: new Date(now.getTime() + 1) },
+    ],
+  });
+
+  assert.deepEqual(await emailUsage(now), {
+    sent: EMAIL_WARNING_LIMIT - 1,
+    overLimit: false,
+  });
+
+  await prisma.emailSend.create({
+    data: { status: "SENT", createdAt: new Date(now.getTime() - 24 * hour) },
+  });
+  assert.deepEqual(await emailUsage(now), {
+    sent: EMAIL_WARNING_LIMIT,
+    overLimit: true,
+  });
+  await prisma.emailSend.deleteMany({
+    where: { createdAt: new Date(now.getTime() - 24 * hour) },
+  });
+
+  await prisma.emailSend.create({
+    data: { status: "SENT", createdAt: new Date(now.getTime() - hour) },
+  });
+  assert.deepEqual(await emailUsage(now), {
+    sent: EMAIL_WARNING_LIMIT,
+    overLimit: true,
   });
 });
 

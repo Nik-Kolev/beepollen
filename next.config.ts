@@ -18,6 +18,7 @@ const CONTENT_SECURITY_POLICY = [
 
 const nextConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE ? "standalone" : undefined,
+  poweredByHeader: false,
   async headers() {
     return [
       {

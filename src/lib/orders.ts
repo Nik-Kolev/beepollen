@@ -11,9 +11,26 @@ import {
 import { findEcontOffice } from "@/lib/delivery-offices";
 import { orderingOpen } from "@/lib/ordering";
 import prisma from "@/lib/prisma";
-import { takeToken } from "@/lib/rate-limit";
+import { rateLimitSubject, takeToken, takeTokens } from "@/lib/rate-limit";
 
 export const ORDER_RATE_LIMIT = { limit: 10, windowMs: 5 * 60 * 1000 };
+
+export const ORDER_CAPS = {
+  overall: { limit: 30, windowMs: 60 * 60 * 1000 },
+  perContact: { limit: 3, windowMs: 24 * 60 * 60 * 1000 },
+};
+
+const GMAIL_DOMAINS = new Set(["gmail.com", "googlemail.com"]);
+
+export function inboxOf(email: string) {
+  const at = email.lastIndexOf("@");
+  const domain = email.slice(at + 1);
+  const local = email.slice(0, at).split("+")[0];
+
+  return GMAIL_DOMAINS.has(domain)
+    ? `${local.replaceAll(".", "")}@gmail.com`
+    : `${local}@${domain}`;
+}
 
 const BULGARIAN_PHONE = /^(?:(?:\+|00)3590?|0)([1-9]\d{7,8})$/;
 
@@ -61,7 +78,7 @@ export const checkoutInputSchema = z
     acceptsTerms: z.literal(true),
     acceptsOffers: z.boolean(),
     idempotencyKey: z.uuid(),
-    website: z.string().optional(),
+    extra_info: z.string().optional(),
   })
   .superRefine((input, ctx) => {
     if (input.deliveryMethod === "ECONT_OFFICE" && input.officeCode === "") {
@@ -158,9 +175,12 @@ export async function placeOrder(
 
   const input = parsed.data;
 
-  if (input.website) return { ok: false, code: "REJECTED" };
+  if (input.extra_info) return { ok: false, code: "REJECTED" };
 
-  if (ipAddress && !takeToken(`order:${ipAddress}`, ORDER_RATE_LIMIT)) {
+  if (
+    ipAddress &&
+    !takeToken(`order:${rateLimitSubject(ipAddress)}`, ORDER_RATE_LIMIT)
+  ) {
     return { ok: false, code: "REJECTED" };
   }
 
@@ -223,6 +243,20 @@ export async function placeOrder(
     (!office || office.city === LOCAL_DELIVERY_CITY)
   ) {
     return { ok: false, code: "UNKNOWN_OFFICE" };
+  }
+
+  if (
+    ipAddress &&
+    !takeTokens([
+      { key: "orders", options: ORDER_CAPS.overall },
+      {
+        key: `orders-email:${inboxOf(input.email)}`,
+        options: ORDER_CAPS.perContact,
+      },
+      { key: `orders-phone:${input.phone}`, options: ORDER_CAPS.perContact },
+    ])
+  ) {
+    return { ok: false, code: "REJECTED" };
   }
 
   const itemsCents = lines.reduce(

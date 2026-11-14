@@ -8,6 +8,7 @@ import type {
   OrderEventKind,
 } from "@/generated/prisma/enums";
 import { DeliveryMethod, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import { contactEmailSchema, contactPhoneSchema } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 
 export const ORDER_STATUSES = [
@@ -277,6 +278,7 @@ export const ORDER_FILTERS = [
   "returned",
   "paid",
   "cancelled",
+  "withdrawn",
 ] as const;
 export type OrderFilter = (typeof ORDER_FILTERS)[number];
 export type OrderView = OrderFilter | "open";
@@ -290,6 +292,7 @@ export const ORDER_FILTER_LABEL: Record<OrderFilter, string> = {
   returned: "За прибиране",
   paid: "Платени",
   cancelled: "Отказани",
+  withdrawn: "Заявен отказ",
 };
 
 export function orderView(filter: OrderFilter, hideClosed: boolean): OrderView {
@@ -326,6 +329,7 @@ const ORDER_VIEW_WHERE: Record<OrderView, Prisma.OrderWhereInput> = {
     cancelledAt: { not: null },
     OR: [{ sentAt: null }, { collectedAt: { not: null } }],
   },
+  withdrawn: { withdrawnAt: { not: null } },
   all: {},
 };
 
@@ -420,6 +424,59 @@ export function listOrders(view: OrderView = "all", shown = ORDERS_STEP) {
   });
 }
 
+export type OrderSearch = {
+  kind: "reference" | "phone" | "email" | "unknown";
+  value: string;
+};
+
+export const ORDER_SEARCH_MAX_LENGTH = 200;
+
+export function parseOrderSearch(raw: unknown): OrderSearch | null {
+  if (typeof raw !== "string") return null;
+
+  const value = raw.trim();
+  if (!value) return null;
+  if (value.length > ORDER_SEARCH_MAX_LENGTH) return { kind: "unknown", value };
+
+  const reference = value.replace(/^[ВвБбBb][РрПпPp]/, "BP");
+  if (/^BP\d{7,}$/.test(reference)) {
+    return { kind: "reference", value: reference };
+  }
+
+  const phone = contactPhoneSchema.safeParse(value);
+  if (phone.success) return { kind: "phone", value: phone.data };
+
+  const email = contactEmailSchema.safeParse(value);
+  if (email.success) return { kind: "email", value: email.data };
+
+  return { kind: "unknown", value };
+}
+
+const SEARCH_WHERE: Record<
+  Exclude<OrderSearch["kind"], "unknown">,
+  (value: string) => Prisma.OrderWhereInput
+> = {
+  reference: (value) => ({ reference: value }),
+  phone: (value) => ({ contactPhone: value }),
+  email: (value) => ({ customer: { email: value } }),
+};
+
+export async function searchOrders(search: OrderSearch) {
+  if (search.kind === "unknown") return { orders: [], truncated: false };
+
+  const found = await prisma.order.findMany({
+    where: SEARCH_WHERE[search.kind](search.value),
+    orderBy: { id: "desc" },
+    take: ORDERS_MAX + 1,
+    select: ORDER_DETAIL,
+  });
+
+  return {
+    orders: found.slice(0, ORDERS_MAX),
+    truncated: found.length > ORDERS_MAX,
+  };
+}
+
 export const DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 type DuplicateCandidate = {
@@ -467,6 +524,50 @@ export async function findPossibleDuplicates(orders: DuplicateCandidate[]) {
     if (nearest) duplicates.set(order.reference, nearest.reference);
   }
   return duplicates;
+}
+
+type OfficeCandidate = {
+  reference: string;
+  deliveryMethod: DeliveryMethod;
+  officeCarrier: Carrier | null;
+  officeCode: string | null;
+  sentAt: Date | null;
+  cancelledAt: Date | null;
+  withdrawnAt: Date | null;
+};
+
+export async function findClosedOffices(orders: OfficeCandidate[]) {
+  const unsent = orders.flatMap((order) =>
+    order.deliveryMethod === DeliveryMethod.ECONT_OFFICE &&
+    !order.sentAt &&
+    !order.cancelledAt &&
+    !order.withdrawnAt &&
+    order.officeCarrier &&
+    order.officeCode
+      ? [
+          {
+            reference: order.reference,
+            carrier: order.officeCarrier,
+            code: order.officeCode,
+          },
+        ]
+      : [],
+  );
+  if (unsent.length === 0) return new Set<string>();
+
+  const listed = await prisma.deliveryOffice.findMany({
+    where: {
+      OR: unsent.map(({ carrier, code }) => ({ carrier, code })),
+    },
+    select: { carrier: true, code: true },
+  });
+  const open = new Set(listed.map(({ carrier, code }) => `${carrier}:${code}`));
+
+  return new Set(
+    unsent
+      .filter(({ carrier, code }) => !open.has(`${carrier}:${code}`))
+      .map(({ reference }) => reference),
+  );
 }
 
 const ORDER_DETAIL = {

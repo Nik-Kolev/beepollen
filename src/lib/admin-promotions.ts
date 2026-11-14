@@ -76,7 +76,12 @@ export async function savePromotion(
   return prisma.$transaction(async (tx) => {
     if (id !== undefined) {
       const existing = await tx.promotion.findFirst({
-        where: { id, productId: product.id, endedAt: null },
+        where: {
+          id,
+          productId: product.id,
+          endedAt: null,
+          endsOn: { gte: today },
+        },
         select: { id: true },
       });
       if (!existing) return { ok: false, code: "UNKNOWN_PROMOTION" };

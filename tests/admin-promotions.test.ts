@@ -195,6 +195,31 @@ test("an ended promotion, or one of another product, cannot be edited", async ()
   );
 });
 
+test("a promotion whose last day has passed cannot be edited back to life", async () => {
+  const slug = await product();
+  await savePromotion(
+    input(slug, { startsOn: "2026-11-14", endsOn: "2026-11-15" }),
+    ADMIN,
+    TODAY,
+  );
+  const row = await prisma.promotion.findFirstOrThrow({
+    where: { product: { slug } },
+  });
+
+  assert.deepEqual(
+    await savePromotion(
+      input(slug, { id: row.id, endsOn: "2026-11-30" }),
+      ADMIN,
+      "2026-11-16",
+    ),
+    { ok: false, code: "UNKNOWN_PROMOTION" },
+  );
+  const unchanged = await prisma.promotion.findUniqueOrThrow({
+    where: { id: row.id },
+  });
+  assert.equal(unchanged.endsOn, "2026-11-15");
+});
+
 test("ending a promotion twice, or one that does not exist, is refused", async () => {
   const slug = await product();
   await savePromotion(input(slug), ADMIN, TODAY);

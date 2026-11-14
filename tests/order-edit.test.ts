@@ -645,6 +645,83 @@ test("swapping the size removes the old line and adds the new one at the catalog
   assert.deepEqual(order.events.at(-1)?.changes, result.changes);
 });
 
+async function duringPromotion<T>(
+  slug: string,
+  run: () => Promise<T>,
+): Promise<T> {
+  const product = await prisma.product.findUniqueOrThrow({ where: { slug } });
+  const promotion = await prisma.promotion.create({
+    data: {
+      productId: product.id,
+      kind: "PERCENT",
+      value: 20,
+      startsOn: "2000-01-01",
+      endsOn: "2999-12-31",
+      createdBy: "admin@example.com",
+    },
+  });
+  try {
+    return await run();
+  } finally {
+    await prisma.promotion.delete({ where: { id: promotion.id } });
+  }
+}
+
+test("a product added during its promotion is charged the promotion price", async () => {
+  const reference = await place();
+  const small = await catalogue(SMALL);
+  const large = await catalogue(LARGE);
+  const promo = Math.round(large.priceCents * 0.8);
+
+  const result = await duringPromotion(LARGE, async () =>
+    editOrderContact(
+      await editInput(reference, {
+        items: [
+          { slug: SMALL, quantity: 1 },
+          { slug: LARGE, quantity: 2 },
+        ],
+      }),
+    ),
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(await linesOf(reference), [
+    {
+      slug: SMALL,
+      name: small.name,
+      unitPriceCents: small.priceCents,
+      quantity: 1,
+    },
+    { slug: LARGE, name: large.name, unitPriceCents: promo, quantity: 2 },
+  ]);
+  assert.equal(
+    (await orderOf(reference)).itemsCents,
+    small.priceCents + promo * 2,
+  );
+});
+
+test("a line grown during its product's promotion keeps the price it was sold at", async () => {
+  const reference = await place();
+  const small = await catalogue(SMALL);
+
+  const result = await duringPromotion(SMALL, async () =>
+    editOrderContact(
+      await editInput(reference, { items: [{ slug: SMALL, quantity: 3 }] }),
+    ),
+  );
+
+  assert.equal(result.ok, true);
+  assert.deepEqual(await linesOf(reference), [
+    {
+      slug: SMALL,
+      name: small.name,
+      unitPriceCents: small.priceCents,
+      quantity: 3,
+    },
+  ]);
+  assert.equal((await orderOf(reference)).itemsCents, small.priceCents * 3);
+});
+
 test("adding a line keeps the existing one, and a sum of a slug sent twice is one line", async () => {
   const reference = await place();
   const small = await catalogue(SMALL);

@@ -104,14 +104,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
-        id: "analytics-retention",
-        text: "Колко дълго Google Analytics пази данните — 2 или 14 месеца.",
-        files: [PRIVACY],
-        markers: [
-          "TODO: 2 или 14 месеца според настройката в Google Analytics",
-        ],
-      },
-      {
         id: "hosting",
         text: "Хостинг доставчикът и регионът на сървъра.",
         files: [PRIVACY],

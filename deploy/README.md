@@ -140,8 +140,8 @@ Security headers come from
 ## 4. The app
 
 `~/beepollen` (mode 700) holds `compose.prod.yaml`, `deploy.sh`,
-`backup.sh` and `disk-check.sh` from this folder and `.env` (mode 600, written
-under `umask 077`). Copy the first four from `main`:
+`backup.sh`, `disk-check.sh` and `revalidate.sh` from this folder and `.env`
+(mode 600, written under `umask 077`). Copy the first five from `main`:
 
 ```bash
 ssh <host> 'install -d -m 700 ~/beepollen'
@@ -149,6 +149,7 @@ git show main:compose.prod.yaml | ssh <host> 'cat > ~/beepollen/compose.prod.yam
 git show main:deploy/deploy.sh | ssh <host> 'cat > ~/beepollen/deploy.sh && chmod 700 ~/beepollen/deploy.sh'
 git show main:deploy/backup.sh | ssh <host> 'cat > ~/beepollen/backup.sh && chmod 700 ~/beepollen/backup.sh'
 git show main:deploy/disk-check.sh | ssh <host> 'cat > ~/beepollen/disk-check.sh && chmod 700 ~/beepollen/disk-check.sh'
+git show main:deploy/revalidate.sh | ssh <host> 'cat > ~/beepollen/revalidate.sh && chmod 700 ~/beepollen/revalidate.sh'
 ```
 
 `.env` holds the variables the README lists. `AUTH_SECRET`,
@@ -280,3 +281,17 @@ the disk check:
 
 The check's schedule is `30 * * * *`, Europe/Sofia, one hour's grace. Read the
 runs with `sudo journalctl -t beepollen-email`.
+
+## 9. Nightly revalidate
+
+A promotion's dates are calendar days in Europe/Sofia, but the shop pages are
+prerendered, so a promotion that starts or ends at midnight shows only after
+something re-renders them. `revalidate.sh` calls the revalidate route with the
+secret the running container holds, as `deploy.sh` does, one minute past
+midnight from `deploy`'s crontab:
+
+```bash
+( crontab -l 2>/dev/null | grep -v beepollen-revalidate; echo '1 0 * * * /home/deploy/beepollen/revalidate.sh 2>&1 | logger -t beepollen-revalidate' ) | crontab -
+```
+
+Read the runs with `sudo journalctl -t beepollen-revalidate`.

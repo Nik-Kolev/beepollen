@@ -100,14 +100,17 @@ export function PromotionPanel({
     setStatus("idle");
   }
 
-  function run(action: () => Promise<{ ok: boolean; code?: Failure }>) {
+  function run(
+    action: () => Promise<{ ok: boolean; code?: Failure }>,
+    clearForm = true,
+  ) {
     if (busy.current) return;
     busy.current = true;
     startTransition(async () => {
       try {
         const result = await action();
         if (result.ok) {
-          reset();
+          if (clearForm) reset();
           setStatus("saved");
         } else {
           setStatus(result.code ?? "NOT_SAVED");
@@ -197,6 +200,7 @@ export function PromotionPanel({
               type="text"
               inputMode={kind === "PERCENT" ? "numeric" : "decimal"}
               autoComplete="off"
+              maxLength={20}
               value={value}
               onChange={(event) => {
                 setValue(event.target.value);
@@ -321,7 +325,10 @@ export function PromotionPanel({
                       type="button"
                       aria-disabled={pending}
                       onClick={() =>
-                        run(() => endPromotionAction(promotion.id))
+                        run(
+                          () => endPromotionAction(promotion.id),
+                          editing === promotion.id,
+                        )
                       }
                       className="text-error min-h-11 px-2 font-medium underline underline-offset-4"
                     >

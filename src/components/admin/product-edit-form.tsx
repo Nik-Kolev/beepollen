@@ -1,12 +1,24 @@
 "use client";
 
-import { type SubmitEvent, useRef, useState, useTransition } from "react";
+import {
+  type SubmitEvent,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 
 import { saveProduct } from "@/app/admin/products/actions";
+import { formatDay } from "@/components/admin/promotion-panel";
 import { FIELD, FIELD_INVALID, LABEL } from "@/components/form-styles";
-import type { ProductEditResult } from "@/lib/admin-products";
+import type { OpenPromotion, ProductEditResult } from "@/lib/admin-products";
+import { formatPrice } from "@/lib/money";
 
-type Refusal = Extract<ProductEditResult, { ok: false }>["code"];
+type Refusal = Exclude<
+  Extract<ProductEditResult, { ok: false }>["code"],
+  "PROMOTION_OPEN"
+>;
 
 type Failure = Refusal | "NOT_SAVED";
 
@@ -20,6 +32,14 @@ const FAILURE_TEXT: Record<Failure, string> = {
 type Status = "idle" | "saved" | Failure;
 
 const MIN_SPIN_MS = 1500;
+
+function describePromotion(promotion: OpenPromotion) {
+  const terms =
+    promotion.kind === "PERCENT"
+      ? `−${promotion.value}%`
+      : `на ${formatPrice(promotion.value)}`;
+  return `${terms} (${formatDay(promotion.startsOn)} – ${formatDay(promotion.endsOn)})`;
+}
 
 export function ProductEditForm({
   slug,
@@ -37,31 +57,55 @@ export function ProductEditForm({
   const [price, setPrice] = useState(initialPrice);
   const [stock, setStock] = useState(initialStock);
   const [status, setStatus] = useState<Status>("idle");
+  const [ending, setEnding] = useState<OpenPromotion[] | null>(null);
   const [pending, startTransition] = useTransition();
   const saving = useRef(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const textId = useId();
 
   const priceInvalid = status === "INVALID_PRICE";
 
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
+  useEffect(() => {
+    if (!ending || dialogRef.current?.open) return;
+    dialogRef.current?.showModal();
+    cancelRef.current?.focus();
+  }, [ending]);
+
+  function save(endPromotionIds?: number[]) {
     if (saving.current) return;
     saving.current = true;
 
     const startedAt = Date.now();
     startTransition(async () => {
       try {
-        const result = await saveProduct({ slug, price, stock });
+        const result = await saveProduct({
+          slug,
+          price,
+          stock,
+          ...(endPromotionIds && { endPromotionIds }),
+        });
         const remaining = MIN_SPIN_MS - (Date.now() - startedAt);
         if (remaining > 0) {
           await new Promise((resolve) => setTimeout(resolve, remaining));
         }
-        setStatus(result.ok ? "saved" : result.code);
+        if (result.ok) setStatus("saved");
+        else if (result.code === "PROMOTION_OPEN") {
+          setStatus("idle");
+          setEnding(result.promotions);
+        } else setStatus(result.code);
       } catch {
         setStatus("NOT_SAVED");
       } finally {
         saving.current = false;
       }
     });
+  }
+
+  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    save();
   }
 
   return (
@@ -156,6 +200,44 @@ export function ProductEditForm({
             ? "Запазено."
             : FAILURE_TEXT[status]}
       </p>
+      <dialog
+        ref={dialogRef}
+        aria-labelledby={titleId}
+        aria-describedby={textId}
+        onClose={() => setEnding(null)}
+        className="bg-surface text-ink backdrop:bg-ink/60 m-auto w-[calc(100%-2rem)] max-w-md rounded-xl p-6 shadow-xl"
+      >
+        <h2 id={titleId} className="text-lg font-semibold">
+          Сигурни ли сте?
+        </h2>
+        <p id={textId} className="mt-2">
+          Новата цена прекратява{" "}
+          {ending && ending.length > 1 ? "промоциите" : "промоцията"} на {name}:{" "}
+          {ending?.map(describePromotion).join(", ")}. Можете да пуснете нова
+          след това.
+        </p>
+        <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <button
+            type="button"
+            ref={cancelRef}
+            onClick={() => dialogRef.current?.close()}
+            className="border-line text-ink bg-surface hover:bg-ground inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors"
+          >
+            Отказ
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const ids = ending?.map(({ id }) => id);
+              dialogRef.current?.close();
+              if (ids) save(ids);
+            }}
+            className="bg-error border-error text-action-ink inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors hover:opacity-90"
+          >
+            Смени цената
+          </button>
+        </div>
+      </dialog>
     </form>
   );
 }

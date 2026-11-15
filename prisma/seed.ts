@@ -2,7 +2,8 @@ import { officeRow, readOfficeSnapshot } from "@/lib/econt-snapshot";
 import { assertPublishable } from "@/lib/food-information";
 import prisma from "@/lib/prisma";
 
-const SUMMARY = "Lorem ipsum dolor sit amet, consectetur adipiscing elit.";
+const SUMMARY =
+  "Натурален пчелен прашец от нашите пчели край Попово — био продукт, който се яде сам, с мед или с кисело мляко.";
 
 const TODO_PRICE = {
   pollen500: 2450,
@@ -10,17 +11,23 @@ const TODO_PRICE = {
 };
 
 const DESCRIPTION = [
-  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod",
-  "tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,",
-  "quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo.",
-].join(" ");
+  "Пчелният прашец е цветен прашец, който пчелите събират от цъфтящите растения и оформят на малки зрънца. Цветът и вкусът му зависят от растенията, от които е събран, затова всяка партида е малко по-различна.",
+  [
+    "Как да го консумирате:",
+    "За възрастни — по 1–2 чаени лъжички дневно.",
+    "За деца над 3 години — по половин чаена лъжичка дневно.",
+    "Може да го ядете направо, разбъркан в кисело мляко или смути, или смесен с мед в съотношение 1:1. Ако го накиснете от вечерта, се яде по-лесно.",
+  ].join("\n"),
+  "Био продукт. Сертификат за биологично производство: TODO: линк към сертификата и код на контролиращия орган",
+].join("\n\n");
 
 const FOOD_INFORMATION = {
-  composition: "TODO: състав",
-  origin: "TODO: страна на добив",
-  storage: "TODO: условия на съхранение",
-  bestBefore: "TODO: срок на годност",
-  allergenInfo: "TODO: алергени",
+  composition: "100% пчелен прашец",
+  origin: "България",
+  storage: "На сухо, хладно и тъмно място, в добре затворена опаковка.",
+  bestBefore: "1 година",
+  allergenInfo:
+    "Пчелният прашец е съставен от полени на различни растения и може да предизвика алергична реакция при хора, алергични към полени или пчелни продукти. Не е подходящ за деца под 3 години.",
 };
 
 const products = [

@@ -21,8 +21,7 @@ test("every product is listed with its photo, price and stock", async ({
   await expect(
     page.getByRole("heading", { level: 1, name: "Продукти" }),
   ).toBeVisible();
-  const forms = page.getByRole("form");
-  await expect(forms).toHaveCount(3);
+  await expect(page.getByRole("article")).toHaveCount(3);
 
   const draft = page
     .getByRole("article")
@@ -45,7 +44,7 @@ test("a price of zero is refused, marked on the field and not stored", async ({
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/products");
 
-  const form = page.getByRole("form", { name: "Lorem ipsum" });
+  const form = page.getByRole("form", { name: "Lorem ipsum", exact: true });
   const price = form.getByLabel("Цена (€)");
   await price.fill("0");
   await form.getByRole("button", { name: "Запази" }).click();
@@ -63,7 +62,9 @@ test("a price of zero is refused, marked on the field and not stored", async ({
 
   await page.reload();
   await expect(
-    page.getByRole("form", { name: "Lorem ipsum" }).getByLabel("Цена (€)"),
+    page
+      .getByRole("form", { name: "Lorem ipsum", exact: true })
+      .getByLabel("Цена (€)"),
   ).toHaveValue("0,00");
 });
 
@@ -73,7 +74,7 @@ test("a save sent after the session is gone is refused and stores nothing", asyn
 }) => {
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/products");
-  const form = page.getByRole("form", { name: "Lorem ipsum" });
+  const form = page.getByRole("form", { name: "Lorem ipsum", exact: true });
   await form.getByLabel("Цена (€)").fill("12,00");
 
   await context.clearCookies();
@@ -83,7 +84,9 @@ test("a save sent after the session is gone is refused and stores nothing", asyn
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/products");
   await expect(
-    page.getByRole("form", { name: "Lorem ipsum" }).getByLabel("Цена (€)"),
+    page
+      .getByRole("form", { name: "Lorem ipsum", exact: true })
+      .getByLabel("Цена (€)"),
   ).toHaveValue("0,00");
 });
 
@@ -93,7 +96,7 @@ test("a save the server fails to answer is reported in place and keeps the page"
 }) => {
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/products");
-  const form = page.getByRole("form", { name: "Lorem ipsum" });
+  const form = page.getByRole("form", { name: "Lorem ipsum", exact: true });
 
   await page.route("**/admin/products", (route) =>
     route.request().method() === "POST"
@@ -106,7 +109,7 @@ test("a save the server fails to answer is reported in place and keeps the page"
   await expect(form.getByRole("status")).toHaveText(
     "Не е запазено. Опитайте отново.",
   );
-  await expect(page.getByRole("form")).toHaveCount(3);
+  await expect(page.getByRole("article")).toHaveCount(3);
 });
 
 test("the admin nav moves between orders and products and marks the current one", async ({

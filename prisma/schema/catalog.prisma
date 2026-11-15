@@ -23,13 +23,50 @@ model Product {
   bestBefore     String?
   allergenInfo   String?
 
-  images     ProductImage[]
-  orderItems OrderItem[]
+  images           ProductImage[]
+  orderItems       OrderItem[]
+  promotions       Promotion[]
+  priceChanges     PriceChange[]
+  campaignProducts CampaignProduct[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([isPublished, sortOrder])
+}
+
+enum PromotionKind {
+  PERCENT
+  PRICE
+}
+
+model Promotion {
+  id        Int           @id @default(autoincrement())
+  productId Int
+  product   Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  kind      PromotionKind
+  value     Int
+  startsOn  String
+  endsOn    String
+  endedAt   DateTime?
+  createdBy String
+  createdAt DateTime      @default(now())
+
+  campaigns Campaign[]
+
+  @@index([productId, startsOn])
+}
+
+model PriceChange {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  fromCents Int
+  toCents   Int
+  changedBy String
+  createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
 }
 
 model ProductImage {

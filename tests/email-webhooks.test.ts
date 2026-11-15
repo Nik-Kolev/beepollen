@@ -13,6 +13,7 @@ import {
 import { sendPlacedEmails } from "@/lib/order-emails";
 import { placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
+import { isSubscribed } from "@/lib/subscriptions";
 
 import { validCheckoutInput } from "./support/checkout";
 
@@ -66,14 +67,18 @@ function emailData(to: string[]) {
   };
 }
 
-function bounced(emailId: string): EmailBouncedEvent {
+function bounced(
+  emailId: string,
+  to = ["someone@example.com"],
+  type = "Permanent",
+): EmailBouncedEvent {
   return {
     type: "email.bounced",
     created_at: new Date().toISOString(),
     data: {
-      ...emailData(["someone@example.com"]),
+      ...emailData(to),
       email_id: emailId,
-      bounce: { type: "Permanent", subType: "General", message: "gone" },
+      bounce: { type, subType: "General", message: "gone" },
     },
   };
 }
@@ -290,5 +295,121 @@ test("the webhook route refuses an unsigned call and acts on a signed one", asyn
     if (saved.RESEND_API_KEY === undefined) delete process.env.RESEND_API_KEY;
     if (saved.RESEND_WEBHOOK_SECRET === undefined)
       delete process.env.RESEND_WEBHOOK_SECRET;
+  }
+});
+
+async function subscriber() {
+  const placed = await place({ acceptsOffers: true });
+  const { customerId } = await prisma.order.findUniqueOrThrow({
+    where: { reference: placed.reference },
+    select: { customerId: true },
+  });
+  return { ...placed, customerId };
+}
+
+test("an address that does not exist is taken off the offers at the first bounce", async () => {
+  const { email, customerId } = await subscriber();
+
+  await handleEmailEvent(bounced(randomUUID(), [email.toUpperCase()]));
+
+  assert.equal(await isSubscribed(customerId), false);
+  assert.equal(
+    await prisma.emailBounce.count({ where: { customerId, permanent: true } }),
+    1,
+  );
+});
+
+test("a temporary bounce keeps the subscriber until the second one", async () => {
+  const { email, customerId } = await subscriber();
+
+  await handleEmailEvent(bounced(randomUUID(), [email], "Temporary"));
+  assert.equal(await isSubscribed(customerId), true);
+
+  await handleEmailEvent(bounced(randomUUID(), [email], "Transient"));
+  assert.equal(await isSubscribed(customerId), false);
+});
+
+test("the same bounce delivered twice counts once", async () => {
+  const { email, customerId } = await subscriber();
+  const emailId = randomUUID();
+
+  await handleEmailEvent(bounced(emailId, [email], "Temporary"));
+  await handleEmailEvent(bounced(emailId, [email], "Temporary"));
+
+  assert.equal(await isSubscribed(customerId), true);
+  assert.equal(await prisma.emailBounce.count({ where: { customerId } }), 1);
+});
+
+test("a bounced campaign email marks its recipient", async () => {
+  const { email, customerId } = await subscriber();
+  const campaign = await prisma.campaign.create({
+    data: { kind: "RESTOCK", text: "Ново", createdBy: "admin@example.com" },
+  });
+  const emailId = randomUUID();
+  await prisma.campaignRecipient.create({
+    data: {
+      campaignId: campaign.id,
+      customerId,
+      status: "SENT",
+      resendEmailId: emailId,
+    },
+  });
+
+  try {
+    await handleEmailEvent(bounced(emailId, [email], "Temporary"));
+    const row = await prisma.campaignRecipient.findFirstOrThrow({
+      where: { campaignId: campaign.id },
+    });
+    assert.equal(row.status, "BOUNCED");
+  } finally {
+    await prisma.campaign.delete({ where: { id: campaign.id } });
+  }
+});
+
+test("bounces from before a new subscription do not count towards it", async () => {
+  const { email, customerId } = await subscriber();
+  await handleEmailEvent(bounced(randomUUID(), [email], "Temporary"));
+  await handleEmailEvent(bounced(randomUUID(), [email], "Temporary"));
+  assert.equal(await isSubscribed(customerId), false);
+
+  await place({ email, acceptsOffers: true });
+  assert.equal(await isSubscribed(customerId), true);
+  await handleEmailEvent(bounced(randomUUID(), [email], "Temporary"));
+
+  assert.equal(await isSubscribed(customerId), true);
+});
+
+test("a bounce for an address no customer holds records nothing", async () => {
+  const before = await prisma.emailBounce.count();
+  await handleEmailEvent(
+    bounced(randomUUID(), [`nobody-${randomUUID()}@example.com`]),
+  );
+  assert.equal(await prisma.emailBounce.count(), before);
+});
+
+test("a permanently bounced campaign email marks its recipient and unsubscribes", async () => {
+  const { email, customerId } = await subscriber();
+  const campaign = await prisma.campaign.create({
+    data: { kind: "RESTOCK", text: "Ново", createdBy: "admin@example.com" },
+  });
+  const emailId = randomUUID();
+  await prisma.campaignRecipient.create({
+    data: {
+      campaignId: campaign.id,
+      customerId,
+      status: "SENT",
+      resendEmailId: emailId,
+    },
+  });
+
+  try {
+    await handleEmailEvent(bounced(emailId, [email]));
+    const row = await prisma.campaignRecipient.findFirstOrThrow({
+      where: { campaignId: campaign.id },
+    });
+    assert.equal(row.status, "BOUNCED");
+    assert.equal(await isSubscribed(customerId), false);
+  } finally {
+    await prisma.campaign.delete({ where: { id: campaign.id } });
   }
 });

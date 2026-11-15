@@ -140,8 +140,9 @@ Security headers come from
 ## 4. The app
 
 `~/beepollen` (mode 700) holds `compose.prod.yaml`, `deploy.sh`,
-`backup.sh` and `disk-check.sh` from this folder and `.env` (mode 600, written
-under `umask 077`). Copy the first four from `main`:
+`backup.sh`, `disk-check.sh`, `email-check.sh` and `revalidate.sh` from this
+folder and `.env` (mode 600, written under `umask 077`). Copy the first six
+from `main`:
 
 ```bash
 ssh <host> 'install -d -m 700 ~/beepollen'
@@ -149,6 +150,8 @@ git show main:compose.prod.yaml | ssh <host> 'cat > ~/beepollen/compose.prod.yam
 git show main:deploy/deploy.sh | ssh <host> 'cat > ~/beepollen/deploy.sh && chmod 700 ~/beepollen/deploy.sh'
 git show main:deploy/backup.sh | ssh <host> 'cat > ~/beepollen/backup.sh && chmod 700 ~/beepollen/backup.sh'
 git show main:deploy/disk-check.sh | ssh <host> 'cat > ~/beepollen/disk-check.sh && chmod 700 ~/beepollen/disk-check.sh'
+git show main:deploy/email-check.sh | ssh <host> 'cat > ~/beepollen/email-check.sh && chmod 700 ~/beepollen/email-check.sh'
+git show main:deploy/revalidate.sh | ssh <host> 'cat > ~/beepollen/revalidate.sh && chmod 700 ~/beepollen/revalidate.sh'
 ```
 
 `.env` holds the variables the README lists. `AUTH_SECRET`,
@@ -235,9 +238,15 @@ With `B2_KEY_ID` and `B2_APPLICATION_KEY` in `.env`, each new copy — the
 nightly one and the one `deploy.sh` takes before migrating — is also uploaded to
 Backblaze B2 as `beepollen-<day>-<UTC time>Z.db`, so a deploy's copy never
 becomes a new version of that night's file, which the bucket's lifecycle would
-delete. Both scripts pass only those two variables into the container. The key
-must be restricted to the backup bucket. A failed upload keeps the local copy
-and exits 2: the nightly run pings Healthchecks with the failure, and a deploy
+delete. That lifecycle rule hides a file 89 days after upload and deletes it
+one day after hiding, which is the 90 days `/privacy` promises; a longer rule
+needs `/privacy` changed with it. Both scripts pass only those two variables into the container. The key
+must be restricted to the backup bucket. An upload B2 answers with a timeout,
+408, 429 or 5xx is tried three times in all, each from a fresh authorization,
+as B2 asks of a busy pod. A B2 that hangs rather than answering can hold a
+deploy's backup, and so the new image, for about a quarter of an hour; the old
+container keeps serving meanwhile. A failed upload keeps the local copy and
+exits 2: the nightly run pings Healthchecks with the failure, and a deploy
 prints a warning and carries on. A `B2_KEY_ID` or `B2_APPLICATION_KEY` line the
 scripts cannot read fails the nightly run too: they take `NAME=value` or
 `NAME="value"`, nothing else. Without either variable nothing leaves the host
@@ -280,3 +289,17 @@ the disk check:
 
 The check's schedule is `30 * * * *`, Europe/Sofia, one hour's grace. Read the
 runs with `sudo journalctl -t beepollen-email`.
+
+## 9. Nightly revalidate
+
+A promotion's dates are calendar days in Europe/Sofia, but the shop pages are
+prerendered, so a promotion that starts or ends at midnight shows only after
+something re-renders them. `revalidate.sh` calls the revalidate route with the
+secret the running container holds, as `deploy.sh` does, one minute past
+midnight from `deploy`'s crontab:
+
+```bash
+( crontab -l 2>/dev/null | grep -v beepollen-revalidate; echo '1 0 * * * /home/deploy/beepollen/revalidate.sh 2>&1 | logger -t beepollen-revalidate' ) | crontab -
+```
+
+Read the runs with `sudo journalctl -t beepollen-revalidate`.

@@ -51,11 +51,12 @@ visitor and traffic-source counts until GA4 is wired, announced as sample number
 on the page, and deleted when the GA4 read replaces it. Ask before inventing a
 number anywhere else.
 
-The home page's „За нас“ renders only under `next dev` until the owner supplies
-the producers' names and bios: every build, the live site and the e2e suite
-included, leaves it out, and `e2e/about.spec.ts` asserts that. Showing it again
-means dropping the `NODE_ENV` check in `(shop)/page.tsx` and restoring that
-spec's layout tests from git history.
+The home page's „За нас“ renders only under `next dev` until the owner approves
+the drafted bios in `src/lib/producers.ts`, which `/admin/todo` quotes for him
+to correct: every build, the live site and the e2e suite included, leaves it
+out, and `e2e/about.spec.ts` asserts that. Showing it means dropping the
+`NODE_ENV` check in `(shop)/page.tsx` and restoring that spec's layout tests
+from git history.
 
 `/admin/todo` lists everything the owner still owes. Product fields are read
 from the database; the rest is `OWNER_TODOS` in `src/lib/owner-todos.ts`, each
@@ -366,13 +367,45 @@ ids: no other host may share production's secret. Opening
 only the page's button, a form post, acts. The one-click header points at
 `POST /api/unsubscribe`, which mail clients call themselves.
 
+A campaign (`src/lib/campaigns.ts`) is an email to every subscriber, addressed
+when it is made: `createCampaign` writes one `CampaignRecipient` per subscriber,
+the longest since their last order first, and `sendCampaignBatch` sends in that
+order. One batch spends at most `EMAIL_WARNING_LIMIT` minus the last 24 hours'
+`EmailSend` count, so about 20 of Resend's 100 a day stay for orders; the rest
+stay `PENDING` for a later batch, and a `FAILED` one is tried again under the
+same idempotency key, `campaign-<id>-customer-<id>`. Subscription is re-read
+before each send, and `eraseCustomer` marks the customer's waiting rows
+`UNSUBSCRIBED`. With no `RESEND_API_KEY` the batch stops and leaves everything
+pending.
+
+`/admin/campaigns` makes a campaign through `startCampaign` and sends its first
+batch in `after()`, since one batch can take longer than a proxy waits for a
+response. When a campaign was made in the last 14 Sofia days, inclusive, the
+server refuses a new one with `RECENT` until the admin confirms it, so the
+warning cannot be skipped by a crafted request. „Изпрати на
+останалите“ on a campaign in the history sends its next batch under the same
+daily limit, and is refused once its promotion has ended or all its products
+are off sale, since the email would then advertise a price or a product no
+longer sold. The preview rewrites
+photo URLs to the page's own origin, because `img-src` allows only `'self'`.
+
 Resend reports back to `POST /api/webhooks/resend`, verified by the SDK's
 `webhooks.verify` against `RESEND_WEBHOOK_SECRET`; with that or
 `RESEND_API_KEY` unset every call is refused. Each buyer email's event keeps
-Resend's id, so `email.bounced` marks that event `BOUNCED`; owner emails keep
-none and their bounces match nothing. `email.complained` withdraws every
+Resend's id, so `email.bounced` marks that event, or that campaign recipient,
+`BOUNCED`; owner emails keep none and their bounces match nothing. Each bounce
+to a known customer is recorded once per Resend id in `EmailBounce`: a
+`Permanent` one withdraws their offers consents at once, any other type on the
+second. Resend's docs name the soft type both „Temporary“ and „Transient“,
+which is why only `Permanent` is matched. `email.complained` withdraws every
 offers consent of the customer with that address. A replayed order's
 confirmation never overwrites `BOUNCED` with `SENT`.
+
+The campaign emails live in `src/lib/email/campaign-templates.ts`. „Ново
+зареждане“ shows each product as a card with a large photo, picked over a
+compact list since a restock names one or two products. The owner's
+text is escaped and split into paragraphs on blank lines, and a product photo is
+the product's first image loaded from `SITE_URL`, like the emblem.
 
 `src/lib/email/previews.ts` renders every email with a sample order, so a new
 email joins that list in the same change. `/admin/todo` no longer shows them:
@@ -461,6 +494,37 @@ that places more than three orders gives each its own phone and email.
 
 `deliveryCents` is priced by `placeOrder` from the delivery method alone and never
 read from the caller — the tariff for an Econt office, zero for `LOCAL`.
+
+A `Promotion` lowers one product's price, as a percentage or a fixed price, from
+`startsOn` to `endsOn` inclusive — calendar days in `Europe/Sofia`, stored as
+`YYYY-MM-DD` strings so they compare as text. Every catalogue and order query
+passes its product through `withPromotion`, so `priceCents` is the price being
+charged today and `regularPriceCents` is the undiscounted one, or `null` when no
+promotion applies; code that wants the regular price reads the second field.
+Prerendered pages only change on a revalidation, which is why a date taking
+effect needs one. The struck-through price shown beside a promotion is always the
+regular price — the owner's decision, made knowing that the Omnibus rule in ЗЗП
+asks for the lowest price of the previous 30 days, so a promotion repeated within
+30 days strictly needs the earlier promotion's price instead. `ProductPrice`
+draws every product price in the shop, the struck price and the percentage
+with it, so a new place that shows one renders it too.
+
+Promotions are added, edited and ended under each product on
+`/admin/products`, by `savePromotion` and `endPromotion` in
+`src/lib/admin-promotions.ts`. A product has at most one open promotion,
+running or upcoming, and a new one cannot start in the past; the check reads then writes inside one
+transaction, which suits a single admin and would let two simultaneous saves
+through. An ended or finished promotion stays as history and is never edited;
+ending one takes effect at once. Any change of the regular price ends the
+product's open promotions: `editProduct` answers `PROMOTION_OPEN` with them
+until the save names every one of them, so one added on another screen is never
+ended unseen. A save that keeps the price never touches them.
+
+Each regular-price change writes a `PriceChange` row in the same transaction,
+with the admin who made it. `priceHistory` merges those with the promotions,
+newest first by `createdAt`; `/admin/products` shows ten per product and every
+entry for the product named by `?history=<slug>`. The history starts at the
+first change made in the admin, so a price set by the seed has none.
 
 ## Checkout
 

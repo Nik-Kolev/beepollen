@@ -10,7 +10,12 @@ import {
 } from "../tests/support/fixture-offices";
 import { TEST_ADMIN_EMAIL, TEST_REVALIDATE_SECRET } from "./admin-env";
 import { signInAs } from "./admin-session";
-import { setProductPrice } from "./e2e-db";
+import {
+  addOldPriceChanges,
+  deleteOldPriceChanges,
+  endOpenPromotions,
+  setProductPrice,
+} from "./e2e-db";
 import { seedCart } from "./seed-cart";
 
 const PRODUCT = "Пчелен прашец 1 кг";
@@ -23,7 +28,7 @@ test.describe.configure({ mode: "serial" });
 
 async function saveProduct(page: Page, price: string, stock: string) {
   await page.goto("/admin/products");
-  const form = page.getByRole("form", { name: PRODUCT });
+  const form = page.getByRole("form", { name: PRODUCT, exact: true });
   await form.getByLabel("Цена (€)").fill(price);
   await form.getByLabel("Наличност").selectOption(stock);
   await form.getByRole("button", { name: "Запази" }).click();
@@ -35,6 +40,8 @@ test.afterAll(async ({ browser }, testInfo) => {
     baseURL: testInfo.project.use.baseURL,
   });
   await signInAs(context, TEST_ADMIN_EMAIL);
+  endOpenPromotions(SLUG);
+  deleteOldPriceChanges(SLUG);
   await saveProduct(await context.newPage(), SEEDED.price, SEEDED.stock);
   await context.close();
 });
@@ -87,9 +94,177 @@ test("a price and stock saved in the admin reach the prerendered shop pages", as
   await expect(page.getByText("Общо:")).toHaveText(`Общо: ${formatPrice(0)}`);
 
   await page.goto("/admin/products");
-  const form = page.getByRole("form", { name: PRODUCT });
+  const form = page.getByRole("form", { name: PRODUCT, exact: true });
   await expect(form.getByLabel("Цена (€)")).toHaveValue("47,30");
   await expect(form.getByLabel("Наличност")).toHaveValue("NONE");
+});
+
+test("a promotion started today shows the struck regular price on every shop page until it is ended", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await saveProduct(page, SEEDED.price, SEEDED.stock);
+
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Sofia",
+  }).format(new Date());
+  const article = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: PRODUCT, exact: true }) });
+  const shownToday = today.split("-").reverse().join(".");
+  const panel = article.getByRole("region", { name: "Промоция" });
+  const form = panel.getByRole("form", { name: `Промоция за ${PRODUCT}` });
+  await form.getByLabel("Процент (%)").fill("20");
+  await form.getByLabel("От").fill(today);
+  await form.getByLabel("До (включително)").fill(today);
+  await form.getByRole("button", { name: "Добави промоция" }).click();
+  await expect(panel.getByRole("status")).toHaveText("Запазено.");
+
+  const main = page.getByRole("main");
+  await page.goto("/");
+  const card = page.getByRole("article").filter({ hasText: PRODUCT });
+  await expect(card).toContainText("Промоционална цена 36,72 €");
+  await expect(card.locator("s")).toHaveText("Редовна цена 45,90 €");
+  await expect(card).toContainText("−20%");
+
+  await page.goto(`/products/${SLUG}`);
+  await expect(main).toContainText("Промоционална цена 36,72 €");
+  await expect(main.locator("s")).toHaveText("Редовна цена 45,90 €");
+
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: SLUG, name: PRODUCT, quantity: 2 }],
+  });
+  await page.goto("/cart");
+  await expect(main).toContainText("Промоционална цена 36,72 € / бр.");
+  await expect(main.locator("s")).toHaveText("Редовна цена 45,90 €");
+  await expect(page.getByText("Общо:")).toHaveText("Общо: 73,44 €");
+
+  await page.goto("/checkout");
+  await page.getByRole("button", { name: /^Вашата поръчка/ }).click();
+  const summaryLine = main
+    .getByRole("listitem")
+    .filter({ hasText: PRODUCT })
+    .first();
+  await expect(summaryLine).toContainText("Промоционална цена 73,44 €");
+  await expect(summaryLine.locator("s")).toHaveText("Редовна цена 91,80 €");
+
+  await page.goto("/admin/products");
+  await panel
+    .getByText("Активна промоция")
+    .locator("..")
+    .getByRole("button", { name: "Прекрати" })
+    .click();
+  await expect(
+    panel
+      .getByRole("listitem")
+      .filter({ hasText: `Прекратена промоция на ${shownToday}` })
+      .filter({ hasText: `От${shownToday}` })
+      .filter({ hasText: "Отстъпка−20%" }),
+  ).toHaveCount(1);
+
+  await page.goto(`/products/${SLUG}`);
+  await expect(main.getByText("45,90 €", { exact: true })).toBeVisible();
+  await expect(main.locator("s")).toHaveCount(0);
+});
+
+test("a new regular price asks before ending the open promotion: cancel keeps both, confirm ends it", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await saveProduct(page, SEEDED.price, SEEDED.stock);
+
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Sofia",
+  }).format(new Date());
+  const [year, month, day] = today.split("-");
+  const shownDay = `${day}.${month}.${year}`;
+  const article = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: PRODUCT, exact: true }) });
+  const panel = article.getByRole("region", { name: "Промоция" });
+  const promotionForm = panel.getByRole("form", {
+    name: `Промоция за ${PRODUCT}`,
+  });
+  await promotionForm.getByLabel("Процент (%)").fill("15");
+  await promotionForm.getByLabel("От").fill(today);
+  await promotionForm.getByLabel("До (включително)").fill(today);
+  await promotionForm.getByRole("button", { name: "Добави промоция" }).click();
+  await expect(panel.getByRole("status")).toHaveText("Запазено.");
+  const card = panel.getByText("Активна промоция").locator("..");
+  await expect(card).toContainText("Отстъпка−15%");
+
+  const form = page.getByRole("form", { name: PRODUCT, exact: true });
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  await form.getByLabel("Цена (€)").fill("44,00");
+  await form.getByRole("button", { name: "Запази" }).click();
+  await expect(dialog).toContainText(
+    `прекратява промоцията на ${PRODUCT}: −15% (${shownDay} – ${shownDay})`,
+  );
+  await expect(dialog.getByRole("button", { name: "Отказ" })).toBeFocused();
+  await dialog.getByRole("button", { name: "Отказ" }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.reload();
+  await expect(form.getByLabel("Цена (€)")).toHaveValue(SEEDED.price);
+  await expect(card).toContainText("Отстъпка−15%");
+
+  await form.getByLabel("Цена (€)").fill("44,00");
+  await form.getByRole("button", { name: "Запази" }).click();
+  await dialog.getByRole("button", { name: "Смени цената" }).click();
+  await expect(form.getByRole("status")).toHaveText("Запазено.");
+  await expect(card).toHaveCount(0);
+  const history = panel.getByRole("listitem");
+  for (const text of [
+    "Нова редовна цена",
+    `Дата${shownDay}`,
+    "Беше45,90 €",
+    "Стана44,00 €",
+    TEST_ADMIN_EMAIL,
+  ]) {
+    await expect(history.first()).toContainText(text);
+  }
+  await expect(history.nth(1)).toContainText(
+    `Прекратена промоция на ${shownDay}`,
+  );
+  await expect(history.nth(1)).toContainText("Отстъпка−15%");
+
+  const main = page.getByRole("main");
+  await page.goto(`/products/${SLUG}`);
+  await expect(main.getByText("44,00 €", { exact: true })).toBeVisible();
+  await expect(main.locator("s")).toHaveCount(0);
+
+  await saveProduct(page, SEEDED.price, SEEDED.stock);
+});
+
+test("the price history shows the latest ten entries and „Покажи всички“ the rest", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  deleteOldPriceChanges(SLUG);
+  addOldPriceChanges(SLUG, 12);
+  await page.goto("/admin/products");
+
+  const article = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: PRODUCT, exact: true }) });
+  const history = article.getByRole("listitem");
+  const oldest = history.filter({ hasText: "Беше100,00 €" });
+  await expect(history).toHaveCount(10);
+  await expect(oldest).toHaveCount(0);
+
+  await article.getByRole("link", { name: "Покажи всички" }).click();
+
+  await expect(page).toHaveURL(`/admin/products?history=${SLUG}#${SLUG}`);
+  await expect(oldest).toContainText("old@example.com");
+  await expect(history.last()).toContainText("Беше100,00 €");
+  await expect(
+    article.getByRole("link", { name: "Покажи всички" }),
+  ).toHaveCount(0);
+  expect(await history.count()).toBeGreaterThan(12);
 });
 
 test("an item sold out after the checkout page loaded is refused and can be removed", async ({

@@ -17,6 +17,7 @@ import {
 import { submitOrder } from "@/app/(shop)/checkout/actions";
 import { OfficeCityPicker } from "@/components/delivery/office-city-picker";
 import { EmptyCart } from "@/components/empty-cart";
+import { ProductPrice } from "@/components/product-price";
 import {
   ERROR_TEXT,
   FIELD,
@@ -467,11 +468,17 @@ function FilledCheckout({
                       )}
                     </div>
                     {!withdrawn && !soldOut && (
-                      <p className="shrink-0 font-semibold tabular-nums">
-                        {product.priceCents > 0
-                          ? formatPrice(product.priceCents * quantity)
-                          : "TODO: цена"}
-                      </p>
+                      <div className="shrink-0">
+                        <ProductPrice
+                          priceCents={product.priceCents * quantity}
+                          regularPriceCents={
+                            product.regularPriceCents === null
+                              ? null
+                              : product.regularPriceCents * quantity
+                          }
+                          size="summary"
+                        />
+                      </div>
                     )}
                   </li>
                 );

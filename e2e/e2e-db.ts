@@ -179,6 +179,51 @@ export function setProductPrice(slug: string, priceCents: number) {
   `);
 }
 
+export function endOpenPromotions(slug: string) {
+  runInE2eDb(`
+    await prisma.promotion.updateMany({
+      where: { product: { slug: ${JSON.stringify(slug)} }, endedAt: null },
+      data: { endedAt: new Date() },
+    });
+  `);
+}
+
+export function addOldPriceChanges(slug: string, count: number) {
+  runInE2eDb(`
+    const product = await prisma.product.findUniqueOrThrow({
+      where: { slug: ${JSON.stringify(slug)} },
+    });
+    for (let i = 0; i < ${count}; i++) {
+      await prisma.priceChange.create({
+        data: {
+          productId: product.id,
+          fromCents: 10000 + i,
+          toCents: 10001 + i,
+          changedBy: "old@example.com",
+          createdAt: new Date(Date.UTC(2026, 0, 1, 10, i)),
+        },
+      });
+    }
+  `);
+}
+
+export function deleteOldPriceChanges(slug: string) {
+  runInE2eDb(`
+    await prisma.priceChange.deleteMany({
+      where: {
+        product: { slug: ${JSON.stringify(slug)} },
+        changedBy: "old@example.com",
+      },
+    });
+  `);
+}
+
+export function deleteCampaigns() {
+  runInE2eDb(`
+    await prisma.campaign.deleteMany({});
+  `);
+}
+
 function runInE2eDb(body: string) {
   const script = `
     import("@/lib/prisma").then(async (module) => {

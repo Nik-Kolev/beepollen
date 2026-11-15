@@ -9,6 +9,18 @@ export const UPLOAD_FAILED_EXIT_CODE = 2;
 
 export const B2_TIMEOUTS = { requestMs: 30_000, uploadMs: 5 * 60_000 };
 
+export const B2_RETRY_DELAYS_MS = [1_000, 4_000];
+
+class TemporaryB2Error extends Error {}
+
+function isTemporary(error: unknown) {
+  return (
+    error instanceof TemporaryB2Error ||
+    (error instanceof TypeError && error.cause !== undefined) ||
+    (error instanceof Error && error.name === "TimeoutError")
+  );
+}
+
 export type B2Credentials = { keyId: string; applicationKey: string };
 
 const authorization = z.object({
@@ -51,7 +63,13 @@ async function call<T>(
   response: Response,
 ): Promise<T> {
   if (!response.ok) {
-    throw new Error(`B2 ${step} failed with HTTP ${response.status}`);
+    await response.body?.cancel().catch(() => {});
+    const message = `B2 ${step} failed with HTTP ${response.status}`;
+    const temporary =
+      response.status === 408 ||
+      response.status === 429 ||
+      response.status >= 500;
+    throw temporary ? new TemporaryB2Error(message) : new Error(message);
   }
   const parsed = schema.safeParse(await response.json());
   if (!parsed.success) throw new Error(`B2 ${step} answered unexpectedly`);
@@ -61,9 +79,29 @@ async function call<T>(
 export async function uploadToB2(
   name: string,
   bytes: Buffer,
-  { keyId, applicationKey }: B2Credentials,
+  credentials: B2Credentials,
   fetchImpl: typeof fetch = fetch,
-  { requestMs, uploadMs } = B2_TIMEOUTS,
+  timeouts = B2_TIMEOUTS,
+  retryDelaysMs = B2_RETRY_DELAYS_MS,
+): Promise<string> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await uploadOnce(name, bytes, credentials, fetchImpl, timeouts);
+    } catch (error) {
+      if (attempt >= retryDelaysMs.length || !isTemporary(error)) throw error;
+      await new Promise((resolve) =>
+        setTimeout(resolve, retryDelaysMs[attempt]),
+      );
+    }
+  }
+}
+
+async function uploadOnce(
+  name: string,
+  bytes: Buffer,
+  { keyId, applicationKey }: B2Credentials,
+  fetchImpl: typeof fetch,
+  { requestMs, uploadMs }: typeof B2_TIMEOUTS,
 ): Promise<string> {
   const basic = Buffer.from(`${keyId}:${applicationKey}`).toString("base64");
   const account = await call(

@@ -1,3 +1,5 @@
+import { PRODUCERS } from "@/lib/producers";
+
 type OwnerTodo = {
   id?: string;
   text: string;
@@ -16,18 +18,8 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Продавач и правни данни",
     items: [
       {
-        id: "seller-name-address",
-        text: "Име и правен статус, адрес по регистрация и за кореспонденция.",
-        files: [TERMS],
-        markers: [
-          "TODO: име и правен статус",
-          "TODO: адрес по регистрация и адрес за кореспонденция",
-          "TODO: име на продавача, адрес и имейл",
-        ],
-      },
-      {
-        id: "seller-registration",
-        text: "ЕИК, БУЛСТАТ или номер на земеделски производител и регистрация по ЗДДС.",
+        id: "seller-registration-whose",
+        text: "Кой от двата номера, 179940540 или 179876340, е на Димитър — продавача, и регистриран ли е по ЗДДС.",
         files: [TERMS],
         markers: [
           "TODO: ЕИК, БУЛСТАТ или номер на земеделски производител",
@@ -35,8 +27,8 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
-        id: "seller-babh",
-        text: "Регистрация в БАБХ и номер.",
+        id: "seller-babh-whose",
+        text: "Кой от двата номера в БАБХ, 7855-0041 или 7864-0152, е на Димитър — продавача.",
         files: [TERMS],
         markers: ["TODO: регистрация в БАБХ и номер"],
       },
@@ -45,12 +37,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         text: "Имейл за контакт.",
         files: [TERMS, PRIVACY],
         markers: ["TODO: имейл"],
-      },
-      {
-        id: "data-controller",
-        text: "Администратор на личните данни: име, адрес, телефон и имейл.",
-        files: [PRIVACY],
-        markers: ["TODO: име, адрес, телефон и имейл на администратора"],
       },
       {
         id: "publication-date",
@@ -63,18 +49,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
   {
     title: "Доставка, плащане, връщане и спорове",
     items: [
-      {
-        id: "cod-fee",
-        text: "Кой поема таксата на Еконт за наложения платеж.",
-        files: [TERMS],
-        markers: ["TODO: кой поема таксата на Еконт за наложения платеж"],
-      },
-      {
-        id: "return-address",
-        text: "Адрес за връщане на стоката.",
-        files: [TERMS],
-        markers: ["TODO: адрес за връщане"],
-      },
       {
         id: "dispute-body",
         text: "Органът за алтернативно решаване на спорове и адресът на сайта му.",
@@ -104,26 +78,12 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
-        id: "analytics-retention",
-        text: "Колко дълго Google Analytics пази данните — 2 или 14 месеца.",
-        files: [PRIVACY],
-        markers: [
-          "TODO: 2 или 14 месеца според настройката в Google Analytics",
-        ],
-      },
-      {
         id: "hosting",
         text: "Хостинг доставчикът и регионът на сървъра.",
         files: [PRIVACY],
         markers: [
           "TODO: хостинг доставчик и регион на сървъра — базата данни на магазина.",
         ],
-      },
-      {
-        id: "offers-sender",
-        text: "Кой ще изпраща офертите и напомнянията по имейл.",
-        files: [PRIVACY],
-        markers: ["TODO: кой изпраща офертите и напомнянията по имейл."],
       },
     ],
   },
@@ -148,8 +108,7 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
       {
         text: "„TODO: цена“ се показва навсякъде, където продукт няма цена.",
         files: [
-          "src/app/(shop)/products/[slug]/page.tsx",
-          "src/components/product-card.tsx",
+          "src/components/product-price.tsx",
           "src/components/cart-contents.tsx",
           "src/components/checkout-form.tsx",
         ],
@@ -161,21 +120,16 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Продукти и „За нас“",
     items: [
       {
-        text: "Хранителната информация и описанието на всеки продукт. Какво още липсва в базата, е по-горе.",
+        id: "bio-certificate-link",
+        text: "Линкът към сертификата за биологично производство и кодът на контролиращия орган (например BG-BIO-…). Без кода продуктите не може да се наричат „био“.",
         files: ["prisma/seed.ts"],
-        markers: [
-          "TODO: състав",
-          "TODO: страна на добив",
-          "TODO: условия на съхранение",
-          "TODO: срок на годност",
-          "TODO: алергени",
-        ],
+        markers: ["TODO: линк към сертификата и код на контролиращия орган"],
       },
       {
-        id: "producers",
-        text: "Имената и текстът за двамата пчелари, и техни снимки.",
-        files: ["src/components/about-producers.tsx"],
-        markers: ["TODO: име на първия пчелар", "TODO: име на втория пчелар"],
+        id: "producers-text",
+        text: `Текстът в „За нас“ още не се показва на сайта. Сега пише: ${PRODUCERS.map(({ name, bio }) => `${name} — „${bio}“`).join(" ")} Напишете какво да се промени.`,
+        files: [],
+        markers: [],
       },
     ],
   },
@@ -185,18 +139,12 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
       {
         id: "farmer-status",
         text: "Регистриран земеделски производител ли е продавачът? От това зависят правният статус, номерът и ДДС.",
-        files: [],
-        markers: [],
+        files: [TERMS],
+        markers: ["TODO: правен статус"],
       },
       {
         id: "nutrition-declaration",
         text: "Нужна ли е хранителна декларация за прашеца? Решава БАБХ.",
-        files: [],
-        markers: [],
-      },
-      {
-        id: "bio-certificate",
-        text: "Има ли сертификат за биологично производство? Без него продуктите не се наричат „био“.",
         files: [],
         markers: [],
       },

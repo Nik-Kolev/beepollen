@@ -99,6 +99,13 @@ export function eraseCustomer(
       where: { ...ofCustomer, kind: "OFFERS", withdrawnAt: null },
       data: { withdrawnAt: now },
     });
+    await tx.campaignRecipient.updateMany({
+      where: {
+        customerId: customer.id,
+        status: { in: ["PENDING", "FAILED"] },
+      },
+      data: { status: "UNSUBSCRIBED" },
+    });
     for (const event of customer.orders.flatMap((order) => order.events)) {
       await tx.orderEvent.update({
         where: { id: event.id },

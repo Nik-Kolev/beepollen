@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { StockLevel } from "@/generated/prisma/enums";
 import prisma from "@/lib/prisma";
+import { sofiaToday } from "@/lib/promotions";
 
 export const STOCK_LABEL: Record<StockLevel, string> = {
   PLENTY: "В наличност",
@@ -28,32 +29,93 @@ export const productEditInput = z.object({
   slug: z.string().min(1).max(100),
   price: z.string().max(20),
   stock: z.enum(StockLevel),
+  endPromotionIds: z.array(z.number().int().positive()).max(20).optional(),
 });
+
+export type OpenPromotion = {
+  id: number;
+  kind: "PERCENT" | "PRICE";
+  value: number;
+  startsOn: string;
+  endsOn: string;
+};
 
 export type ProductEditResult =
   | { ok: true; slug: string }
-  | { ok: false; code: "INVALID_PRICE" | "INVALID_INPUT" | "UNKNOWN_PRODUCT" };
+  | { ok: false; code: "INVALID_PRICE" | "INVALID_INPUT" | "UNKNOWN_PRODUCT" }
+  | { ok: false; code: "PROMOTION_OPEN"; promotions: OpenPromotion[] };
 
-export async function editProduct(input: unknown): Promise<ProductEditResult> {
+function allConfirmed(open: OpenPromotion[], confirmed: number[] = []) {
+  return open.every(({ id }) => confirmed.includes(id));
+}
+
+export async function editProduct(
+  input: unknown,
+  adminEmail: string,
+  now = new Date(),
+  today = sofiaToday(now),
+): Promise<ProductEditResult> {
   const parsed = productEditInput.safeParse(input);
   if (!parsed.success) return { ok: false, code: "INVALID_INPUT" };
+  const { slug, stock, endPromotionIds } = parsed.data;
 
   const priceCents = parsePriceCents(parsed.data.price);
   if (priceCents === null) return { ok: false, code: "INVALID_PRICE" };
 
-  const { count } = await prisma.product.updateMany({
-    where: { slug: parsed.data.slug },
-    data: { priceCents, stock: parsed.data.stock },
+  return prisma.$transaction(async (tx): Promise<ProductEditResult> => {
+    const product = await tx.product.findUnique({
+      where: { slug },
+      select: { id: true, priceCents: true },
+    });
+    if (!product) return { ok: false, code: "UNKNOWN_PRODUCT" };
+
+    if (priceCents !== product.priceCents) {
+      const open = await tx.promotion.findMany({
+        where: { productId: product.id, endedAt: null, endsOn: { gte: today } },
+        orderBy: [{ startsOn: "asc" }, { id: "asc" }],
+        select: {
+          id: true,
+          kind: true,
+          value: true,
+          startsOn: true,
+          endsOn: true,
+        },
+      });
+      if (open.length > 0) {
+        if (!allConfirmed(open, endPromotionIds)) {
+          return { ok: false, code: "PROMOTION_OPEN", promotions: open };
+        }
+        await tx.promotion.updateMany({
+          where: { id: { in: open.map(({ id }) => id) }, endedAt: null },
+          data: { endedAt: now },
+        });
+      }
+    }
+
+    await tx.product.update({
+      where: { id: product.id },
+      data: { priceCents, stock },
+    });
+    if (priceCents !== product.priceCents) {
+      await tx.priceChange.create({
+        data: {
+          productId: product.id,
+          fromCents: product.priceCents,
+          toCents: priceCents,
+          changedBy: adminEmail,
+          createdAt: now,
+        },
+      });
+    }
+    return { ok: true, slug };
   });
-  return count === 1
-    ? { ok: true, slug: parsed.data.slug }
-    : { ok: false, code: "UNKNOWN_PRODUCT" };
 }
 
 export function listProductsForAdmin() {
   return prisma.product.findMany({
     orderBy: { sortOrder: "asc" },
     select: {
+      id: true,
       slug: true,
       name: true,
       priceCents: true,

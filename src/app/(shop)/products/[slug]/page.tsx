@@ -6,7 +6,7 @@ import { AddToCart } from "@/components/add-to-cart";
 import { BackToProductsLink } from "@/components/back-to-products-link";
 import { Container } from "@/components/container";
 import { ProductGallery } from "@/components/product-gallery";
-import { formatPrice } from "@/lib/money";
+import { ProductPrice } from "@/components/product-price";
 import {
   getPublishedProductBySlug,
   listPublishedProductSlugs,
@@ -110,11 +110,11 @@ export default async function ProductPage({
           </div>
 
           <div className="flex flex-col md:col-start-2 md:row-start-2 md:pt-4">
-            <p className="text-brand-deep text-2xl font-semibold">
-              {product.priceCents > 0
-                ? formatPrice(product.priceCents)
-                : "TODO: цена"}
-            </p>
+            <ProductPrice
+              priceCents={product.priceCents}
+              regularPriceCents={product.regularPriceCents}
+              size="page"
+            />
 
             <AddToCart
               slug={product.slug}

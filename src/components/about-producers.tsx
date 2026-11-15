@@ -1,30 +1,7 @@
+import Image from "next/image";
+
 import { Container } from "@/components/container";
-
-const PRODUCERS = [
-  {
-    id: "first",
-    name: "TODO: име на първия пчелар",
-    bio: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Duis aute irure dolor in reprehenderit in voluptate velit esse. Excepteur sint occaecat cupidatat non proident.",
-  },
-  {
-    id: "second",
-    name: "TODO: име на втория пчелар",
-    bio: "Curabitur pretium tincidunt lacus, nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit. Nec luctus magna felis sollicitudin mauris. Integer in mauris eu nibh euismod gravida. Duis ac tellus et risus vulputate vehicula.",
-  },
-];
-
-function Silhouette() {
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      aria-hidden="true"
-      className="text-ink-soft size-full opacity-30"
-    >
-      <circle cx="50" cy="38" r="18" fill="currentColor" />
-      <path d="M14 100c0-22 16-36 36-36s36 14 36 36z" fill="currentColor" />
-    </svg>
-  );
-}
+import { PRODUCERS } from "@/lib/producers";
 
 export function AboutProducers() {
   return (
@@ -43,8 +20,14 @@ export function AboutProducers() {
           {PRODUCERS.map((producer) => (
             <li key={producer.id}>
               <article className="bg-surface ring-line flex h-full flex-col overflow-hidden rounded-xl shadow-sm ring-1">
-                <div className="bg-placeholder aspect-square">
-                  <Silhouette />
+                <div className="bg-placeholder relative aspect-square">
+                  <Image
+                    src={producer.photo.path}
+                    alt={producer.photo.alt}
+                    fill
+                    sizes="(min-width: 1152px) 540px, (min-width: 640px) 50vw, 100vw"
+                    className="object-cover object-[50%_8%]"
+                  />
                 </div>
                 <div className="flex flex-col gap-3 p-5 sm:p-6">
                   <h3 className="font-head text-xl font-semibold">

@@ -28,6 +28,7 @@ export type PromotionRefusal =
   | "NOT_LOWER"
   | "INVALID_DATES"
   | "ENDS_IN_PAST"
+  | "STARTS_IN_PAST"
   | "OVERLAP"
   | "UNKNOWN_PRODUCT"
   | "UNKNOWN_PROMOTION";
@@ -63,6 +64,9 @@ export async function savePromotion(
   }
   if (endsOn < startsOn) return { ok: false, code: "INVALID_DATES" };
   if (endsOn < today) return { ok: false, code: "ENDS_IN_PAST" };
+  if (id === undefined && startsOn < today) {
+    return { ok: false, code: "STARTS_IN_PAST" };
+  }
 
   const product = await prisma.product.findUnique({
     where: { slug },
@@ -82,9 +86,12 @@ export async function savePromotion(
           endedAt: null,
           endsOn: { gte: today },
         },
-        select: { id: true },
+        select: { startsOn: true },
       });
       if (!existing) return { ok: false, code: "UNKNOWN_PROMOTION" };
+      if (startsOn < today && startsOn !== existing.startsOn) {
+        return { ok: false, code: "STARTS_IN_PAST" };
+      }
     }
 
     const overlapping = await tx.promotion.count({

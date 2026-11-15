@@ -188,6 +188,36 @@ export function endOpenPromotions(slug: string) {
   `);
 }
 
+export function addOldPriceChanges(slug: string, count: number) {
+  runInE2eDb(`
+    const product = await prisma.product.findUniqueOrThrow({
+      where: { slug: ${JSON.stringify(slug)} },
+    });
+    for (let i = 0; i < ${count}; i++) {
+      await prisma.priceChange.create({
+        data: {
+          productId: product.id,
+          fromCents: 10000 + i,
+          toCents: 10001 + i,
+          changedBy: "old@example.com",
+          createdAt: new Date(Date.UTC(2026, 0, 1, 10, i)),
+        },
+      });
+    }
+  `);
+}
+
+export function deleteOldPriceChanges(slug: string) {
+  runInE2eDb(`
+    await prisma.priceChange.deleteMany({
+      where: {
+        product: { slug: ${JSON.stringify(slug)} },
+        changedBy: "old@example.com",
+      },
+    });
+  `);
+}
+
 function runInE2eDb(body: string) {
   const script = `
     import("@/lib/prisma").then(async (module) => {

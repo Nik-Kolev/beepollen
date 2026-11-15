@@ -10,7 +10,12 @@ import {
 } from "../tests/support/fixture-offices";
 import { TEST_ADMIN_EMAIL, TEST_REVALIDATE_SECRET } from "./admin-env";
 import { signInAs } from "./admin-session";
-import { endOpenPromotions, setProductPrice } from "./e2e-db";
+import {
+  addOldPriceChanges,
+  deleteOldPriceChanges,
+  endOpenPromotions,
+  setProductPrice,
+} from "./e2e-db";
 import { seedCart } from "./seed-cart";
 
 const PRODUCT = "Пчелен прашец 1 кг";
@@ -36,6 +41,7 @@ test.afterAll(async ({ browser }, testInfo) => {
   });
   await signInAs(context, TEST_ADMIN_EMAIL);
   endOpenPromotions(SLUG);
+  deleteOldPriceChanges(SLUG);
   await saveProduct(await context.newPage(), SEEDED.price, SEEDED.stock);
   await context.close();
 });
@@ -203,7 +209,17 @@ test("a new regular price asks before ending the open promotion: cancel keeps bo
   await form.getByRole("button", { name: "Запази" }).click();
   await dialog.getByRole("button", { name: "Смени цената" }).click();
   await expect(form.getByRole("status")).toHaveText("Запазено.");
-  await expect(row).toContainText("Прекратена");
+  await expect(row).toContainText(`Прекратена ${shownDay}`);
+  const history = article.getByRole("listitem");
+  for (const text of [
+    "Нова цена",
+    shownDay,
+    "45,90 € → 44,00 €",
+    TEST_ADMIN_EMAIL,
+  ]) {
+    await expect(history.first()).toContainText(text);
+  }
+  await expect(history.nth(1)).toContainText("−15%");
 
   const main = page.getByRole("main");
   await page.goto(`/products/${SLUG}`);
@@ -211,6 +227,34 @@ test("a new regular price asks before ending the open promotion: cancel keeps bo
   await expect(main.locator("s")).toHaveCount(0);
 
   await saveProduct(page, SEEDED.price, SEEDED.stock);
+});
+
+test("the price history shows the latest ten entries and „Покажи всички“ the rest", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  deleteOldPriceChanges(SLUG);
+  addOldPriceChanges(SLUG, 12);
+  await page.goto("/admin/products");
+
+  const article = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: PRODUCT, exact: true }) });
+  const history = article.getByRole("listitem");
+  const oldest = history.filter({ hasText: "100,00 € → 100,01 €" });
+  await expect(history).toHaveCount(10);
+  await expect(oldest).toHaveCount(0);
+
+  await article.getByRole("link", { name: "Покажи всички" }).click();
+
+  await expect(page).toHaveURL(`/admin/products?history=${SLUG}#${SLUG}`);
+  await expect(oldest).toContainText("old@example.com");
+  await expect(history.last()).toContainText("100,00 € → 100,01 €");
+  await expect(
+    article.getByRole("link", { name: "Покажи всички" }),
+  ).toHaveCount(0);
+  expect(await history.count()).toBeGreaterThan(12);
 });
 
 test("an item sold out after the checkout page loaded is refused and can be removed", async ({

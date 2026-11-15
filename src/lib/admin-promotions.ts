@@ -29,7 +29,7 @@ export type PromotionRefusal =
   | "INVALID_DATES"
   | "ENDS_IN_PAST"
   | "STARTS_IN_PAST"
-  | "OVERLAP"
+  | "ALREADY_OPEN"
   | "UNKNOWN_PRODUCT"
   | "UNKNOWN_PROMOTION";
 
@@ -94,16 +94,15 @@ export async function savePromotion(
       }
     }
 
-    const overlapping = await tx.promotion.count({
+    const otherOpen = await tx.promotion.count({
       where: {
         productId: product.id,
         endedAt: null,
-        startsOn: { lte: endsOn },
-        endsOn: { gte: startsOn },
+        endsOn: { gte: today },
         ...(id !== undefined && { id: { not: id } }),
       },
     });
-    if (overlapping > 0) return { ok: false, code: "OVERLAP" };
+    if (otherOpen > 0) return { ok: false, code: "ALREADY_OPEN" };
 
     const data = { kind, value, startsOn, endsOn };
     if (id !== undefined) {

@@ -366,6 +366,17 @@ ids: no other host may share production's secret. Opening
 only the page's button, a form post, acts. The one-click header points at
 `POST /api/unsubscribe`, which mail clients call themselves.
 
+A campaign (`src/lib/campaigns.ts`) is an email to every subscriber, addressed
+when it is made: `createCampaign` writes one `CampaignRecipient` per subscriber,
+the longest since their last order first, and `sendCampaignBatch` sends in that
+order. One batch spends at most `EMAIL_WARNING_LIMIT` minus the last 24 hours'
+`EmailSend` count, so about 20 of Resend's 100 a day stay for orders; the rest
+stay `PENDING` for a later batch, and a `FAILED` one is tried again under the
+same idempotency key, `campaign-<id>-customer-<id>`. Subscription is re-read
+before each send, and `eraseCustomer` marks the customer's waiting rows
+`UNSUBSCRIBED`. With no `RESEND_API_KEY` the batch stops and leaves everything
+pending.
+
 Resend reports back to `POST /api/webhooks/resend`, verified by the SDK's
 `webhooks.verify` against `RESEND_WEBHOOK_SECRET`; with that or
 `RESEND_API_KEY` unset every call is refused. Each buyer email's event keeps

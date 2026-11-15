@@ -152,23 +152,3 @@ export function promotionStatus(
   if (promotion.startsOn > today) return "UPCOMING";
   return "ACTIVE";
 }
-
-export function listPromotionsForAdmin() {
-  return prisma.promotion.findMany({
-    orderBy: [{ startsOn: "desc" }, { id: "desc" }],
-    select: {
-      id: true,
-      kind: true,
-      value: true,
-      startsOn: true,
-      endsOn: true,
-      endedAt: true,
-      createdBy: true,
-      product: { select: { slug: true } },
-    },
-  });
-}
-
-export type AdminPromotion = Awaited<
-  ReturnType<typeof listPromotionsForAdmin>
->[number];

@@ -8,9 +8,11 @@ import {
   listProductsForAdmin,
   parsePriceCents,
 } from "@/lib/admin-products";
+import { HISTORY_SHOWN, priceHistory } from "@/lib/price-history";
 import prisma from "@/lib/prisma";
 
 const SLUG = "pchelen-prashets-1kg";
+const ADMIN = "admin@example.com";
 
 async function withRestoredProduct(
   run: (before: { priceCents: number; stock: string }) => Promise<void>,
@@ -21,6 +23,7 @@ async function withRestoredProduct(
   try {
     await run(before);
   } finally {
+    await prisma.priceChange.deleteMany({ where: { product: { slug: SLUG } } });
     await prisma.product.update({
       where: { slug: SLUG },
       data: { priceCents: before.priceCents, stock: before.stock },
@@ -81,11 +84,14 @@ test("an edit stores the new price and stock on that product only", async () => 
       where: { slug: "pchelen-prashets-500g" },
     });
 
-    const result = await editProduct({
-      slug: SLUG,
-      price: "51,20",
-      stock: "NONE",
-    });
+    const result = await editProduct(
+      {
+        slug: SLUG,
+        price: "51,20",
+        stock: "NONE",
+      },
+      ADMIN,
+    );
 
     assert.deepEqual(result, { ok: true, slug: SLUG });
     const edited = await prisma.product.findUniqueOrThrow({
@@ -103,7 +109,10 @@ test("an edit stores the new price and stock on that product only", async () => 
 
 test("a refused price leaves the product unchanged", async () => {
   await withRestoredProduct(async (before) => {
-    const result = await editProduct({ slug: SLUG, price: "-5", stock: "LOW" });
+    const result = await editProduct(
+      { slug: SLUG, price: "-5", stock: "LOW" },
+      ADMIN,
+    );
 
     assert.deepEqual(result, { ok: false, code: "INVALID_PRICE" });
     const kept = await prisma.product.findUniqueOrThrow({
@@ -116,7 +125,10 @@ test("a refused price leaves the product unchanged", async () => {
 
 test("an unknown slug is answered as an unknown product", async () => {
   assert.deepEqual(
-    await editProduct({ slug: "no-such-product", price: "10", stock: "LOW" }),
+    await editProduct(
+      { slug: "no-such-product", price: "10", stock: "LOW" },
+      ADMIN,
+    ),
     { ok: false, code: "UNKNOWN_PRODUCT" },
   );
 });
@@ -134,7 +146,7 @@ test("a crafted edit with an unknown stock level or a non-string field is refuse
       null,
     ]) {
       assert.deepEqual(
-        await editProduct(crafted),
+        await editProduct(crafted, ADMIN),
         { ok: false, code: "INVALID_INPUT" },
         JSON.stringify(crafted),
       );
@@ -148,7 +160,6 @@ test("a crafted edit with an unknown stock level or a non-string field is refuse
   });
 });
 
-const ADMIN = "admin@example.com";
 const TODAY = "2026-11-14";
 const NOW = new Date("2026-11-14T10:00:00Z");
 const created: number[] = [];
@@ -197,6 +208,7 @@ test("a new price with open promotions is refused, naming them, until they are c
 
   const result = await editProduct(
     { slug: product.slug, price: "8,00", stock: "LOW" },
+    ADMIN,
     NOW,
     TODAY,
   );
@@ -229,6 +241,7 @@ test("a confirmed new price is saved and ends the running and the upcoming promo
         stock: "LOW",
         endPromotionIds: [upcoming.id, running.id],
       },
+      ADMIN,
       NOW,
       TODAY,
     ),
@@ -255,6 +268,7 @@ test("a confirmation that misses a promotion opened since is refused and ends no
       stock: "LOW",
       endPromotionIds: [running.id],
     },
+    ADMIN,
     NOW,
     TODAY,
   );
@@ -275,6 +289,7 @@ test("a save that keeps the price, however it is typed, changes the stock and le
   assert.deepEqual(
     await editProduct(
       { slug: product.slug, price: "10", stock: "NONE" },
+      ADMIN,
       NOW,
       TODAY,
     ),
@@ -287,4 +302,122 @@ test("a save that keeps the price, however it is typed, changes the stock and le
   assert.equal(saved.stock, "NONE");
   assert.equal(await endedAt(running.id), null);
   assert.equal(await endedAt(upcoming.id), null);
+});
+
+async function priceChanges(productId: number) {
+  return prisma.priceChange.findMany({
+    where: { productId },
+    select: {
+      fromCents: true,
+      toCents: true,
+      changedBy: true,
+      createdAt: true,
+    },
+  });
+}
+
+test("a new price records the change, with the admin and the time", async () => {
+  const { product, running, upcoming } = await promotedProduct();
+
+  await editProduct(
+    {
+      slug: product.slug,
+      price: "8,00",
+      stock: "LOW",
+      endPromotionIds: [running.id, upcoming.id],
+    },
+    ADMIN,
+    NOW,
+    TODAY,
+  );
+
+  assert.deepEqual(await priceChanges(product.id), [
+    { fromCents: 1000, toCents: 800, changedBy: ADMIN, createdAt: NOW },
+  ]);
+});
+
+test("a kept price, a refused price and an unconfirmed promotion record no change", async () => {
+  const { product } = await promotedProduct();
+
+  const answers = [];
+  for (const price of ["10,00", "0", "8,00"]) {
+    const result = await editProduct(
+      { slug: product.slug, price, stock: "NONE" },
+      ADMIN,
+      NOW,
+      TODAY,
+    );
+    answers.push(result.ok || result.code);
+  }
+
+  assert.deepEqual(answers, [true, "INVALID_PRICE", "PROMOTION_OPEN"]);
+
+  assert.deepEqual(await priceChanges(product.id), []);
+});
+
+async function productWithHistory(changes: number, promotions: number) {
+  const product = await prisma.product.create({
+    data: {
+      slug: `price-history-${randomUUID()}`,
+      name: "Продукт с история",
+      summary: "test",
+      description: "test",
+      priceCents: 1000,
+    },
+  });
+  created.push(product.id);
+  const at = (minute: number) => new Date(Date.UTC(2026, 10, 1, 10, minute));
+  for (let i = 0; i < changes; i++) {
+    await prisma.priceChange.create({
+      data: {
+        productId: product.id,
+        fromCents: 1000 + i,
+        toCents: 1001 + i,
+        changedBy: ADMIN,
+        createdAt: at(i * 2),
+      },
+    });
+  }
+  for (let i = 0; i < promotions; i++) {
+    await prisma.promotion.create({
+      data: {
+        productId: product.id,
+        kind: "PERCENT",
+        value: 10 + i,
+        startsOn: "2026-11-01",
+        endsOn: "2026-11-02",
+        createdBy: ADMIN,
+        createdAt: at(i * 2 + 1),
+      },
+    });
+  }
+  return product.id;
+}
+
+test("the history mixes price changes and promotions, newest first, the latest ten shown", async () => {
+  const productId = await productWithHistory(7, 6);
+
+  const { entries, more } = await priceHistory(productId);
+
+  assert.equal(HISTORY_SHOWN, 10);
+  assert.equal(more, true);
+  assert.deepEqual(
+    entries.map((entry) => entry.at.getUTCMinutes()),
+    [12, 11, 10, 9, 8, 7, 6, 5, 4, 3],
+  );
+  assert.deepEqual(
+    entries.slice(0, 2).map(({ type }) => type),
+    ["PRICE", "PROMOTION"],
+  );
+});
+
+test("the whole history is shown when asked for, and exactly ten offer no more", async () => {
+  const productId = await productWithHistory(12, 6);
+  const all = await priceHistory(productId, true);
+  assert.equal(all.entries.length, 18);
+  assert.equal(all.more, false);
+
+  const ten = await priceHistory(await productWithHistory(5, 5));
+  assert.equal(ten.entries.length, 10);
+  assert.equal(ten.more, false);
 });

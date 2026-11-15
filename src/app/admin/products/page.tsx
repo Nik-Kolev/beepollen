@@ -9,11 +9,9 @@ import {
   listProductsForAdmin,
   STOCK_LABEL,
 } from "@/lib/admin-products";
-import {
-  listPromotionsForAdmin,
-  promotionStatus,
-} from "@/lib/admin-promotions";
+import { promotionStatus } from "@/lib/admin-promotions";
 import { requireAdmin } from "@/lib/admin-session";
+import { priceHistory } from "@/lib/price-history";
 import { sofiaToday } from "@/lib/promotions";
 
 export const metadata: Metadata = {
@@ -25,12 +23,17 @@ const STOCK_OPTIONS = Object.entries(STOCK_LABEL).map(([value, label]) => ({
   label,
 }));
 
-export default async function AdminProducts() {
+export default async function AdminProducts({
+  searchParams,
+}: PageProps<"/admin/products">) {
   const { email } = await requireAdmin("/admin/products");
-  const [products, promotions] = await Promise.all([
-    listProductsForAdmin(),
-    listPromotionsForAdmin(),
-  ]);
+  const { history: fullHistoryOf } = await searchParams;
+  const products = await listProductsForAdmin();
+  const histories = await Promise.all(
+    products.map((product) =>
+      priceHistory(product.id, product.slug === fullHistoryOf),
+    ),
+  );
   const today = sofiaToday();
 
   return (
@@ -43,11 +46,12 @@ export default async function AdminProducts() {
       />
 
       <ul role="list" className="mt-6 flex flex-col gap-4">
-        {products.map((product) => {
+        {products.map((product, index) => {
           const [image] = product.images;
+          const { entries, more } = histories[index];
 
           return (
-            <li key={product.slug}>
+            <li key={product.slug} id={product.slug}>
               <article className="bg-surface ring-line grid grid-cols-[auto_minmax(0,1fr)] items-center gap-4 rounded-xl p-4 shadow-sm ring-1 sm:items-start">
                 <div className="bg-placeholder relative size-20 overflow-hidden rounded-lg sm:row-span-2 sm:size-32 lg:size-40">
                   {image && (
@@ -74,18 +78,32 @@ export default async function AdminProducts() {
                     name={product.name}
                     regularCents={product.priceCents}
                     today={today}
-                    promotions={promotions
-                      .filter(
-                        (promotion) => promotion.product.slug === product.slug,
-                      )
-                      .map((promotion) => ({
-                        id: promotion.id,
-                        kind: promotion.kind,
-                        value: promotion.value,
-                        startsOn: promotion.startsOn,
-                        endsOn: promotion.endsOn,
-                        status: promotionStatus(promotion, today),
-                      }))}
+                    history={entries.map((entry) =>
+                      entry.type === "PRICE"
+                        ? {
+                            type: "PRICE",
+                            id: entry.id,
+                            on: sofiaToday(entry.at),
+                            fromCents: entry.fromCents,
+                            toCents: entry.toCents,
+                            changedBy: entry.changedBy,
+                          }
+                        : {
+                            type: "PROMOTION",
+                            id: entry.id,
+                            kind: entry.kind,
+                            value: entry.value,
+                            startsOn: entry.startsOn,
+                            endsOn: entry.endsOn,
+                            endedOn: entry.endedAt && sofiaToday(entry.endedAt),
+                            status: promotionStatus(entry, today),
+                          },
+                    )}
+                    moreHref={
+                      more
+                        ? `/admin/products?history=${product.slug}#${product.slug}`
+                        : null
+                    }
                   />
                 </div>
               </article>

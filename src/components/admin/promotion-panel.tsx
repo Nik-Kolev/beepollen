@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   type SubmitEvent,
   useId,
@@ -25,6 +26,17 @@ export type PanelPromotion = {
   endsOn: string;
   status: PromotionStatus;
 };
+
+export type PanelEntry =
+  | ({ type: "PROMOTION"; endedOn: string | null } & PanelPromotion)
+  | {
+      type: "PRICE";
+      id: number;
+      on: string;
+      fromCents: number;
+      toCents: number;
+      changedBy: string;
+    };
 
 type Failure = PromotionRefusal | "NOT_SAVED";
 
@@ -66,13 +78,15 @@ export function PromotionPanel({
   name,
   regularCents,
   today,
-  promotions,
+  history,
+  moreHref,
 }: {
   slug: string;
   name: string;
   regularCents: number;
   today: string;
-  promotions: PanelPromotion[];
+  history: PanelEntry[];
+  moreHref: string | null;
 }) {
   const id = useId();
   const [editing, setEditing] = useState<number | null>(null);
@@ -288,60 +302,89 @@ export function PromotionPanel({
         </div>
       </form>
 
-      {promotions.length > 0 && (
-        <ul role="list" className="flex flex-col gap-2 text-sm">
-          {promotions.map((promotion) => {
-            const cents = promoPriceCents(regularCents, promotion);
-            const open =
-              promotion.status === "ACTIVE" || promotion.status === "UPCOMING";
-            return (
-              <li
-                key={promotion.id}
-                className="bg-ground flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg px-4 py-2"
-              >
-                <span className="font-medium">
-                  {STATUS_TEXT[promotion.status]}
-                </span>
-                <span className="tabular-nums">
-                  {formatDay(promotion.startsOn)} –{" "}
-                  {formatDay(promotion.endsOn)}
-                </span>
-                <span className="tabular-nums">
-                  {promotion.kind === "PERCENT"
-                    ? `−${promotion.value}%`
-                    : formatPrice(promotion.value)}
-                  {promotion.kind === "PERCENT" &&
-                    cents !== null &&
-                    ` (${formatPrice(cents)})`}
-                </span>
-                {open && (
-                  <span className="ml-auto flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => edit(promotion)}
-                      className="min-h-11 px-2 font-medium underline underline-offset-4"
-                    >
-                      Редактирай
-                    </button>
-                    <button
-                      type="button"
-                      aria-disabled={pending}
-                      onClick={() =>
-                        run(
-                          () => endPromotionAction(promotion.id),
-                          editing === promotion.id,
-                        )
-                      }
-                      className="text-error min-h-11 px-2 font-medium underline underline-offset-4"
-                    >
-                      Прекрати
-                    </button>
+      {history.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h4 className="text-sm font-semibold">История на цените</h4>
+          <ul role="list" className="flex flex-col gap-2 text-sm">
+            {history.map((entry) => {
+              if (entry.type === "PRICE") {
+                return (
+                  <li
+                    key={`price-${entry.id}`}
+                    className="bg-ground flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg px-4 py-2"
+                  >
+                    <span className="font-medium">Нова цена</span>
+                    <span className="tabular-nums">{formatDay(entry.on)}</span>
+                    <span className="tabular-nums">
+                      {formatPrice(entry.fromCents)} →{" "}
+                      {formatPrice(entry.toCents)}
+                    </span>
+                    <span className="text-ink-soft break-all">
+                      {entry.changedBy}
+                    </span>
+                  </li>
+                );
+              }
+              const cents = promoPriceCents(regularCents, entry);
+              const open =
+                entry.status === "ACTIVE" || entry.status === "UPCOMING";
+              return (
+                <li
+                  key={`promotion-${entry.id}`}
+                  className="bg-ground flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg px-4 py-2"
+                >
+                  <span className="font-medium">
+                    {STATUS_TEXT[entry.status]}
+                    {entry.endedOn && ` ${formatDay(entry.endedOn)}`}
                   </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  <span className="tabular-nums">
+                    {formatDay(entry.startsOn)} – {formatDay(entry.endsOn)}
+                  </span>
+                  <span className="tabular-nums">
+                    {entry.kind === "PERCENT"
+                      ? `−${entry.value}%`
+                      : formatPrice(entry.value)}
+                    {entry.kind === "PERCENT" &&
+                      cents !== null &&
+                      ` (${formatPrice(cents)})`}
+                  </span>
+                  {open && (
+                    <span className="ml-auto flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => edit(entry)}
+                        className="min-h-11 px-2 font-medium underline underline-offset-4"
+                      >
+                        Редактирай
+                      </button>
+                      <button
+                        type="button"
+                        aria-disabled={pending}
+                        onClick={() =>
+                          run(
+                            () => endPromotionAction(entry.id),
+                            editing === entry.id,
+                          )
+                        }
+                        className="text-error min-h-11 px-2 font-medium underline underline-offset-4"
+                      >
+                        Прекрати
+                      </button>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {moreHref && (
+            <Link
+              href={moreHref}
+              className="min-h-11 self-start py-2 text-sm font-medium underline underline-offset-4"
+            >
+              Покажи всички
+            </Link>
+          )}
+        </div>
       )}
     </section>
   );

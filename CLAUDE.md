@@ -487,6 +487,12 @@ product's open promotions: `editProduct` answers `PROMOTION_OPEN` with them
 until the save names every one of them, so one added on another screen is never
 ended unseen. A save that keeps the price never touches them.
 
+Each regular-price change writes a `PriceChange` row in the same transaction,
+with the admin who made it. `priceHistory` merges those with the promotions,
+newest first by `createdAt`; `/admin/products` shows ten per product and every
+entry for the product named by `?history=<slug>`. The history starts at the
+first change made in the admin, so a price set by the seed has none.
+
 ## Checkout
 
 `/checkout` is one page — contact fields, the office picker, consents and the

@@ -51,6 +51,7 @@ function allConfirmed(open: OpenPromotion[], confirmed: number[] = []) {
 
 export async function editProduct(
   input: unknown,
+  adminEmail: string,
   now = new Date(),
   today = sofiaToday(now),
 ): Promise<ProductEditResult> {
@@ -95,6 +96,17 @@ export async function editProduct(
       where: { id: product.id },
       data: { priceCents, stock },
     });
+    if (priceCents !== product.priceCents) {
+      await tx.priceChange.create({
+        data: {
+          productId: product.id,
+          fromCents: product.priceCents,
+          toCents: priceCents,
+          changedBy: adminEmail,
+          createdAt: now,
+        },
+      });
+    }
     return { ok: true, slug };
   });
 }
@@ -103,6 +115,7 @@ export function listProductsForAdmin() {
   return prisma.product.findMany({
     orderBy: { sortOrder: "asc" },
     select: {
+      id: true,
       slug: true,
       name: true,
       priceCents: true,

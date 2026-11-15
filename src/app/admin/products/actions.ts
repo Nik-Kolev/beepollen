@@ -19,8 +19,8 @@ function revalidateShop(slug: string) {
 }
 
 export async function saveProduct(input: unknown): Promise<ProductEditResult> {
-  await requireAdmin();
-  const result = await editProduct(input);
+  const { email } = await requireAdmin();
+  const result = await editProduct(input, email);
   if (result.ok) revalidateShop(result.slug);
   return result;
 }

@@ -1,3 +1,5 @@
+import { PRODUCERS } from "@/lib/producers";
+
 type OwnerTodo = {
   id?: string;
   text: string;
@@ -124,10 +126,10 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         markers: ["TODO: линк към сертификата и код на контролиращия орган"],
       },
       {
-        id: "producers",
-        text: "Имената и текстът за двамата пчелари, и техни снимки.",
-        files: ["src/components/about-producers.tsx"],
-        markers: ["TODO: име на първия пчелар", "TODO: име на втория пчелар"],
+        id: "producers-text",
+        text: `Текстът в „За нас“ още не се показва на сайта. Сега пише: ${PRODUCERS.map(({ name, bio }) => `${name} — „${bio}“`).join(" ")} Напишете какво да се промени.`,
+        files: [],
+        markers: [],
       },
     ],
   },

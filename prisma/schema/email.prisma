@@ -5,3 +5,54 @@ model EmailSend {
 
   @@index([createdAt])
 }
+
+enum CampaignKind {
+  PROMOTION
+  RESTOCK
+}
+
+enum CampaignRecipientStatus {
+  PENDING
+  SENT
+  FAILED
+  UNSUBSCRIBED
+}
+
+model Campaign {
+  id          Int          @id @default(autoincrement())
+  kind        CampaignKind
+  text        String
+  promotionId Int?
+  promotion   Promotion?   @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+  createdBy   String
+  createdAt   DateTime     @default(now())
+
+  products   CampaignProduct[]
+  recipients CampaignRecipient[]
+
+  @@index([createdAt])
+}
+
+model CampaignProduct {
+  campaignId Int
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sortOrder  Int
+
+  @@id([campaignId, productId])
+}
+
+model CampaignRecipient {
+  id            Int                     @id @default(autoincrement())
+  campaignId    Int
+  campaign      Campaign                @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  customerId    Int
+  customer      Customer                @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  status        CampaignRecipientStatus @default(PENDING)
+  sentAt        DateTime?
+  resendEmailId String?                 @unique
+
+  @@unique([campaignId, customerId])
+  @@index([campaignId, status])
+}

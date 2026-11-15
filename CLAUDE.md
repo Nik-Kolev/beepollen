@@ -382,7 +382,11 @@ batch in `after()`, since one batch can take longer than a proxy waits for a
 response. When a campaign was made in the last 14 Sofia days, inclusive, the
 server refuses a new one with `RECENT` until the admin confirms it, so the
 warning cannot be skipped by a crafted request. A restock campaign sends
-`CAMPAIGN_RESTOCK_VARIANT` until the owner picks a variant. The preview rewrites
+`CAMPAIGN_RESTOCK_VARIANT` until the owner picks a variant. „Изпрати на
+останалите“ on a campaign in the history sends its next batch under the same
+daily limit, and is refused once its promotion has ended or all its products
+are off sale, since the email would then advertise a price or a product no
+longer sold. The preview rewrites
 photo URLs to the page's own origin, because `img-src` allows only `'self'`.
 
 Resend reports back to `POST /api/webhooks/resend`, verified by the SDK's

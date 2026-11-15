@@ -36,8 +36,11 @@ test("the todo page lists what each product still owes and every group of open i
     pollen.getByRole("textbox", { name: "Цена (€)", exact: true }),
   ).toBeVisible();
   await expect(
-    pollen.getByRole("textbox", { name: "Състав", exact: true }),
+    pollen.getByRole("textbox", { name: "Сорт", exact: true }),
   ).toBeVisible();
+  await expect(
+    pollen.getByRole("textbox", { name: "Състав", exact: true }),
+  ).toHaveCount(0);
 
   for (const group of [
     "Продавач и правни данни",

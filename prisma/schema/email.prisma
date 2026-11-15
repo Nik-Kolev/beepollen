@@ -16,6 +16,7 @@ enum CampaignRecipientStatus {
   SENT
   FAILED
   UNSUBSCRIBED
+  BOUNCED
 }
 
 model Campaign {
@@ -55,4 +56,15 @@ model CampaignRecipient {
 
   @@unique([campaignId, customerId])
   @@index([campaignId, status])
+}
+
+model EmailBounce {
+  id            Int      @id @default(autoincrement())
+  customerId    Int
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  resendEmailId String   @unique
+  permanent     Boolean
+  createdAt     DateTime @default(now())
+
+  @@index([customerId])
 }

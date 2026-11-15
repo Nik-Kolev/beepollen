@@ -81,7 +81,8 @@ export function CampaignForm({
   promotions,
   products,
   subscribers,
-  budget: initialBudget,
+  budget,
+  onSpent,
   recent: initialRecent,
   sampleText,
   textMax,
@@ -91,6 +92,7 @@ export function CampaignForm({
   products: { id: number; name: string }[];
   subscribers: number;
   budget: number;
+  onSpent: (count: number) => void;
   recent: RecentCampaign | null;
   sampleText: Record<Kind, string>;
   textMax: number;
@@ -108,7 +110,6 @@ export function CampaignForm({
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [confirming, setConfirming] = useState(false);
   const [recent, setRecent] = useState(initialRecent);
-  const [budget, setBudget] = useState(initialBudget);
   const [pending, startTransition] = useTransition();
   const [running, setRunning] = useState<"preview" | "send" | null>(null);
   const busy = useRef(false);
@@ -196,7 +197,7 @@ export function CampaignForm({
           waiting: result.recipients - result.sendingNow,
         });
         setRecent(result.sent);
-        setBudget((left) => Math.max(0, left - result.sendingNow));
+        onSpent(result.sendingNow);
         setText(sampleText[kind]);
         setProductIds([]);
         setPreview(null);

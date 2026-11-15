@@ -3,10 +3,14 @@ import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
 import {
+  campaignHistory,
   campaignMessageBuilder,
+  availableBudget,
   campaignOptions,
   previewCampaign,
   recentCampaign,
+  resumeCampaign,
+  sendCampaignNow,
   startCampaign,
 } from "@/lib/campaign-messages";
 import { placeOrder } from "@/lib/orders";
@@ -301,4 +305,142 @@ test("a campaign whose promotion has ended, or whose products are all off sale, 
     });
     await cleanCampaigns();
   }
+});
+
+async function usedOn(now: Date, count: number) {
+  await prisma.emailSend.deleteMany({
+    where: { createdAt: { gte: new Date("2032-12-01T00:00:00Z") } },
+  });
+  await prisma.emailSend.createMany({
+    data: Array.from({ length: count }, () => ({
+      status: "SENT" as const,
+      createdAt: new Date(now.getTime() - 60 * 60 * 1000),
+    })),
+  });
+}
+
+async function setStatuses(
+  campaignId: number,
+  statuses: ("SENT" | "FAILED" | "UNSUBSCRIBED")[],
+) {
+  const rows = await prisma.campaignRecipient.findMany({
+    where: { campaignId },
+    orderBy: { id: "asc" },
+    select: { id: true },
+  });
+  for (const [index, status] of statuses.entries()) {
+    await prisma.campaignRecipient.update({
+      where: { id: rows[index].id },
+      data: { status },
+    });
+  }
+  return rows.length;
+}
+
+test("the history lists campaigns newest first with what was sent and what still waits", async () => {
+  await subscriber();
+  await subscriber();
+  await subscriber();
+  await cleanCampaigns();
+  const older = await restockOn(new Date("2032-09-01T10:00:00Z"));
+  const kg = await product("pchelen-prashets-1kg");
+  const newer = await restockOn(new Date("2032-09-03T10:00:00Z"), [kg.id]);
+  assert.ok(older.ok && newer.ok);
+  if (!older.ok || !newer.ok) return;
+  const total = await setStatuses(newer.id, ["SENT", "FAILED", "UNSUBSCRIBED"]);
+
+  const history = await campaignHistory();
+
+  assert.deepEqual(history.slice(0, 2), [
+    {
+      id: newer.id,
+      kind: "RESTOCK",
+      subject: "Ново зареждане: Пчелен прашец 1 кг",
+      sentOn: "2032-09-03",
+      sent: 1,
+      pending: total - 2,
+    },
+    {
+      id: older.id,
+      kind: "RESTOCK",
+      subject: "Ново зареждане",
+      sentOn: "2032-09-01",
+      sent: 0,
+      pending: older.recipients,
+    },
+  ]);
+  await cleanCampaigns();
+});
+
+test("sending to the rest is refused for an unknown, finished or ended campaign, or once the day's limit is spent", async () => {
+  await subscriber();
+  await cleanCampaigns();
+  const day = "2032-12-12";
+  const now = new Date(`${day}T10:00:00Z`);
+  const promotionId = await runningPromotion(day);
+  const started = await startCampaign(
+    {
+      campaign: { kind: "PROMOTION", text: "Промоция", promotionId },
+      confirmedRecent: true,
+    },
+    ADMIN,
+    now,
+  );
+  assert.ok(started.ok);
+  if (!started.ok) return;
+
+  for (const crafted of [999999, "1", -1, 0, 1.5, null]) {
+    assert.deepEqual(await resumeCampaign(crafted, now), {
+      ok: false,
+      code: "UNKNOWN_CAMPAIGN",
+    });
+  }
+
+  await usedOn(now, 78);
+  assert.deepEqual(await resumeCampaign(started.id, now), {
+    ok: true,
+    id: started.id,
+    sendingNow: Math.min(2, started.recipients),
+    pending: started.recipients,
+  });
+
+  await usedOn(now, 80);
+  assert.deepEqual(await resumeCampaign(started.id, now), {
+    ok: false,
+    code: "NO_BUDGET",
+  });
+
+  assert.deepEqual(
+    await resumeCampaign(started.id, new Date("2032-12-13T10:00:00Z")),
+    { ok: false, code: "CAMPAIGN_OVER" },
+  );
+
+  await prisma.campaignRecipient.updateMany({
+    where: { campaignId: started.id },
+    data: { status: "SENT" },
+  });
+  assert.deepEqual(await resumeCampaign(started.id, now), {
+    ok: false,
+    code: "NOTHING_PENDING",
+  });
+
+  await prisma.emailSend.deleteMany({
+    where: { createdAt: { gte: new Date("2032-12-01T00:00:00Z") } },
+  });
+  await cleanCampaigns();
+});
+
+test("a batch waiting in the queue is taken off the day's limit until it has run", async () => {
+  const now = new Date();
+  const before = await availableBudget(now);
+  const errors = console.error;
+  console.error = () => {};
+  try {
+    const queued = sendCampaignNow(999999, 5);
+    assert.equal(await availableBudget(now), Math.max(0, before - 5));
+    await queued;
+  } finally {
+    console.error = errors;
+  }
+  assert.equal(await availableBudget(now), before);
 });

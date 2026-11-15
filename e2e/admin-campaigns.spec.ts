@@ -77,4 +77,16 @@ test("a restock campaign is previewed, confirmed and sent, and a second one is w
   await expect(warning).toBeHidden();
   await page.waitForLoadState("networkidle");
   expect(posts).toEqual([]);
+
+  await page.reload();
+  const history = page
+    .getByRole("listitem")
+    .filter({ hasText: "Ново зареждане: Пчелен прашец 1 кг" });
+  await expect(history).toHaveCount(1);
+  await expect(history).toContainText(/Изпратени 0 · Чакат \d+/);
+  await history.getByRole("button", { name: "Изпрати на останалите" }).click();
+  await expect(history.getByRole("status")).toHaveText(/^Изпраща се до \d+\./);
+  await expect(
+    history.getByRole("button", { name: "Изпрати на останалите" }),
+  ).toHaveCount(0);
 });

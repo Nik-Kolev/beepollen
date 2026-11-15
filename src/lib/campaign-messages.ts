@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { CampaignRecipientStatus } from "@/generated/prisma/enums";
 import { CAMPAIGN_KIND_LABEL, formatCampaignDay } from "@/lib/campaign-labels";
 import {
   campaignBudget,
@@ -262,7 +263,7 @@ export async function startCampaign(
   const created = await createCampaign(parsed.data.campaign, adminEmail, now);
   if (!created.ok) return created;
   const [budget, sent] = await Promise.all([
-    campaignBudget(now),
+    availableBudget(now),
     recentCampaign(now),
   ]);
   return {
@@ -312,6 +313,11 @@ export async function campaignOptions(now = new Date()) {
 }
 
 let sending: Promise<void> = Promise.resolve();
+let reserved = 0;
+
+export async function availableBudget(now = new Date()) {
+  return Math.max(0, (await campaignBudget(now)) - reserved);
+}
 
 async function sendNow(campaignId: number) {
   try {
@@ -326,7 +332,101 @@ async function sendNow(campaignId: number) {
   }
 }
 
-export function sendCampaignNow(campaignId: number) {
-  sending = sending.then(() => sendNow(campaignId));
+export function sendCampaignNow(campaignId: number, count: number) {
+  reserved += count;
+  sending = sending
+    .then(() => sendNow(campaignId))
+    .finally(() => {
+      reserved -= count;
+    });
   return sending;
+}
+
+export const CAMPAIGN_HISTORY_MAX = 50;
+
+export type CampaignHistoryEntry = {
+  id: number;
+  kind: keyof typeof CAMPAIGN_KIND_LABEL;
+  subject: string;
+  sentOn: string;
+  sent: number;
+  pending: number;
+};
+
+export async function campaignHistory(): Promise<CampaignHistoryEntry[]> {
+  const campaigns = await prisma.campaign.findMany({
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: CAMPAIGN_HISTORY_MAX,
+    select: {
+      id: true,
+      kind: true,
+      createdAt: true,
+      promotion: { select: { product: { select: { name: true } } } },
+      products: {
+        orderBy: { sortOrder: "asc" },
+        select: { product: { select: { name: true } } },
+      },
+    },
+  });
+  const counts = await prisma.campaignRecipient.groupBy({
+    by: ["campaignId", "status"],
+    where: { campaignId: { in: campaigns.map(({ id }) => id) } },
+    _count: { _all: true },
+  });
+  const count = (campaignId: number, statuses: CampaignRecipientStatus[]) =>
+    counts
+      .filter(
+        (row) => row.campaignId === campaignId && statuses.includes(row.status),
+      )
+      .reduce((sum, row) => sum + row._count._all, 0);
+
+  return campaigns.map((campaign) => ({
+    id: campaign.id,
+    kind: campaign.kind,
+    subject:
+      campaign.kind === "PROMOTION"
+        ? campaign.promotion
+          ? promotionSubject(campaign.promotion.product.name)
+          : CAMPAIGN_KIND_LABEL.PROMOTION
+        : restockSubject(campaign.products.map(({ product }) => product.name)),
+    sentOn: sofiaToday(campaign.createdAt),
+    sent: count(campaign.id, ["SENT"]),
+    pending: count(campaign.id, ["PENDING", "FAILED"]),
+  }));
+}
+
+export type CampaignResumeResult =
+  | { ok: true; id: number; sendingNow: number; pending: number }
+  | {
+      ok: false;
+      code:
+        "UNKNOWN_CAMPAIGN" | "NOTHING_PENDING" | "CAMPAIGN_OVER" | "NO_BUDGET";
+    };
+
+export async function resumeCampaign(
+  input: unknown,
+  now = new Date(),
+): Promise<CampaignResumeResult> {
+  const parsed = z.number().int().positive().safeParse(input);
+  if (!parsed.success) return { ok: false, code: "UNKNOWN_CAMPAIGN" };
+  const campaignId = parsed.data;
+
+  const exists = await prisma.campaign.count({ where: { id: campaignId } });
+  if (exists === 0) return { ok: false, code: "UNKNOWN_CAMPAIGN" };
+  const pending = await prisma.campaignRecipient.count({
+    where: { campaignId, status: { in: ["PENDING", "FAILED"] } },
+  });
+  if (pending === 0) return { ok: false, code: "NOTHING_PENDING" };
+  if (!(await campaignMessageBuilder(campaignId, now))) {
+    return { ok: false, code: "CAMPAIGN_OVER" };
+  }
+  const budget = await availableBudget(now);
+  if (budget === 0) return { ok: false, code: "NO_BUDGET" };
+
+  return {
+    ok: true,
+    id: campaignId,
+    sendingNow: Math.min(budget, pending),
+    pending,
+  };
 }

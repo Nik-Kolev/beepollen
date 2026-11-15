@@ -238,7 +238,9 @@ With `B2_KEY_ID` and `B2_APPLICATION_KEY` in `.env`, each new copy — the
 nightly one and the one `deploy.sh` takes before migrating — is also uploaded to
 Backblaze B2 as `beepollen-<day>-<UTC time>Z.db`, so a deploy's copy never
 becomes a new version of that night's file, which the bucket's lifecycle would
-delete. Both scripts pass only those two variables into the container. The key
+delete. That lifecycle rule hides a file 89 days after upload and deletes it
+one day after hiding, which is the 90 days `/privacy` promises; a longer rule
+needs `/privacy` changed with it. Both scripts pass only those two variables into the container. The key
 must be restricted to the backup bucket. An upload B2 answers with a timeout,
 408, 429 or 5xx is tried three times in all, each from a fresh authorization,
 as B2 asks of a busy pod. A B2 that hangs rather than answering can hold a

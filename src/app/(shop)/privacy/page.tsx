@@ -5,6 +5,7 @@ import { Container } from "@/components/container";
 import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
 import { Todo } from "@/components/todo";
+import { OWNER_PHONE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Политика за поверителност",
@@ -128,7 +129,8 @@ export default function PrivacyPage() {
 
         <Section id="controller" title="Кой отговаря за данните">
           <p>
-            <Todo>TODO: име, адрес, телефон и имейл на администратора</Todo>
+            Димитър Димитров, гр. Попово, ул. „Сан Стефано“ 10, телефон{" "}
+            {OWNER_PHONE.display}, имейл <Todo>TODO: имейл</Todo>.
           </p>
           <p>
             Нямаме длъжностно лице по защита на данните, защото законът не го

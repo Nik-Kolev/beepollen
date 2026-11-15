@@ -46,7 +46,7 @@ test("the todo items' keys are unique", () => {
 
 test("a key the page never renders is refused and nothing is stored", async () => {
   for (const key of [
-    "seller-name-addressx",
+    "seller-registration-whosex",
     "product:pchelen-prashets-1kg:priceCents",
     "product:pchelen-prashets-1kg:toString",
     "product:Pchelen:price",
@@ -118,7 +118,7 @@ test("the export names each question in page order and leaves out cleared answer
   for (const [key, text] of [
     [EMAIL_ANSWER_KEY, "По-кратко"],
     ["hosting", "DigitalOcean"],
-    ["seller-name-address", "Пчелни продукти"],
+    ["seller-registration-whose", "Пчелни продукти"],
     [withdrawn, "10"],
     [composition, "Прашец"],
     [price, "24,50"],
@@ -158,9 +158,9 @@ test("the export names each question in page order and leaves out cleared answer
         updatedBy: ADMIN,
       },
       {
-        key: "seller-name-address",
+        key: "seller-registration-whose",
         question:
-          "Име и правен статус, адрес по регистрация и за кореспонденция.",
+          "Кой от двата номера, 179940540 или 179876340, е на Димитър — продавача, и регистриран ли е по ЗДДС.",
         text: "Пчелни продукти",
         updatedBy: ADMIN,
       },

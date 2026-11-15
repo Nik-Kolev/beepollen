@@ -1,4 +1,9 @@
 import {
+  type CampaignProductData,
+  promotionEmail,
+  restockEmail,
+} from "@/lib/email/campaign-templates";
+import {
   type EmailMessage,
   orderAcceptedEmail,
   orderCancelledEmail,
@@ -28,6 +33,36 @@ const SAMPLE_ORDER: OrderEmailData = {
   deliveryCents: 590,
   totalCents: 5190,
   office: SAMPLE_OFFICE,
+};
+
+const SAMPLE_UNSUBSCRIBE = `${SITE_URL}/subscription/unsubscribe?token=preview`;
+
+const SAMPLE_500G: CampaignProductData = {
+  slug: "pchelen-prashets-500g",
+  name: "Пчелен прашец 500 г",
+  image: {
+    path: "/products/pollen-500g-bag.jpg",
+    alt: "Пакет пчелен прашец 500 г",
+  },
+  priceCents: 1200,
+  regularPriceCents: null,
+};
+
+const SAMPLE_1KG: CampaignProductData = {
+  slug: "pchelen-prashets-1kg",
+  name: "Пчелен прашец 1 кг",
+  image: {
+    path: "/products/pollen-1kg-bag.jpg",
+    alt: "Пакет пчелен прашец 1 кг",
+  },
+  priceCents: 2200,
+  regularPriceCents: null,
+};
+
+const SAMPLE_RESTOCK = {
+  text: "Тази седмица прибрахме нов прашец от акация и липа.\n\nПоръчайте сега, докато е пресен.",
+  products: [SAMPLE_500G, SAMPLE_1KG],
+  unsubscribeUrl: SAMPLE_UNSUBSCRIBE,
 };
 
 export const PREVIEWS: {
@@ -128,5 +163,30 @@ export const PREVIEWS: {
         withdrawnAt: new Date("2026-10-22T07:30:00Z"),
         sent: true,
       }),
+  },
+  {
+    title: "Промоция — до абонатите",
+    trigger:
+      "Когато изпратите кампания „Промоция“ от страницата с кампании, до всеки абониран купувач.",
+    render: () =>
+      promotionEmail({
+        text: "Само тази седмица прашецът е с 20% по-евтин.",
+        product: { ...SAMPLE_500G, priceCents: 960, regularPriceCents: 1200 },
+        startsOn: "2026-11-16",
+        endsOn: "2026-11-22",
+        unsubscribeUrl: SAMPLE_UNSUBSCRIBE,
+      }),
+  },
+  {
+    title: "Ново зареждане, вариант А (списък) — до абонатите",
+    trigger:
+      "Когато изпратите кампания „Ново зареждане“, до всеки абониран купувач.",
+    render: () => restockEmail(SAMPLE_RESTOCK, "list"),
+  },
+  {
+    title: "Ново зареждане, вариант Б (карти) — до абонатите",
+    trigger:
+      "Когато изпратите кампания „Ново зареждане“, до всеки абониран купувач.",
+    render: () => restockEmail(SAMPLE_RESTOCK, "cards"),
   },
 ];

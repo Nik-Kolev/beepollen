@@ -30,8 +30,6 @@ export type RestockEmailData = {
   unsubscribeUrl: string;
 };
 
-export type RestockVariant = "list" | "cards";
-
 const SUBSCRIBED =
   "Получавате този имейл, защото сте абонирани за офертите ни.";
 
@@ -143,17 +141,6 @@ ${photo(product, 240)}
   };
 }
 
-function listRow(product: CampaignProductData) {
-  return `<tr>
-<td width="96" style="padding:12px 16px 12px 0;vertical-align:top;border-top:1px solid ${EMAIL_COLOR.line};">${photo(product, 96)}</td>
-<td style="padding:12px 0;vertical-align:top;border-top:1px solid ${EMAIL_COLOR.line};">
-<p style="margin:0 0 4px;font-weight:bold;">${escapeHtml(product.name)}</p>
-<p style="margin:0 0 12px;">${priceHtml(product, 18)}</p>
-${button(productUrl(product), "Виж продукта")}
-</td>
-</tr>`;
-}
-
 function card(product: CampaignProductData) {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;background:${EMAIL_COLOR.ground};border-radius:8px;">
 <tr><td align="center" style="padding:20px 16px;">
@@ -165,22 +152,12 @@ ${button(productUrl(product), "Към продукта", true)}
 </table>`;
 }
 
-function restockProductsHtml(
-  products: CampaignProductData[],
-  variant: RestockVariant,
-) {
+function restockProductsHtml(products: CampaignProductData[]) {
   if (products.length === 0) return button(SITE_URL, "Към магазина");
-  return variant === "list"
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 0;">
-${products.map(listRow).join("\n")}
-</table>`
-    : products.map(card).join("\n");
+  return products.map(card).join("\n");
 }
 
-export function restockEmail(
-  data: RestockEmailData,
-  variant: RestockVariant,
-): EmailMessage {
+export function restockEmail(data: RestockEmailData): EmailMessage {
   const heading = "Ново зареждане";
   const names = data.products.map(({ name }) => name).join(", ");
 
@@ -193,7 +170,7 @@ export function restockEmail(
       heading,
       bodyHtml: [
         ownerTextHtml(data.text),
-        restockProductsHtml(data.products, variant),
+        restockProductsHtml(data.products),
         subscribedHtml(data.unsubscribeUrl),
       ].join("\n"),
     }),

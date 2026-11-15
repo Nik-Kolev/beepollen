@@ -178,15 +178,9 @@ export const PREVIEWS: {
       }),
   },
   {
-    title: "Ново зареждане, вариант А (списък) — до абонатите",
+    title: "Ново зареждане — до абонатите",
     trigger:
       "Когато изпратите кампания „Ново зареждане“, до всеки абониран купувач.",
-    render: () => restockEmail(SAMPLE_RESTOCK, "list"),
-  },
-  {
-    title: "Ново зареждане, вариант Б (карти) — до абонатите",
-    trigger:
-      "Когато изпратите кампания „Ново зареждане“, до всеки абониран купувач.",
-    render: () => restockEmail(SAMPLE_RESTOCK, "cards"),
+    render: () => restockEmail(SAMPLE_RESTOCK),
   },
 ];

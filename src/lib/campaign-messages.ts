@@ -15,7 +15,6 @@ import {
   promotionSubject,
   restockEmail,
   restockSubject,
-  type RestockVariant,
 } from "@/lib/email/campaign-templates";
 import type { EmailMessage } from "@/lib/email/templates";
 import { formatPrice } from "@/lib/money";
@@ -29,7 +28,6 @@ import {
 import { SITE_URL } from "@/lib/site";
 import { unsubscribeUrl } from "@/lib/subscriptions";
 
-export const CAMPAIGN_RESTOCK_VARIANT: RestockVariant = "list";
 export const RECENT_CAMPAIGN_DAYS = 14;
 export const PREVIEW_UNSUBSCRIBE_URL = `${SITE_URL}/subscription/unsubscribe?token=preview`;
 
@@ -122,10 +120,11 @@ async function composer(draft: Draft, today: string): Promise<Compose | null> {
   if (draft.productIds.length > 0 && ordered.length === 0) return null;
 
   return (unsubscribe) =>
-    restockEmail(
-      { text: draft.text, products: ordered, unsubscribeUrl: unsubscribe },
-      CAMPAIGN_RESTOCK_VARIANT,
-    );
+    restockEmail({
+      text: draft.text,
+      products: ordered,
+      unsubscribeUrl: unsubscribe,
+    });
 }
 
 export type CampaignPreview =

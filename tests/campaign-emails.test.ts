@@ -5,7 +5,6 @@ import {
   type CampaignProductData,
   promotionEmail,
   restockEmail,
-  type RestockVariant,
 } from "@/lib/email/campaign-templates";
 import { PREVIEWS } from "@/lib/email/previews";
 import { SITE_URL } from "@/lib/site";
@@ -36,8 +35,6 @@ const promotion = () =>
     endsOn: "2026-11-22",
     unsubscribeUrl: UNSUBSCRIBE,
   });
-
-const VARIANTS: RestockVariant[] = ["list", "cards"];
 
 test("the promotion email shows the photo, the struck regular price, the promotion price and its days", () => {
   const { subject, html, text } = promotion();
@@ -78,12 +75,11 @@ test("the owner's text comes before the button, escaped and split into paragraph
 test("every campaign email carries the unsubscribe link in both parts", () => {
   const messages = [
     promotion(),
-    ...VARIANTS.map((variant) =>
-      restockEmail(
-        { text: "Ново", products: [PRODUCT], unsubscribeUrl: UNSUBSCRIBE },
-        variant,
-      ),
-    ),
+    restockEmail({
+      text: "Ново",
+      products: [PRODUCT],
+      unsubscribeUrl: UNSUBSCRIBE,
+    }),
   ];
 
   for (const { html, text } of messages) {
@@ -92,69 +88,53 @@ test("every campaign email carries the unsubscribe link in both parts", () => {
   }
 });
 
-test("both restock variants show each product with its price and link, and a promotion price struck", () => {
+test("the restock email shows each product as a card with its price and link, and a promotion price struck", () => {
   const discounted = { ...OTHER, priceCents: 1800, regularPriceCents: 2200 };
-  for (const variant of VARIANTS) {
-    const { subject, html, text } = restockEmail(
-      {
-        text: "Ново зареждане",
-        products: [PRODUCT, discounted],
-        unsubscribeUrl: UNSUBSCRIBE,
-      },
-      variant,
-    );
+  const { subject, html, text } = restockEmail({
+    text: "Ново зареждане",
+    products: [PRODUCT, discounted],
+    unsubscribeUrl: UNSUBSCRIBE,
+  });
 
-    assert.equal(
-      subject,
-      "Ново зареждане: Пчелен прашец 500 г, Пчелен прашец 1 кг",
-    );
-    for (const product of [PRODUCT, discounted]) {
-      assert.ok(
-        html.includes(`href="${SITE_URL}/products/${product.slug}"`),
-        variant,
-      );
-      assert.ok(html.includes(product.name), variant);
-    }
-    assert.match(html, /12,00\s€/);
-    assert.match(html, /<s [^>]*>22,00\s€<\/s>/);
-    assert.ok(html.includes(`src="${SITE_URL}/products/pollen-500g-bag.jpg"`));
-    assert.equal(
-      html.match(/<img src="[^"]*\/products\//g)?.length,
-      1,
-      variant,
-    );
-    assert.match(text, /Пчелен прашец 1 кг — 18,00\s€ вместо 22,00\s€: /);
+  assert.equal(
+    subject,
+    "Ново зареждане: Пчелен прашец 500 г, Пчелен прашец 1 кг",
+  );
+  for (const product of [PRODUCT, discounted]) {
+    assert.ok(html.includes(`href="${SITE_URL}/products/${product.slug}"`));
+    assert.ok(html.includes(product.name));
   }
+  assert.match(html, /12,00\s€/);
+  assert.match(html, /<s [^>]*>22,00\s€<\/s>/);
+  assert.match(
+    html,
+    new RegExp(
+      `<img src="${SITE_URL}/products/pollen-500g-bag.jpg" width="200"`,
+    ),
+  );
+  assert.equal(html.match(/<img src="[^"]*\/products\//g)?.length, 1);
+  assert.equal(html.match(/>Към продукта<\/a>/g)?.length, 2);
+  assert.match(text, /Пчелен прашец 1 кг — 18,00\s€ вместо 22,00\s€: /);
 });
 
 test("a restock email without products links to the shop", () => {
-  for (const variant of VARIANTS) {
-    const { subject, html, text } = restockEmail(
-      {
-        text: "Имаме ново зареждане.",
-        products: [],
-        unsubscribeUrl: UNSUBSCRIBE,
-      },
-      variant,
-    );
-    assert.equal(subject, "Ново зареждане");
-    assert.match(html, new RegExp(`href="${SITE_URL}"[^>]*>Към магазина</a>`));
-    assert.ok(text.includes(`Към магазина: ${SITE_URL}`));
-  }
+  const { subject, html, text } = restockEmail({
+    text: "Имаме ново зареждане.",
+    products: [],
+    unsubscribeUrl: UNSUBSCRIBE,
+  });
+  assert.equal(subject, "Ново зареждане");
+  assert.match(html, new RegExp(`href="${SITE_URL}"[^>]*>Към магазина</a>`));
+  assert.ok(text.includes(`Към магазина: ${SITE_URL}`));
 });
 
-test("the previews include the promotion email and both restock variants", () => {
+test("the previews include the promotion email and one restock email", () => {
   const titles = PREVIEWS.map(({ title }) => title);
-  for (const start of [
-    "Промоция",
-    "Ново зареждане, вариант А",
-    "Ново зареждане, вариант Б",
-  ]) {
-    assert.ok(
-      titles.some((title) => title.startsWith(start)),
-      start,
-    );
-  }
+  assert.ok(titles.some((title) => title.startsWith("Промоция")));
+  assert.equal(
+    titles.filter((title) => title.startsWith("Ново зареждане")).length,
+    1,
+  );
   for (const preview of PREVIEWS) assert.ok(preview.render().html);
 });
 
@@ -195,12 +175,11 @@ test("a product's name and photo description are escaped in every campaign email
       endsOn: "2026-11-22",
       unsubscribeUrl: UNSUBSCRIBE,
     }),
-    ...VARIANTS.map((variant) =>
-      restockEmail(
-        { text: "Текст", products: [crafted], unsubscribeUrl: UNSUBSCRIBE },
-        variant,
-      ),
-    ),
+    restockEmail({
+      text: "Текст",
+      products: [crafted],
+      unsubscribeUrl: UNSUBSCRIBE,
+    }),
   ];
 
   for (const { html } of messages) {
@@ -212,14 +191,11 @@ test("a product's name and photo description are escaped in every campaign email
 });
 
 test("line breaks typed in a browser split the owner's text the same way in both parts", () => {
-  const { html, text } = restockEmail(
-    {
-      text: "Първи ред\r\nвтори ред\r\n\r\n \r\n\r\nНов абзац",
-      products: [],
-      unsubscribeUrl: UNSUBSCRIBE,
-    },
-    "list",
-  );
+  const { html, text } = restockEmail({
+    text: "Първи ред\r\nвтори ред\r\n\r\n \r\n\r\nНов абзац",
+    products: [],
+    unsubscribeUrl: UNSUBSCRIBE,
+  });
 
   assert.ok(html.includes(">Първи ред<br>втори ред</p>"));
   assert.ok(html.includes(">Нов абзац</p>"));

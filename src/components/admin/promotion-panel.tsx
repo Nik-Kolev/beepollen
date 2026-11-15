@@ -36,7 +36,7 @@ const FAILURE_TEXT: Record<Failure, string> = {
   INVALID_DATES: "Крайната дата е преди началната.",
   ENDS_IN_PAST: "Крайната дата вече е минала.",
   STARTS_IN_PAST: "Началната дата вече е минала.",
-  OVERLAP: "В тези дни продуктът вече има промоция.",
+  ALREADY_OPEN: "Продуктът вече има промоция. Редактирайте я или я прекратете.",
   UNKNOWN_PRODUCT: "Продуктът вече не съществува. Презаредете страницата.",
   UNKNOWN_PROMOTION:
     "Промоцията вече е приключила или прекратена. Презаредете страницата.",
@@ -146,8 +146,7 @@ export function PromotionPanel({
     status === "INVALID_INPUT" ||
     status === "INVALID_DATES" ||
     status === "ENDS_IN_PAST" ||
-    status === "STARTS_IN_PAST" ||
-    status === "OVERLAP";
+    status === "STARTS_IN_PAST";
 
   return (
     <section

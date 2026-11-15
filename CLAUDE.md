@@ -478,8 +478,8 @@ with it, so a new place that shows one renders it too.
 
 Promotions are added, edited and ended under each product on
 `/admin/products`, by `savePromotion` and `endPromotion` in
-`src/lib/admin-promotions.ts`. An open promotion may not share a day with
-another open one on the same product; the check reads then writes inside one
+`src/lib/admin-promotions.ts`. A product has at most one open promotion,
+running or upcoming, and a new one cannot start in the past; the check reads then writes inside one
 transaction, which suits a single admin and would let two simultaneous saves
 through. An ended or finished promotion stays as history and is never edited;
 ending one takes effect at once.

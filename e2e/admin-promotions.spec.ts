@@ -25,7 +25,7 @@ function shown(day: string) {
   return `${date}.${month}.${year}`;
 }
 
-test("a promotion is added, refused when it overlaps, edited and ended", async ({
+test("a promotion is added, a second one refused, the first edited and ended", async ({
   page,
   context,
 }) => {
@@ -62,13 +62,15 @@ test("a promotion is added, refused when it overlaps, edited and ended", async (
   await expect(row).toContainText("−20%");
 
   await form.getByLabel("Процент (%)").fill("10");
-  await form.getByLabel("От").fill(sofiaDay(2));
-  await form.getByLabel("До (включително)").fill(sofiaDay(4));
+  await form.getByLabel("От").fill(sofiaDay(5));
+  await form.getByLabel("До (включително)").fill(sofiaDay(6));
   await form.getByRole("button", { name: "Добави промоция" }).click();
   await expect(form.getByRole("status")).toHaveText(
-    "В тези дни продуктът вече има промоция.",
+    "Продуктът вече има промоция. Редактирайте я или я прекратете.",
   );
-  await expect(form.getByLabel("От")).toHaveAttribute("aria-invalid", "true");
+  await expect(
+    article.getByRole("region", { name: "Промоция" }).getByRole("listitem"),
+  ).toHaveCount(1);
 
   await row.getByRole("button", { name: "Редактирай" }).click();
   await expect(form.getByLabel("Процент (%)")).toHaveValue("20");
@@ -78,27 +80,12 @@ test("a promotion is added, refused when it overlaps, edited and ended", async (
   await expect(form.getByRole("status")).toHaveText("Запазено.");
   await expect(row).toContainText("−25%");
 
-  const laterStarts = sofiaDay(5);
-  const laterEnds = sofiaDay(6);
-  await form.getByLabel("Процент (%)").fill("15");
-  await form.getByLabel("От").fill(laterStarts);
-  await form.getByLabel("До (включително)").fill(laterEnds);
-  await form.getByRole("button", { name: "Добави промоция" }).click();
-  await expect(form.getByRole("status")).toHaveText("Запазено.");
-  const later = article
-    .getByRole("listitem")
-    .filter({ hasText: `${shown(laterStarts)} – ${shown(laterEnds)}` });
-  await later.getByRole("button", { name: "Редактирай" }).click();
-
+  await row.getByRole("button", { name: "Редактирай" }).click();
   await row.getByRole("button", { name: "Прекрати" }).click();
   await expect(row).toContainText("Прекратена");
   await expect(row.getByRole("button", { name: "Прекрати" })).toHaveCount(0);
-  await expect(form.getByLabel("Процент (%)")).toHaveValue("15");
-  await expect(
-    form.getByRole("button", { name: "Запази промоцията" }),
-  ).toBeVisible();
-
-  await later.getByRole("button", { name: "Прекрати" }).click();
-  await expect(later).toContainText("Прекратена");
   await expect(form.getByLabel("Процент (%)")).toHaveValue("");
+  await expect(
+    form.getByRole("button", { name: "Добави промоция" }),
+  ).toBeVisible();
 });

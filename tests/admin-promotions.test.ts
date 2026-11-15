@@ -115,23 +115,49 @@ test("a bad percentage, price or date is refused with its own reason", async () 
   );
 });
 
-test("a second promotion may not share a day with an open one, but may follow it", async () => {
+test("a product has at most one open promotion, upcoming or running", async () => {
   const slug = await product();
-  await savePromotion(input(slug), ADMIN, TODAY);
-
-  assert.deepEqual(
-    await savePromotion(
-      input(slug, { startsOn: "2026-11-20", endsOn: "2026-11-25" }),
-      ADMIN,
-      TODAY,
-    ),
-    { ok: false, code: "OVERLAP" },
+  await savePromotion(
+    input(slug, { startsOn: "2026-11-16", endsOn: "2026-11-18" }),
+    ADMIN,
+    TODAY,
   );
+
   assert.deepEqual(
     await savePromotion(
       input(slug, { startsOn: "2026-11-21", endsOn: "2026-11-25" }),
       ADMIN,
       TODAY,
+    ),
+    { ok: false, code: "ALREADY_OPEN" },
+  );
+  assert.deepEqual(
+    await savePromotion(
+      input(slug, { startsOn: "2026-11-21", endsOn: "2026-11-25" }),
+      ADMIN,
+      "2026-11-17",
+    ),
+    { ok: false, code: "ALREADY_OPEN" },
+  );
+  assert.equal(
+    await prisma.promotion.count({ where: { product: { slug } } }),
+    1,
+  );
+});
+
+test("a finished promotion no longer blocks a new one", async () => {
+  const slug = await product();
+  await savePromotion(
+    input(slug, { startsOn: "2026-11-14", endsOn: "2026-11-15" }),
+    ADMIN,
+    TODAY,
+  );
+
+  assert.deepEqual(
+    await savePromotion(
+      input(slug, { startsOn: "2026-11-16", endsOn: "2026-11-20" }),
+      ADMIN,
+      "2026-11-16",
     ),
     { ok: true, slug },
   );
@@ -151,7 +177,7 @@ test("an ended promotion no longer blocks its days", async () => {
   });
 });
 
-test("editing a promotion does not count it as overlapping itself", async () => {
+test("editing the open promotion does not count it as a second one", async () => {
   const slug = await product();
   await savePromotion(input(slug), ADMIN, TODAY);
   const row = await prisma.promotion.findFirstOrThrow({

@@ -33,11 +33,6 @@ export const CAMPAIGN_RESTOCK_VARIANT: RestockVariant = "list";
 export const RECENT_CAMPAIGN_DAYS = 14;
 export const PREVIEW_UNSUBSCRIBE_URL = `${SITE_URL}/subscription/unsubscribe?token=preview`;
 
-export const CAMPAIGN_SAMPLE_TEXT = {
-  PROMOTION: "Пчелният ни прашец е на промоция. Заповядайте, докато трае!",
-  RESTOCK: "Имаме ново зареждане на пчелен прашец. Поръчайте, докато е пресен!",
-} as const;
-
 const ON_SALE = { isPublished: true, stock: { not: "NONE" as const } };
 
 function runningOn(today: string) {
@@ -305,6 +300,8 @@ export async function campaignOptions(now = new Date()) {
           : `на ${formatPrice(promotion.value)}`;
       return {
         id: promotion.id,
+        productName: promotion.product.name,
+        endsOn: promotion.endsOn,
         label: `${promotion.product.name} ${terms} (${formatCampaignDay(promotion.startsOn)} – ${formatCampaignDay(promotion.endsOn)})`,
       };
     }),
@@ -347,9 +344,13 @@ export const CAMPAIGN_HISTORY_MAX = 50;
 export type CampaignHistoryEntry = {
   id: number;
   kind: keyof typeof CAMPAIGN_KIND_LABEL;
-  subject: string;
+  products: string[];
   sentOn: string;
+  total: number;
   sent: number;
+  waiting: number;
+  failed: number;
+  unsubscribed: number;
   pending: number;
 };
 
@@ -380,19 +381,28 @@ export async function campaignHistory(): Promise<CampaignHistoryEntry[]> {
       )
       .reduce((sum, row) => sum + row._count._all, 0);
 
-  return campaigns.map((campaign) => ({
-    id: campaign.id,
-    kind: campaign.kind,
-    subject:
+  return campaigns.map((campaign) => {
+    const products =
       campaign.kind === "PROMOTION"
         ? campaign.promotion
-          ? promotionSubject(campaign.promotion.product.name)
-          : CAMPAIGN_KIND_LABEL.PROMOTION
-        : restockSubject(campaign.products.map(({ product }) => product.name)),
-    sentOn: sofiaToday(campaign.createdAt),
-    sent: count(campaign.id, ["SENT"]),
-    pending: count(campaign.id, ["PENDING", "FAILED"]),
-  }));
+          ? [campaign.promotion.product.name]
+          : []
+        : campaign.products.map(({ product }) => product.name);
+    const waiting = count(campaign.id, ["PENDING"]);
+    const failed = count(campaign.id, ["FAILED"]);
+    return {
+      id: campaign.id,
+      kind: campaign.kind,
+      products,
+      sentOn: sofiaToday(campaign.createdAt),
+      total: count(campaign.id, ["PENDING", "SENT", "FAILED", "UNSUBSCRIBED"]),
+      sent: count(campaign.id, ["SENT"]),
+      waiting,
+      failed,
+      unsubscribed: count(campaign.id, ["UNSUBSCRIBED"]),
+      pending: waiting + failed,
+    };
+  });
 }
 
 export type CampaignResumeResult =

@@ -482,7 +482,10 @@ Promotions are added, edited and ended under each product on
 running or upcoming, and a new one cannot start in the past; the check reads then writes inside one
 transaction, which suits a single admin and would let two simultaneous saves
 through. An ended or finished promotion stays as history and is never edited;
-ending one takes effect at once.
+ending one takes effect at once. Any change of the regular price ends the
+product's open promotions: `editProduct` answers `PROMOTION_OPEN` with them
+until the save names every one of them, so one added on another screen is never
+ended unseen. A save that keeps the price never touches them.
 
 ## Checkout
 

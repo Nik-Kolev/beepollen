@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
 import {
@@ -8,10 +9,6 @@ import {
   parsePriceCents,
 } from "@/lib/admin-products";
 import prisma from "@/lib/prisma";
-
-after(async () => {
-  await prisma.$disconnect();
-});
 
 const SLUG = "pchelen-prashets-1kg";
 
@@ -149,4 +146,145 @@ test("a crafted edit with an unknown stock level or a non-string field is refuse
     assert.equal(unchanged.priceCents, before.priceCents);
     assert.equal(unchanged.stock, before.stock);
   });
+});
+
+const ADMIN = "admin@example.com";
+const TODAY = "2026-11-14";
+const NOW = new Date("2026-11-14T10:00:00Z");
+const created: number[] = [];
+
+after(async () => {
+  await prisma.product.deleteMany({ where: { id: { in: created } } });
+  await prisma.$disconnect();
+});
+
+async function promotedProduct() {
+  const product = await prisma.product.create({
+    data: {
+      slug: `price-change-${randomUUID()}`,
+      name: "Продукт със смяна на цена",
+      summary: "test",
+      description: "test",
+      priceCents: 1000,
+    },
+  });
+  created.push(product.id);
+  const promotion = (startsOn: string, endsOn: string, ended?: Date) =>
+    prisma.promotion.create({
+      data: {
+        productId: product.id,
+        kind: "PERCENT",
+        value: 20,
+        startsOn,
+        endsOn,
+        endedAt: ended,
+        createdBy: ADMIN,
+      },
+    });
+  const running = await promotion("2026-11-10", TODAY);
+  const upcoming = await promotion("2026-11-20", "2026-11-25");
+  const finished = await promotion("2026-11-01", "2026-11-05");
+  await promotion("2026-11-12", "2026-11-30", NOW);
+  return { product, running, upcoming, finished };
+}
+
+async function endedAt(id: number) {
+  return (await prisma.promotion.findUniqueOrThrow({ where: { id } })).endedAt;
+}
+
+test("a new price with open promotions is refused, naming them, until they are confirmed", async () => {
+  const { product, running, upcoming } = await promotedProduct();
+
+  const result = await editProduct(
+    { slug: product.slug, price: "8,00", stock: "LOW" },
+    NOW,
+    TODAY,
+  );
+
+  assert.equal(result.ok, false);
+  assert.equal(!result.ok && result.code, "PROMOTION_OPEN");
+  assert.deepEqual(
+    !result.ok &&
+      "promotions" in result &&
+      result.promotions.map(({ id }) => id),
+    [running.id, upcoming.id],
+  );
+  const kept = await prisma.product.findUniqueOrThrow({
+    where: { id: product.id },
+  });
+  assert.equal(kept.priceCents, 1000);
+  assert.equal(kept.stock, product.stock);
+  assert.equal(await endedAt(running.id), null);
+  assert.equal(await endedAt(upcoming.id), null);
+});
+
+test("a confirmed new price is saved and ends the running and the upcoming promotion, not a finished one", async () => {
+  const { product, running, upcoming, finished } = await promotedProduct();
+
+  assert.deepEqual(
+    await editProduct(
+      {
+        slug: product.slug,
+        price: "8,00",
+        stock: "LOW",
+        endPromotionIds: [upcoming.id, running.id],
+      },
+      NOW,
+      TODAY,
+    ),
+    { ok: true, slug: product.slug },
+  );
+
+  const saved = await prisma.product.findUniqueOrThrow({
+    where: { id: product.id },
+  });
+  assert.equal(saved.priceCents, 800);
+  assert.equal(saved.stock, "LOW");
+  assert.deepEqual(await endedAt(running.id), NOW);
+  assert.deepEqual(await endedAt(upcoming.id), NOW);
+  assert.equal(await endedAt(finished.id), null);
+});
+
+test("a confirmation that misses a promotion opened since is refused and ends nothing", async () => {
+  const { product, running, upcoming } = await promotedProduct();
+
+  const result = await editProduct(
+    {
+      slug: product.slug,
+      price: "8,00",
+      stock: "LOW",
+      endPromotionIds: [running.id],
+    },
+    NOW,
+    TODAY,
+  );
+
+  assert.equal(!result.ok && result.code, "PROMOTION_OPEN");
+  assert.equal(await endedAt(running.id), null);
+  assert.equal(await endedAt(upcoming.id), null);
+  assert.equal(
+    (await prisma.product.findUniqueOrThrow({ where: { id: product.id } }))
+      .priceCents,
+    1000,
+  );
+});
+
+test("a save that keeps the price, however it is typed, changes the stock and leaves the promotions", async () => {
+  const { product, running, upcoming } = await promotedProduct();
+
+  assert.deepEqual(
+    await editProduct(
+      { slug: product.slug, price: "10", stock: "NONE" },
+      NOW,
+      TODAY,
+    ),
+    { ok: true, slug: product.slug },
+  );
+
+  const saved = await prisma.product.findUniqueOrThrow({
+    where: { id: product.id },
+  });
+  assert.equal(saved.stock, "NONE");
+  assert.equal(await endedAt(running.id), null);
+  assert.equal(await endedAt(upcoming.id), null);
 });

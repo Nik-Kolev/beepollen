@@ -50,7 +50,7 @@ const STATUS_TEXT: Record<PromotionStatus, string> = {
   ENDED: "Прекратена",
 };
 
-function formatDay(day: string) {
+export function formatDay(day: string) {
   const [year, month, date] = day.split("-");
   return `${date}.${month}.${year}`;
 }

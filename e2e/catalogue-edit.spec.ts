@@ -155,6 +155,64 @@ test("a promotion started today shows the struck regular price on every shop pag
   await expect(main.locator("s")).toHaveCount(0);
 });
 
+test("a new regular price asks before ending the open promotion: cancel keeps both, confirm ends it", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await saveProduct(page, SEEDED.price, SEEDED.stock);
+
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Sofia",
+  }).format(new Date());
+  const [year, month, day] = today.split("-");
+  const shownDay = `${day}.${month}.${year}`;
+  const article = page
+    .getByRole("article")
+    .filter({ has: page.getByRole("heading", { name: PRODUCT, exact: true }) });
+  const promotionForm = article.getByRole("form", {
+    name: `Промоция за ${PRODUCT}`,
+  });
+  await promotionForm.getByLabel("Процент (%)").fill("15");
+  await promotionForm.getByLabel("От").fill(today);
+  await promotionForm.getByLabel("До (включително)").fill(today);
+  await promotionForm.getByRole("button", { name: "Добави промоция" }).click();
+  await expect(promotionForm.getByRole("status")).toHaveText("Запазено.");
+  const row = article
+    .getByRole("listitem")
+    .filter({ hasText: `${shownDay} – ${shownDay}` })
+    .filter({ hasText: "−15%" });
+  await expect(row).toContainText("Активна");
+
+  const form = page.getByRole("form", { name: PRODUCT, exact: true });
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  await form.getByLabel("Цена (€)").fill("44,00");
+  await form.getByRole("button", { name: "Запази" }).click();
+  await expect(dialog).toContainText(
+    `прекратява промоцията на ${PRODUCT}: −15% (${shownDay} – ${shownDay})`,
+  );
+  await expect(dialog.getByRole("button", { name: "Отказ" })).toBeFocused();
+  await dialog.getByRole("button", { name: "Отказ" }).click();
+  await expect(dialog).toBeHidden();
+
+  await page.reload();
+  await expect(form.getByLabel("Цена (€)")).toHaveValue(SEEDED.price);
+  await expect(row).toContainText("Активна");
+
+  await form.getByLabel("Цена (€)").fill("44,00");
+  await form.getByRole("button", { name: "Запази" }).click();
+  await dialog.getByRole("button", { name: "Смени цената" }).click();
+  await expect(form.getByRole("status")).toHaveText("Запазено.");
+  await expect(row).toContainText("Прекратена");
+
+  const main = page.getByRole("main");
+  await page.goto(`/products/${SLUG}`);
+  await expect(main.getByText("44,00 €", { exact: true })).toBeVisible();
+  await expect(main.locator("s")).toHaveCount(0);
+
+  await saveProduct(page, SEEDED.price, SEEDED.stock);
+});
+
 test("an item sold out after the checkout page loaded is refused and can be removed", async ({
   page,
   browser,

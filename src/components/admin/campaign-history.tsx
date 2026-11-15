@@ -3,7 +3,11 @@
 import { useRef, useState, useTransition } from "react";
 
 import { resumeCampaignAction } from "@/app/admin/campaigns/actions";
-import { CAMPAIGN_KIND_LABEL, formatCampaignDay } from "@/lib/campaign-labels";
+import {
+  CAMPAIGN_KIND_LABEL,
+  countWord,
+  formatCampaignDay,
+} from "@/lib/campaign-labels";
 import type {
   CampaignHistoryEntry,
   CampaignResumeResult,
@@ -28,7 +32,9 @@ type RowStatus =
 function rowText(status: RowStatus) {
   if (status.kind === "failed") return FAILURE_TEXT[status.code];
   const waiting =
-    status.waiting > 0 ? ` Още ${status.waiting} ще чакат следващ ден.` : "";
+    status.waiting > 0
+      ? ` Още ${countWord(status.waiting, "ще чака", "ще чакат")} следващ ден.`
+      : "";
   return `Изпраща се до ${status.sendingNow}.${waiting}`;
 }
 
@@ -82,19 +88,39 @@ export function CampaignHistory({
             key={campaign.id}
             className="bg-ground flex flex-col gap-2 rounded-lg px-4 py-3 text-sm"
           >
-            <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <p className="font-semibold">
               <span className="tabular-nums">
                 {formatCampaignDay(campaign.sentOn)}
-              </span>
-              <span className="font-medium">
-                {CAMPAIGN_KIND_LABEL[campaign.kind]}
-              </span>
-              <span className="text-ink-soft">{campaign.subject}</span>
-            </div>
+              </span>{" "}
+              · {CAMPAIGN_KIND_LABEL[campaign.kind]}
+            </p>
+            <p>
+              <span className="text-ink-soft">Продукти: </span>
+              {campaign.products.length > 0
+                ? campaign.products.join(", ")
+                : "без избрани продукти"}
+            </p>
+            <p className="tabular-nums">
+              {`Изпратена на ${campaign.sent} от ${countWord(campaign.total, "абонат", "абонати")}.`}
+            </p>
+            {campaign.waiting > 0 && (
+              <p className="text-ink-soft">
+                {`${countWord(campaign.waiting, "чака", "чакат")} за следващо изпращане — на ден тръгват до 80 имейла, за да остане място за поръчките.`}
+              </p>
+            )}
+            {campaign.failed > 0 && (
+              <p className="text-ink-soft">
+                {campaign.failed === 1
+                  ? "1 не тръгна и ще бъде опитан отново."
+                  : `${campaign.failed} не тръгнаха и ще бъдат опитани отново.`}
+              </p>
+            )}
+            {campaign.unsubscribed > 0 && (
+              <p className="text-ink-soft">
+                {`${countWord(campaign.unsubscribed, "се отписа", "се отписаха")}, преди да им изпратим.`}
+              </p>
+            )}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <span className="tabular-nums">
-                Изпратени {campaign.sent} · Чакат {campaign.pending}
-              </span>
               {campaign.pending > 0 && status?.kind !== "started" && (
                 <button
                   type="button"

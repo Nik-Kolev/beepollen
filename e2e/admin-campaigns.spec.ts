@@ -29,7 +29,13 @@ test("a restock campaign is previewed, confirmed and sent, and a second one is w
   const form = page.getByRole("form", { name: "Нова кампания" });
   await form.getByRole("radio", { name: "Ново зареждане" }).check();
   const text = form.getByLabel("Текст");
-  await expect(text).toHaveValue(/^Имаме ново зареждане/);
+  await expect(text).toHaveValue(
+    "Ново зареждане на пчелен прашец. Възползвайте се!",
+  );
+  await form.getByRole("checkbox", { name: "Пчелен прашец 1 кг" }).check();
+  await expect(text).toHaveValue(
+    "Ново зареждане на Пчелен прашец 1 кг. Възползвайте се!",
+  );
 
   await text.fill("");
   await form.getByRole("button", { name: "Изпрати" }).click();
@@ -40,7 +46,6 @@ test("a restock campaign is previewed, confirmed and sent, and a second one is w
   await expect(page.getByRole("dialog")).toBeHidden();
 
   await text.fill("Пресен прашец от тази седмица.");
-  await form.getByRole("checkbox", { name: "Пчелен прашец 1 кг" }).check();
   await form.getByRole("button", { name: "Преглед" }).click();
   await expect(
     form.getByText("Тема: Ново зареждане: Пчелен прашец 1 кг"),
@@ -60,7 +65,7 @@ test("a restock campaign is previewed, confirmed and sent, and a second one is w
   await form.getByRole("button", { name: "Изпрати" }).click();
   await dialog.getByRole("button", { name: "Изпрати" }).click();
   await expect(form.getByRole("status")).toHaveText(
-    /^Изпраща се до \d+ абонати\./,
+    /^Изпраща се до (1 абонат|\d+ абонати)\.$/,
   );
 
   const posts: string[] = [];
@@ -81,9 +86,10 @@ test("a restock campaign is previewed, confirmed and sent, and a second one is w
   await page.reload();
   const history = page
     .getByRole("listitem")
-    .filter({ hasText: "Ново зареждане: Пчелен прашец 1 кг" });
+    .filter({ hasText: "Продукти: Пчелен прашец 1 кг" });
   await expect(history).toHaveCount(1);
-  await expect(history).toContainText(/Изпратени 0 · Чакат \d+/);
+  await expect(history).toContainText(/Изпратена на 0 от \d+ абонат(и)?\./);
+  await expect(history).toContainText(/\d+ чака(т)? за следващо изпращане/);
   await history.getByRole("button", { name: "Изпрати на останалите" }).click();
   await expect(history.getByRole("status")).toHaveText(/^Изпраща се до \d+\./);
   await expect(

@@ -217,6 +217,9 @@ test("the form offers only promotions running today and products on sale", async
     options.promotions.find(({ id }) => id === running)?.label ?? "",
     /^Пчелен прашец 500 г −25% \(06\.06\.2032 – 06\.06\.2032\)$/,
   );
+  const chosen = options.promotions.find(({ id }) => id === running);
+  assert.equal(chosen?.productName, "Пчелен прашец 500 г");
+  assert.equal(chosen?.endsOn, day);
   const published = await prisma.product.findMany({
     where: { isPublished: true, stock: { not: "NONE" } },
     orderBy: { sortOrder: "asc" },
@@ -355,17 +358,25 @@ test("the history lists campaigns newest first with what was sent and what still
     {
       id: newer.id,
       kind: "RESTOCK",
-      subject: "Ново зареждане: Пчелен прашец 1 кг",
+      products: ["Пчелен прашец 1 кг"],
       sentOn: "2032-09-03",
+      total,
       sent: 1,
+      waiting: total - 3,
+      failed: 1,
+      unsubscribed: 1,
       pending: total - 2,
     },
     {
       id: older.id,
       kind: "RESTOCK",
-      subject: "Ново зареждане",
+      products: [],
       sentOn: "2032-09-01",
+      total: older.recipients,
       sent: 0,
+      waiting: older.recipients,
+      failed: 0,
+      unsubscribed: 0,
       pending: older.recipients,
     },
   ]);

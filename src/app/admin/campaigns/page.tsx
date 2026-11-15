@@ -5,7 +5,6 @@ import { CampaignPanels } from "@/components/admin/campaign-panels";
 import { requireAdmin } from "@/lib/admin-session";
 import {
   availableBudget,
-  CAMPAIGN_SAMPLE_TEXT,
   campaignHistory,
   campaignOptions,
   recentCampaign,
@@ -45,7 +44,6 @@ export default async function AdminCampaigns() {
         subscribers={subscribers}
         budget={budget}
         recent={recent}
-        sampleText={CAMPAIGN_SAMPLE_TEXT}
         textMax={CAMPAIGN_TEXT_MAX}
         productsMax={CAMPAIGN_PRODUCTS_MAX}
         history={history}

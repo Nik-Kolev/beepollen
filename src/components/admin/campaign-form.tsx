@@ -14,7 +14,13 @@ import {
   startCampaignAction,
 } from "@/app/admin/campaigns/actions";
 import { FIELD, FIELD_INVALID, LABEL } from "@/components/form-styles";
-import { CAMPAIGN_KIND_LABEL, formatCampaignDay } from "@/lib/campaign-labels";
+import {
+  CAMPAIGN_KIND_LABEL,
+  countWord,
+  formatCampaignDay,
+  promotionSampleText,
+  restockSampleText,
+} from "@/lib/campaign-labels";
 import type { RecentCampaign } from "@/lib/campaign-messages";
 import type { CampaignRefusal } from "@/lib/campaigns";
 
@@ -72,9 +78,9 @@ function statusText(status: Status) {
   if (status.kind === "failed") return FAILURE_TEXT[status.code];
   const waiting =
     status.waiting > 0
-      ? ` Останалите ${status.waiting} ще чакат „Изпрати на останалите“.`
+      ? ` Останалите ${countWord(status.waiting, "ще чака", "ще чакат")} „Изпрати на останалите“.`
       : "";
-  return `Изпраща се до ${status.sendingNow} абонати.${waiting}`;
+  return `Изпраща се до ${countWord(status.sendingNow, "абонат", "абонати")}.${waiting}`;
 }
 
 export function CampaignForm({
@@ -84,17 +90,20 @@ export function CampaignForm({
   budget,
   onSpent,
   recent: initialRecent,
-  sampleText,
   textMax,
   productsMax,
 }: {
-  promotions: { id: number; label: string }[];
+  promotions: {
+    id: number;
+    label: string;
+    productName: string;
+    endsOn: string;
+  }[];
   products: { id: number; name: string }[];
   subscribers: number;
   budget: number;
   onSpent: (count: number) => void;
   recent: RecentCampaign | null;
-  sampleText: Record<Kind, string>;
   textMax: number;
   productsMax: number;
 }) {
@@ -102,7 +111,7 @@ export function CampaignForm({
   const [kind, setKind] = useState<Kind>("PROMOTION");
   const [promotionId, setPromotionId] = useState(promotions[0]?.id ?? 0);
   const [productIds, setProductIds] = useState<number[]>([]);
-  const [text, setText] = useState<string>(sampleText.PROMOTION);
+  const [ownText, setOwnText] = useState<string | null>(null);
   const [preview, setPreview] = useState<{
     subject: string;
     html: string;
@@ -126,6 +135,20 @@ export function CampaignForm({
     setPreview(null);
     setStatus({ kind: "idle" });
   }
+
+  const chosen = promotions.find((promotion) => promotion.id === promotionId);
+  const sample =
+    kind === "PROMOTION"
+      ? chosen
+        ? promotionSampleText(chosen.productName, chosen.endsOn)
+        : ""
+      : restockSampleText(
+          productIds.flatMap((productId) => {
+            const product = products.find(({ id }) => id === productId);
+            return product ? [product.name] : [];
+          }),
+        );
+  const text = ownText ?? sample;
 
   function draft() {
     return kind === "PROMOTION"
@@ -198,7 +221,7 @@ export function CampaignForm({
         });
         setRecent(result.sent);
         onSpent(result.sendingNow);
-        setText(sampleText[kind]);
+        setOwnText(null);
         setProductIds([]);
         setPreview(null);
       } else if (result.code === "RECENT") {
@@ -227,7 +250,6 @@ export function CampaignForm({
               value={option}
               checked={kind === option}
               onChange={() => {
-                if (text === sampleText[kind]) setText(sampleText[option]);
                 setKind(option);
                 changed();
               }}
@@ -309,7 +331,7 @@ export function CampaignForm({
           maxLength={textMax}
           value={text}
           onChange={(event) => {
-            setText(event.target.value);
+            setOwnText(event.target.value);
             changed();
           }}
           aria-invalid={textInvalid || undefined}
@@ -385,7 +407,7 @@ export function CampaignForm({
             </p>
           )}
           <p>
-            {`${CAMPAIGN_KIND_LABEL[kind]} до ${subscribers} абонати. Днес тръгват ${sendingNow}${subscribers > sendingNow ? `, останалите ${subscribers - sendingNow} — с „Изпрати на останалите“ в следващите дни` : ""}.`}
+            {`${CAMPAIGN_KIND_LABEL[kind]} до ${countWord(subscribers, "абонат", "абонати")}. Днес тръгват ${sendingNow}${subscribers > sendingNow ? `, останалите ${subscribers - sendingNow} — с „Изпрати на останалите“ в следващите дни` : ""}.`}
           </p>
         </div>
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

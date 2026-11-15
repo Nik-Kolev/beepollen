@@ -385,6 +385,12 @@ none and their bounces match nothing. `email.complained` withdraws every
 offers consent of the customer with that address. A replayed order's
 confirmation never overwrites `BOUNCED` with `SENT`.
 
+The campaign emails live in `src/lib/email/campaign-templates.ts`. „Ново
+зареждане“ is built twice, `restockEmail(data, "list")` and `"cards"`, until the
+owner picks one; the other variant and its preview are then deleted. The owner's
+text is escaped and split into paragraphs on blank lines, and a product photo is
+the product's first image loaded from `SITE_URL`, like the emblem.
+
 `src/lib/email/previews.ts` renders every email with a sample order, so a new
 email joins that list in the same change. `/admin/todo` no longer shows them:
 the owner sees one empty frame and a field for suggestions, since the wording

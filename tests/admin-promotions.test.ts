@@ -98,6 +98,7 @@ test("a bad percentage, price or date is refused with its own reason", async () 
     [{ kind: "PRICE", value: "0" }, "INVALID_PRICE"],
     [{ startsOn: "2026-11-20", endsOn: "2026-11-19" }, "INVALID_DATES"],
     [{ startsOn: "2026-11-01", endsOn: "2026-11-13" }, "ENDS_IN_PAST"],
+    [{ startsOn: "2026-11-13" }, "STARTS_IN_PAST"],
     [{ startsOn: "2026-02-30" }, "INVALID_INPUT"],
     [{ endsOn: "" }, "INVALID_INPUT"],
   ];
@@ -174,6 +175,33 @@ test("editing a promotion does not count it as overlapping itself", async () => 
     await prisma.promotion.count({ where: { product: { slug } } }),
     1,
   );
+});
+
+test("a running promotion keeps its past start on edit, but cannot move it to another past day", async () => {
+  const slug = await product();
+  await savePromotion(input(slug), ADMIN, TODAY);
+  const row = await prisma.promotion.findFirstOrThrow({
+    where: { product: { slug } },
+  });
+  const later = "2026-11-17";
+
+  assert.deepEqual(
+    await savePromotion(input(slug, { id: row.id, value: "30" }), ADMIN, later),
+    { ok: true, slug },
+  );
+  assert.deepEqual(
+    await savePromotion(
+      input(slug, { id: row.id, startsOn: "2026-11-15" }),
+      ADMIN,
+      later,
+    ),
+    { ok: false, code: "STARTS_IN_PAST" },
+  );
+  const edited = await prisma.promotion.findUniqueOrThrow({
+    where: { id: row.id },
+  });
+  assert.equal(edited.value, 30);
+  assert.equal(edited.startsOn, "2026-11-14");
 });
 
 test("an ended promotion, or one of another product, cannot be edited", async () => {

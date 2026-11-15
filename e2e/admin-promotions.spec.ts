@@ -39,6 +39,16 @@ test("a promotion is added, refused when it overlaps, edited and ended", async (
   const starts = sofiaDay(1);
   const ends = sofiaDay(3);
 
+  await expect(form.getByLabel("От")).toHaveAttribute("min", sofiaDay(0));
+  await form.getByLabel("Процент (%)").fill("20");
+  await form.getByLabel("От").fill(sofiaDay(-1));
+  await form.getByLabel("До (включително)").fill(ends);
+  await form.getByRole("button", { name: "Добави промоция" }).click();
+  await expect(form.getByRole("status")).toHaveText(
+    "Началната дата вече е минала.",
+  );
+  await expect(form.getByLabel("От")).toHaveAttribute("aria-invalid", "true");
+
   await form.getByLabel("Процент (%)").fill("20");
   await form.getByLabel("От").fill(starts);
   await form.getByLabel("До (включително)").fill(ends);

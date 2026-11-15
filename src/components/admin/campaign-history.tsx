@@ -115,6 +115,11 @@ export function CampaignHistory({
                   : `${campaign.failed} не тръгнаха и ще бъдат опитани отново.`}
               </p>
             )}
+            {campaign.bounced > 0 && (
+              <p className="text-ink-soft">
+                {`${countWord(campaign.bounced, "се върна", "се върнаха")} като недоставени.`}
+              </p>
+            )}
             {campaign.unsubscribed > 0 && (
               <p className="text-ink-soft">
                 {`${countWord(campaign.unsubscribed, "се отписа", "се отписаха")}, преди да им изпратим.`}

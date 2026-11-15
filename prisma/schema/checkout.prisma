@@ -31,6 +31,7 @@ model Customer {
 
   orders             Order[]
   campaignRecipients CampaignRecipient[]
+  emailBounces       EmailBounce[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

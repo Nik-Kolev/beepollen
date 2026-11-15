@@ -324,7 +324,7 @@ async function usedOn(now: Date, count: number) {
 
 async function setStatuses(
   campaignId: number,
-  statuses: ("SENT" | "FAILED" | "UNSUBSCRIBED")[],
+  statuses: ("SENT" | "FAILED" | "UNSUBSCRIBED" | "BOUNCED")[],
 ) {
   const rows = await prisma.campaignRecipient.findMany({
     where: { campaignId },
@@ -350,7 +350,12 @@ test("the history lists campaigns newest first with what was sent and what still
   const newer = await restockOn(new Date("2032-09-03T10:00:00Z"), [kg.id]);
   assert.ok(older.ok && newer.ok);
   if (!older.ok || !newer.ok) return;
-  const total = await setStatuses(newer.id, ["SENT", "FAILED", "UNSUBSCRIBED"]);
+  const total = await setStatuses(newer.id, [
+    "SENT",
+    "FAILED",
+    "UNSUBSCRIBED",
+    "BOUNCED",
+  ]);
 
   const history = await campaignHistory();
 
@@ -361,11 +366,12 @@ test("the history lists campaigns newest first with what was sent and what still
       products: ["Пчелен прашец 1 кг"],
       sentOn: "2032-09-03",
       total,
-      sent: 1,
-      waiting: total - 3,
+      sent: 2,
+      waiting: total - 4,
       failed: 1,
+      bounced: 1,
       unsubscribed: 1,
-      pending: total - 2,
+      pending: total - 3,
     },
     {
       id: older.id,
@@ -376,6 +382,7 @@ test("the history lists campaigns newest first with what was sent and what still
       sent: 0,
       waiting: older.recipients,
       failed: 0,
+      bounced: 0,
       unsubscribed: 0,
       pending: older.recipients,
     },

@@ -392,8 +392,12 @@ photo URLs to the page's own origin, because `img-src` allows only `'self'`.
 Resend reports back to `POST /api/webhooks/resend`, verified by the SDK's
 `webhooks.verify` against `RESEND_WEBHOOK_SECRET`; with that or
 `RESEND_API_KEY` unset every call is refused. Each buyer email's event keeps
-Resend's id, so `email.bounced` marks that event `BOUNCED`; owner emails keep
-none and their bounces match nothing. `email.complained` withdraws every
+Resend's id, so `email.bounced` marks that event, or that campaign recipient,
+`BOUNCED`; owner emails keep none and their bounces match nothing. Each bounce
+to a known customer is recorded once per Resend id in `EmailBounce`: a
+`Permanent` one withdraws their offers consents at once, any other type on the
+second. Resend's docs name the soft type both „Temporary“ and „Transient“,
+which is why only `Permanent` is matched. `email.complained` withdraws every
 offers consent of the customer with that address. A replayed order's
 confirmation never overwrites `BOUNCED` with `SENT`.
 

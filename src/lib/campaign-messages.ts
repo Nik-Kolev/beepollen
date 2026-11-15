@@ -350,6 +350,7 @@ export type CampaignHistoryEntry = {
   sent: number;
   waiting: number;
   failed: number;
+  bounced: number;
   unsubscribed: number;
   pending: number;
 };
@@ -395,10 +396,17 @@ export async function campaignHistory(): Promise<CampaignHistoryEntry[]> {
       kind: campaign.kind,
       products,
       sentOn: sofiaToday(campaign.createdAt),
-      total: count(campaign.id, ["PENDING", "SENT", "FAILED", "UNSUBSCRIBED"]),
-      sent: count(campaign.id, ["SENT"]),
+      total: count(campaign.id, [
+        "PENDING",
+        "SENT",
+        "FAILED",
+        "UNSUBSCRIBED",
+        "BOUNCED",
+      ]),
+      sent: count(campaign.id, ["SENT", "BOUNCED"]),
       waiting,
       failed,
+      bounced: count(campaign.id, ["BOUNCED"]),
       unsubscribed: count(campaign.id, ["UNSUBSCRIBED"]),
       pending: waiting + failed,
     };

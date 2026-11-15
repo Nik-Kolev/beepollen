@@ -1,5 +1,6 @@
 import { Resend, type WebhookEventPayload } from "resend";
 
+import { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 
 export const MAX_WEBHOOK_BYTES = 64 * 1024;
@@ -52,16 +53,94 @@ export async function readWebhookEvent(
   }
 }
 
+export const TRANSIENT_BOUNCES_TO_UNSUBSCRIBE = 2;
+
+async function recordBounce(
+  emailId: string,
+  to: string[],
+  permanent: boolean,
+  now: Date,
+) {
+  const emails = to.map((address) => address.trim().toLowerCase());
+  try {
+    await prisma.$transaction(async (tx) => {
+      const already = await tx.emailBounce.count({
+        where: { resendEmailId: emailId },
+      });
+      if (already > 0) return;
+
+      const customer = await tx.customer.findFirst({
+        where: { email: { in: emails } },
+        select: { id: true },
+      });
+      if (!customer) return;
+
+      await tx.emailBounce.create({
+        data: {
+          customerId: customer.id,
+          resendEmailId: emailId,
+          permanent,
+          createdAt: now,
+        },
+      });
+
+      const ofCustomer = {
+        kind: "OFFERS" as const,
+        withdrawnAt: null,
+        order: { customerId: customer.id },
+      };
+      const since = await tx.consent.findFirst({
+        where: ofCustomer,
+        orderBy: { createdAt: "asc" },
+        select: { createdAt: true },
+      });
+      if (!since) return;
+
+      const transient = await tx.emailBounce.count({
+        where: {
+          customerId: customer.id,
+          permanent: false,
+          createdAt: { gte: since.createdAt },
+        },
+      });
+      if (permanent || transient >= TRANSIENT_BOUNCES_TO_UNSUBSCRIBE) {
+        await tx.consent.updateMany({
+          where: ofCustomer,
+          data: { withdrawnAt: now },
+        });
+      }
+    });
+  } catch (error) {
+    if (
+      !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+      error.code !== "P2002"
+    ) {
+      throw error;
+    }
+  }
+}
+
 export async function handleEmailEvent(
   event: WebhookEventPayload,
   now = new Date(),
 ) {
   if (event.type === "email.bounced") {
-    if (!event.data.email_id) return;
+    const emailId = event.data.email_id;
+    if (!emailId) return;
     await prisma.orderEvent.updateMany({
-      where: { resendEmailId: event.data.email_id },
+      where: { resendEmailId: emailId },
       data: { emailStatus: "BOUNCED" },
     });
+    await prisma.campaignRecipient.updateMany({
+      where: { resendEmailId: emailId },
+      data: { status: "BOUNCED" },
+    });
+    await recordBounce(
+      emailId,
+      event.data.to,
+      event.data.bounce?.type?.toLowerCase() === "permanent",
+      now,
+    );
     return;
   }
 

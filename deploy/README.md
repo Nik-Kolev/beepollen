@@ -140,8 +140,9 @@ Security headers come from
 ## 4. The app
 
 `~/beepollen` (mode 700) holds `compose.prod.yaml`, `deploy.sh`,
-`backup.sh`, `disk-check.sh` and `revalidate.sh` from this folder and `.env`
-(mode 600, written under `umask 077`). Copy the first five from `main`:
+`backup.sh`, `disk-check.sh`, `email-check.sh` and `revalidate.sh` from this
+folder and `.env` (mode 600, written under `umask 077`). Copy the first six
+from `main`:
 
 ```bash
 ssh <host> 'install -d -m 700 ~/beepollen'
@@ -149,6 +150,7 @@ git show main:compose.prod.yaml | ssh <host> 'cat > ~/beepollen/compose.prod.yam
 git show main:deploy/deploy.sh | ssh <host> 'cat > ~/beepollen/deploy.sh && chmod 700 ~/beepollen/deploy.sh'
 git show main:deploy/backup.sh | ssh <host> 'cat > ~/beepollen/backup.sh && chmod 700 ~/beepollen/backup.sh'
 git show main:deploy/disk-check.sh | ssh <host> 'cat > ~/beepollen/disk-check.sh && chmod 700 ~/beepollen/disk-check.sh'
+git show main:deploy/email-check.sh | ssh <host> 'cat > ~/beepollen/email-check.sh && chmod 700 ~/beepollen/email-check.sh'
 git show main:deploy/revalidate.sh | ssh <host> 'cat > ~/beepollen/revalidate.sh && chmod 700 ~/beepollen/revalidate.sh'
 ```
 

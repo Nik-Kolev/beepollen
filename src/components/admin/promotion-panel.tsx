@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   type SubmitEvent,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -96,7 +97,15 @@ export function PromotionPanel({
   const [endsOn, setEndsOn] = useState("");
   const [status, setStatus] = useState<"idle" | "saved" | Failure>("idle");
   const [pending, startTransition] = useTransition();
+  const [flash, setFlash] = useState(false);
   const busy = useRef(false);
+  const flashTimer = useRef<number | undefined>(undefined);
+  const focusNext = useRef<"value" | "edit" | null>(null);
+  const valueRef = useRef<HTMLInputElement>(null);
+  const editRef = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => () => window.clearTimeout(flashTimer.current), []);
 
   function reset() {
     setEditing(null);
@@ -107,6 +116,7 @@ export function PromotionPanel({
   }
 
   function edit(promotion: PanelPromotion) {
+    focusNext.current = "value";
     setEditing(promotion.id);
     setKind(promotion.kind);
     setValue(formatValueInput(promotion));
@@ -117,7 +127,7 @@ export function PromotionPanel({
 
   function run(
     action: () => Promise<{ ok: boolean; code?: Failure }>,
-    clearForm = true,
+    saving: boolean,
   ) {
     if (busy.current) return;
     busy.current = true;
@@ -125,8 +135,25 @@ export function PromotionPanel({
       try {
         const result = await action();
         if (result.ok) {
-          if (clearForm) reset();
           setStatus("saved");
+          if (saving) {
+            reset();
+            setFlash(true);
+            window.clearTimeout(flashTimer.current);
+            flashTimer.current = window.setTimeout(() => {
+              flashTimer.current = undefined;
+              const active = document.activeElement;
+              if (
+                active === document.body ||
+                formRef.current?.contains(active)
+              ) {
+                focusNext.current = "edit";
+              }
+              setFlash(false);
+            }, 1200);
+          } else {
+            focusNext.current = "value";
+          }
         } else {
           setStatus(result.code ?? "NOT_SAVED");
         }
@@ -140,15 +167,18 @@ export function PromotionPanel({
 
   function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    run(() =>
-      savePromotionAction({
-        ...(editing !== null && { id: editing }),
-        slug,
-        kind,
-        value,
-        startsOn,
-        endsOn,
-      }),
+    if (flashTimer.current !== undefined) return;
+    run(
+      () =>
+        savePromotionAction({
+          ...(editing !== null && { id: editing }),
+          slug,
+          kind,
+          value,
+          startsOn,
+          endsOn,
+        }),
+      true,
     );
   }
 
@@ -162,6 +192,22 @@ export function PromotionPanel({
     status === "ENDS_IN_PAST" ||
     status === "STARTS_IN_PAST";
 
+  const open = history.find(
+    (entry): entry is Extract<PanelEntry, { type: "PROMOTION" }> =>
+      entry.type === "PROMOTION" &&
+      (entry.status === "ACTIVE" || entry.status === "UPCOMING"),
+  );
+  const past = history.filter((entry) => entry !== open);
+  const showForm = !open || editing !== null || flash;
+
+  useEffect(() => {
+    const target = focusNext.current;
+    if (target === "value" && valueRef.current) valueRef.current.focus();
+    else if (target === "edit" && editRef.current) editRef.current.focus();
+    else return;
+    focusNext.current = null;
+  }, [showForm, editing, open?.id]);
+
   return (
     <section
       aria-labelledby={`${id}-heading`}
@@ -171,210 +217,205 @@ export function PromotionPanel({
         Промоция
       </h3>
 
-      <form
-        noValidate
-        onSubmit={handleSubmit}
-        aria-label={`Промоция за ${name}`}
-        className="flex flex-col gap-4"
-      >
-        <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
-          <legend className={`${LABEL} mb-2`}>Намаление</legend>
-          {(
-            [
-              ["PERCENT", "Процент"],
-              ["PRICE", "Нова цена"],
-            ] as const
-          ).map(([option, label]) => (
-            <label
-              key={option}
-              className="flex min-h-11 items-center gap-2 pl-4"
-            >
-              <input
-                type="radio"
-                name={`${id}-kind`}
-                value={option}
-                checked={kind === option}
-                onChange={() => {
-                  setKind(option);
-                  setStatus("idle");
-                }}
-                className="size-5"
-              />
-              {label}
-            </label>
-          ))}
-        </fieldset>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label htmlFor={`${id}-value`} className={LABEL}>
-              {kind === "PERCENT" ? "Процент (%)" : "Нова цена (€)"}
-            </label>
-            <input
-              id={`${id}-value`}
-              type="text"
-              inputMode={kind === "PERCENT" ? "numeric" : "decimal"}
-              autoComplete="off"
-              maxLength={20}
-              value={value}
-              onChange={(event) => {
-                setValue(event.target.value);
-                setStatus("idle");
-              }}
-              aria-invalid={valueInvalid || undefined}
-              aria-describedby={valueInvalid ? `${id}-status` : undefined}
-              className={`${valueInvalid ? FIELD_INVALID : FIELD} tabular-nums`}
-            />
-          </div>
-          <div>
-            <label htmlFor={`${id}-starts`} className={LABEL}>
-              От
-            </label>
-            <input
-              id={`${id}-starts`}
-              type="date"
-              value={startsOn}
-              min={editing === null ? today : undefined}
-              onChange={(event) => {
-                setStartsOn(event.target.value);
-                setStatus("idle");
-              }}
-              aria-invalid={datesInvalid || undefined}
-              aria-describedby={datesInvalid ? `${id}-status` : undefined}
-              className={datesInvalid ? FIELD_INVALID : FIELD}
-            />
-          </div>
-          <div>
-            <label htmlFor={`${id}-ends`} className={LABEL}>
-              До (включително)
-            </label>
-            <input
-              id={`${id}-ends`}
-              type="date"
-              value={endsOn}
-              min={startsOn}
-              onChange={(event) => {
-                setEndsOn(event.target.value);
-                setStatus("idle");
-              }}
-              aria-invalid={datesInvalid || undefined}
-              aria-describedby={datesInvalid ? `${id}-status` : undefined}
-              className={datesInvalid ? FIELD_INVALID : FIELD}
-            />
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="submit"
-            aria-disabled={pending}
-            className="bg-action text-action-ink hover:bg-action-hover aria-disabled:bg-action-hover inline-flex min-h-12 items-center justify-center rounded-md px-4 font-medium sm:min-h-11 sm:text-sm"
-          >
-            {editing === null ? "Добави промоция" : "Запази промоцията"}
-          </button>
-          {editing !== null && (
+      {open && !showForm && (
+        <div className="bg-ground border-leaf flex flex-col gap-3 rounded-lg border-l-4 px-4 py-3 text-sm">
+          <p className="text-leaf font-semibold">
+            {STATUS_TEXT[open.status]} промоция
+          </p>
+          <PromotionFacts entry={open} regularCents={regularCents} />
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              onClick={() => {
-                reset();
-                setStatus("idle");
-              }}
-              className="text-ink-soft hover:text-ink min-h-11 px-2 text-sm font-medium underline underline-offset-4"
+              ref={editRef}
+              onClick={() => edit(open)}
+              className="border-line text-ink bg-surface hover:bg-ground inline-flex min-h-11 items-center rounded-md border-2 px-4 font-semibold"
             >
-              Откажи редакцията
+              Редактирай
             </button>
-          )}
-          <p
-            id={`${id}-status`}
-            role="status"
-            className={
-              status === "saved"
-                ? "text-ink-soft text-sm"
-                : "text-error text-sm font-medium"
-            }
-          >
-            {status === "idle"
-              ? ""
-              : status === "saved"
-                ? "Запазено."
-                : FAILURE_TEXT[status]}
-          </p>
+            <button
+              type="button"
+              aria-disabled={pending}
+              onClick={() => run(() => endPromotionAction(open.id), false)}
+              className="border-error text-error bg-surface hover:bg-ground inline-flex min-h-11 items-center rounded-md border-2 px-4 font-semibold"
+            >
+              Прекрати
+            </button>
+          </div>
         </div>
-      </form>
+      )}
 
-      {history.length > 0 && (
+      {showForm && (
+        <form
+          ref={formRef}
+          noValidate
+          onSubmit={handleSubmit}
+          aria-label={`Промоция за ${name}`}
+          className="flex flex-col gap-4"
+        >
+          <fieldset className="flex flex-wrap gap-x-6 gap-y-2">
+            <legend className={`${LABEL} mb-2`}>Намаление</legend>
+            {(
+              [
+                ["PERCENT", "Процент"],
+                ["PRICE", "Нова цена"],
+              ] as const
+            ).map(([option, label]) => (
+              <label
+                key={option}
+                className="flex min-h-11 items-center gap-2 pl-4"
+              >
+                <input
+                  type="radio"
+                  name={`${id}-kind`}
+                  value={option}
+                  checked={kind === option}
+                  onChange={() => {
+                    setKind(option);
+                    setStatus("idle");
+                  }}
+                  className="size-5"
+                />
+                {label}
+              </label>
+            ))}
+          </fieldset>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div>
+              <label htmlFor={`${id}-value`} className={LABEL}>
+                {kind === "PERCENT" ? "Процент (%)" : "Нова цена (€)"}
+              </label>
+              <input
+                id={`${id}-value`}
+                ref={valueRef}
+                type="text"
+                inputMode={kind === "PERCENT" ? "numeric" : "decimal"}
+                autoComplete="off"
+                maxLength={20}
+                value={value}
+                onChange={(event) => {
+                  setValue(event.target.value);
+                  setStatus("idle");
+                }}
+                aria-invalid={valueInvalid || undefined}
+                aria-describedby={valueInvalid ? `${id}-status` : undefined}
+                className={`${valueInvalid ? FIELD_INVALID : FIELD} tabular-nums`}
+              />
+            </div>
+            <div>
+              <label htmlFor={`${id}-starts`} className={LABEL}>
+                От
+              </label>
+              <input
+                id={`${id}-starts`}
+                type="date"
+                value={startsOn}
+                min={editing === null ? today : undefined}
+                onChange={(event) => {
+                  setStartsOn(event.target.value);
+                  setStatus("idle");
+                }}
+                aria-invalid={datesInvalid || undefined}
+                aria-describedby={datesInvalid ? `${id}-status` : undefined}
+                className={datesInvalid ? FIELD_INVALID : FIELD}
+              />
+            </div>
+            <div>
+              <label htmlFor={`${id}-ends`} className={LABEL}>
+                До (включително)
+              </label>
+              <input
+                id={`${id}-ends`}
+                type="date"
+                value={endsOn}
+                min={startsOn}
+                onChange={(event) => {
+                  setEndsOn(event.target.value);
+                  setStatus("idle");
+                }}
+                aria-invalid={datesInvalid || undefined}
+                aria-describedby={datesInvalid ? `${id}-status` : undefined}
+                className={datesInvalid ? FIELD_INVALID : FIELD}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              aria-disabled={pending || flash}
+              className={`${flash ? "bg-leaf hover:bg-leaf" : "bg-action hover:bg-action-hover aria-disabled:bg-action-hover"} text-action-ink inline-flex min-h-12 items-center justify-center rounded-md px-4 font-medium sm:min-h-11 sm:text-sm`}
+            >
+              {flash
+                ? "Запазено ✓"
+                : editing === null
+                  ? "Добави промоция"
+                  : "Запази промоцията"}
+            </button>
+            {editing !== null && (
+              <button
+                type="button"
+                onClick={() => {
+                  focusNext.current = "edit";
+                  reset();
+                  setStatus("idle");
+                }}
+                className="text-ink-soft hover:text-ink min-h-11 px-2 text-sm font-medium underline underline-offset-4"
+              >
+                Откажи редакцията
+              </button>
+            )}
+          </div>
+        </form>
+      )}
+
+      <p
+        id={`${id}-status`}
+        role="status"
+        className={
+          status === "saved" ? "sr-only" : "text-error text-sm font-medium"
+        }
+      >
+        {status === "idle"
+          ? ""
+          : status === "saved"
+            ? "Запазено."
+            : FAILURE_TEXT[status]}
+      </p>
+
+      {past.length > 0 && (
         <div className="flex flex-col gap-2">
           <h4 className="text-sm font-semibold">История на цените</h4>
           <ul role="list" className="flex flex-col gap-2 text-sm">
-            {history.map((entry) => {
-              if (entry.type === "PRICE") {
-                return (
-                  <li
-                    key={`price-${entry.id}`}
-                    className="bg-ground flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg px-4 py-2"
-                  >
-                    <span className="font-medium">Нова цена</span>
-                    <span className="tabular-nums">{formatDay(entry.on)}</span>
-                    <span className="tabular-nums">
-                      {formatPrice(entry.fromCents)} →{" "}
-                      {formatPrice(entry.toCents)}
-                    </span>
-                    <span className="text-ink-soft break-all">
-                      {entry.changedBy}
-                    </span>
-                  </li>
-                );
-              }
-              const cents = promoPriceCents(regularCents, entry);
-              const open =
-                entry.status === "ACTIVE" || entry.status === "UPCOMING";
-              return (
+            {past.map((entry) =>
+              entry.type === "PRICE" ? (
+                <li
+                  key={`price-${entry.id}`}
+                  className="bg-ground flex flex-col gap-1 rounded-lg px-4 py-3"
+                >
+                  <p className="font-semibold">Нова редовна цена</p>
+                  <Facts
+                    facts={[
+                      ["Дата", formatDay(entry.on)],
+                      ["Беше", formatPrice(entry.fromCents)],
+                      ["Стана", formatPrice(entry.toCents)],
+                      ["Смени я", entry.changedBy],
+                    ]}
+                  />
+                </li>
+              ) : (
                 <li
                   key={`promotion-${entry.id}`}
-                  className="bg-ground flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg px-4 py-2"
+                  className="bg-ground flex flex-col gap-1 rounded-lg px-4 py-3"
                 >
-                  <span className="font-medium">
-                    {STATUS_TEXT[entry.status]}
-                    {entry.endedOn && ` ${formatDay(entry.endedOn)}`}
-                  </span>
-                  <span className="tabular-nums">
-                    {formatDay(entry.startsOn)} – {formatDay(entry.endsOn)}
-                  </span>
-                  <span className="tabular-nums">
-                    {entry.kind === "PERCENT"
-                      ? `−${entry.value}%`
-                      : formatPrice(entry.value)}
-                    {entry.kind === "PERCENT" &&
-                      cents !== null &&
-                      ` (${formatPrice(cents)})`}
-                  </span>
-                  {open && (
-                    <span className="ml-auto flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => edit(entry)}
-                        className="min-h-11 px-2 font-medium underline underline-offset-4"
-                      >
-                        Редактирай
-                      </button>
-                      <button
-                        type="button"
-                        aria-disabled={pending}
-                        onClick={() =>
-                          run(
-                            () => endPromotionAction(entry.id),
-                            editing === entry.id,
-                          )
-                        }
-                        className="text-error min-h-11 px-2 font-medium underline underline-offset-4"
-                      >
-                        Прекрати
-                      </button>
-                    </span>
-                  )}
+                  <p className="font-semibold">
+                    {STATUS_TEXT[entry.status]} промоция
+                    {entry.endedOn && ` на ${formatDay(entry.endedOn)}`}
+                  </p>
+                  <PromotionFacts entry={entry} regularCents={regularCents} />
                 </li>
-              );
-            })}
+              ),
+            )}
           </ul>
           {moreHref && (
             <Link
@@ -388,4 +429,40 @@ export function PromotionPanel({
       )}
     </section>
   );
+}
+
+function Facts({ facts }: { facts: [label: string, value: string][] }) {
+  return (
+    <dl className="flex flex-wrap gap-x-6 gap-y-1">
+      {facts.map(([label, value]) => (
+        <div key={label} className="flex gap-1.5">
+          <dt className="text-ink-soft">{label}</dt>
+          <dd className="font-medium tabular-nums break-all">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function PromotionFacts({
+  entry,
+  regularCents,
+}: {
+  entry: PanelPromotion;
+  regularCents: number;
+}) {
+  const open = entry.status === "ACTIVE" || entry.status === "UPCOMING";
+  const cents =
+    entry.kind === "PRICE"
+      ? entry.value
+      : open
+        ? promoPriceCents(regularCents, entry)
+        : null;
+  const facts: [string, string][] = [
+    ["От", formatDay(entry.startsOn)],
+    ["До", formatDay(entry.endsOn)],
+  ];
+  if (entry.kind === "PERCENT") facts.push(["Отстъпка", `−${entry.value}%`]);
+  if (cents !== null) facts.push(["Цена", formatPrice(cents)]);
+  return <Facts facts={facts} />;
 }

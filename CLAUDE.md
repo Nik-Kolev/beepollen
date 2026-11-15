@@ -382,8 +382,7 @@ pending.
 batch in `after()`, since one batch can take longer than a proxy waits for a
 response. When a campaign was made in the last 14 Sofia days, inclusive, the
 server refuses a new one with `RECENT` until the admin confirms it, so the
-warning cannot be skipped by a crafted request. A restock campaign sends
-`CAMPAIGN_RESTOCK_VARIANT` until the owner picks a variant. „Изпрати на
+warning cannot be skipped by a crafted request. „Изпрати на
 останалите“ on a campaign in the history sends its next batch under the same
 daily limit, and is refused once its promotion has ended or all its products
 are off sale, since the email would then advertise a price or a product no
@@ -403,8 +402,8 @@ offers consent of the customer with that address. A replayed order's
 confirmation never overwrites `BOUNCED` with `SENT`.
 
 The campaign emails live in `src/lib/email/campaign-templates.ts`. „Ново
-зареждане“ is built twice, `restockEmail(data, "list")` and `"cards"`, until the
-owner picks one; the other variant and its preview are then deleted. The owner's
+зареждане“ shows each product as a card with a large photo, picked over a
+compact list since a restock names one or two products. The owner's
 text is escaped and split into paragraphs on blank lines, and a product photo is
 the product's first image loaded from `SITE_URL`, like the emblem.
 

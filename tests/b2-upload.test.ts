@@ -4,6 +4,7 @@ import { test } from "node:test";
 
 import {
   B2_AUTHORIZE_URL,
+  B2_TIMEOUTS,
   b2Credentials,
   uploadName,
   uploadToB2,
@@ -182,13 +183,150 @@ test("a B2 call that never answers is abandoned at its timeout, whichever step h
         : fetchImpl(input, init)) as typeof fetch;
 
     await assert.rejects(
-      uploadToB2("beepollen-2026-11-07.db", BYTES, CREDENTIALS, silent, {
-        requestMs: 20,
-        uploadMs: 20,
-      }),
+      uploadToB2(
+        "beepollen-2026-11-07.db",
+        BYTES,
+        CREDENTIALS,
+        silent,
+        { requestMs: 20, uploadMs: 20 },
+        NO_WAIT,
+      ),
       { name: "TimeoutError" },
       hanging,
     );
+  }
+});
+
+const NO_WAIT = [0, 0];
+const UPLOAD_URL_CALL = `${API_URL}/b2api/v3/b2_get_upload_url`;
+
+function failingFirst(
+  failures: Partial<Record<string, () => Promise<Response>>>,
+) {
+  const { calls, fetchImpl } = fakeB2();
+  const pending = { ...failures };
+  const flaky = ((input: string | URL | Request, init?: RequestInit) => {
+    const fail = pending[String(input)];
+    if (fail) {
+      delete pending[String(input)];
+      calls.push({ url: String(input), init: init ?? {} });
+      return fail();
+    }
+    return fetchImpl(input, init);
+  }) as typeof fetch;
+  return { calls, flaky };
+}
+
+test("a busy pod or a dropped connection is retried with a fresh authorization and upload URL, after each wait", async () => {
+  const { calls, flaky } = failingFirst({
+    [B2_AUTHORIZE_URL]: () =>
+      Promise.reject(
+        new TypeError("fetch failed", { cause: new Error("ECONNRESET") }),
+      ),
+    [UPLOAD_URL]: async () => json({ code: "service_unavailable" }, 503),
+  });
+  const authorizedAt: number[] = [];
+  const timed = ((input: string | URL | Request, init?: RequestInit) => {
+    if (String(input) === B2_AUTHORIZE_URL) authorizedAt.push(Date.now());
+    return flaky(input, init);
+  }) as typeof fetch;
+
+  const fileId = await uploadToB2(
+    "b.db",
+    BYTES,
+    CREDENTIALS,
+    timed,
+    B2_TIMEOUTS,
+    [20, 80],
+  );
+
+  assert.equal(fileId, "file-1");
+  assert.deepEqual(
+    calls.map((call) => call.url),
+    [
+      B2_AUTHORIZE_URL,
+      B2_AUTHORIZE_URL,
+      UPLOAD_URL_CALL,
+      UPLOAD_URL,
+      B2_AUTHORIZE_URL,
+      UPLOAD_URL_CALL,
+      UPLOAD_URL,
+    ],
+  );
+  assert.ok(authorizedAt[1] - authorizedAt[0] >= 18, "first wait");
+  assert.ok(authorizedAt[2] - authorizedAt[1] >= 75, "second wait");
+});
+
+test("an upload that times out is tried again", async () => {
+  let hung = false;
+  const { calls, fetchImpl } = fakeB2();
+  const hangsOnce = ((input: string | URL | Request, init?: RequestInit) => {
+    if (String(input) === UPLOAD_URL && !hung) {
+      hung = true;
+      return untilAborted(init);
+    }
+    return fetchImpl(input, init);
+  }) as typeof fetch;
+
+  const fileId = await uploadToB2(
+    "b.db",
+    BYTES,
+    CREDENTIALS,
+    hangsOnce,
+    { requestMs: 1_000, uploadMs: 20 },
+    NO_WAIT,
+  );
+
+  assert.equal(fileId, "file-1");
+  assert.equal(calls.filter((call) => call.url === B2_AUTHORIZE_URL).length, 2);
+});
+
+test("an upload still failing after three attempts fails with the last answer", async () => {
+  for (const status of [408, 429, 500, 503]) {
+    const { calls, fetchImpl } = fakeB2();
+    const busy = ((input: string | URL | Request, init?: RequestInit) =>
+      String(input) === UPLOAD_URL
+        ? (calls.push({ url: UPLOAD_URL, init: init ?? {} }),
+          Promise.resolve(json({ code: "busy" }, status)))
+        : fetchImpl(input, init)) as typeof fetch;
+
+    await assert.rejects(
+      uploadToB2("b.db", BYTES, CREDENTIALS, busy, B2_TIMEOUTS, NO_WAIT),
+      new RegExp(`B2 upload failed with HTTP ${status}`),
+    );
+    assert.equal(
+      calls.filter((call) => call.url === UPLOAD_URL).length,
+      3,
+      String(status),
+    );
+  }
+});
+
+test("a refusal that retrying cannot fix is not retried", async () => {
+  const cases: [string, typeof fetch][] = [];
+  for (const status of [400, 401, 403, 499]) {
+    const { fetchImpl } = fakeB2({ upload: json({ code: "no" }, status) });
+    cases.push([String(status), fetchImpl]);
+  }
+  const { fetchImpl } = fakeB2();
+  cases.push([
+    "TypeError without a cause",
+    ((input: string | URL | Request, init?: RequestInit) =>
+      String(input) === UPLOAD_URL
+        ? Promise.reject(new TypeError("invalid header value"))
+        : fetchImpl(input, init)) as typeof fetch,
+  ]);
+
+  for (const [label, refusing] of cases) {
+    let authorized = 0;
+    const counted = ((input: string | URL | Request, init?: RequestInit) => {
+      if (String(input) === B2_AUTHORIZE_URL) authorized += 1;
+      return refusing(input, init);
+    }) as typeof fetch;
+    await assert.rejects(
+      uploadToB2("b.db", BYTES, CREDENTIALS, counted, B2_TIMEOUTS, NO_WAIT),
+    );
+    assert.equal(authorized, 1, label);
   }
 });
 

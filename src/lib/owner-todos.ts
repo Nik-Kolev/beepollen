@@ -16,18 +16,8 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Продавач и правни данни",
     items: [
       {
-        id: "seller-name-address",
-        text: "Име и правен статус, адрес по регистрация и за кореспонденция.",
-        files: [TERMS],
-        markers: [
-          "TODO: име и правен статус",
-          "TODO: адрес по регистрация и адрес за кореспонденция",
-          "TODO: име на продавача, адрес и имейл",
-        ],
-      },
-      {
-        id: "seller-registration",
-        text: "ЕИК, БУЛСТАТ или номер на земеделски производител и регистрация по ЗДДС.",
+        id: "seller-registration-whose",
+        text: "Кой от двата номера, 179940540 или 179876340, е на Димитър — продавача, и регистриран ли е по ЗДДС.",
         files: [TERMS],
         markers: [
           "TODO: ЕИК, БУЛСТАТ или номер на земеделски производител",
@@ -35,8 +25,8 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         ],
       },
       {
-        id: "seller-babh",
-        text: "Регистрация в БАБХ и номер.",
+        id: "seller-babh-whose",
+        text: "Кой от двата номера в БАБХ, 7855-0041 или 7864-0152, е на Димитър — продавача.",
         files: [TERMS],
         markers: ["TODO: регистрация в БАБХ и номер"],
       },
@@ -45,12 +35,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         text: "Имейл за контакт.",
         files: [TERMS, PRIVACY],
         markers: ["TODO: имейл"],
-      },
-      {
-        id: "data-controller",
-        text: "Администратор на личните данни: име, адрес, телефон и имейл.",
-        files: [PRIVACY],
-        markers: ["TODO: име, адрес, телефон и имейл на администратора"],
       },
       {
         id: "publication-date",
@@ -63,18 +47,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
   {
     title: "Доставка, плащане, връщане и спорове",
     items: [
-      {
-        id: "cod-fee",
-        text: "Кой поема таксата на Еконт за наложения платеж.",
-        files: [TERMS],
-        markers: ["TODO: кой поема таксата на Еконт за наложения платеж"],
-      },
-      {
-        id: "return-address",
-        text: "Адрес за връщане на стоката.",
-        files: [TERMS],
-        markers: ["TODO: адрес за връщане"],
-      },
       {
         id: "dispute-body",
         text: "Органът за алтернативно решаване на спорове и адресът на сайта му.",
@@ -165,8 +137,8 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
       {
         id: "farmer-status",
         text: "Регистриран земеделски производител ли е продавачът? От това зависят правният статус, номерът и ДДС.",
-        files: [],
-        markers: [],
+        files: [TERMS],
+        markers: ["TODO: правен статус"],
       },
       {
         id: "nutrition-declaration",

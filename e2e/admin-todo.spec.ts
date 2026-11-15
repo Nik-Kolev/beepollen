@@ -92,7 +92,7 @@ test("an answer saved on the todo page is there after a reload and in the downlo
   const answer = `Пчелен прашец ООД, гр. Попово ${Date.now()}`;
   const form = answerForm(
     page,
-    "Име и правен статус, адрес по регистрация и за кореспонденция.",
+    "Кой от двата номера, 179940540 или 179876340, е на Димитър — продавача, и регистриран ли е по ЗДДС.",
   );
   await form.getByRole("textbox").fill(answer);
   await form.getByRole("button", { name: "Запази" }).click();
@@ -121,9 +121,9 @@ test("an answer saved on the todo page is there after a reload and in the downlo
 
   expect(rows).toContainEqual(
     expect.objectContaining({
-      key: "seller-name-address",
+      key: "seller-registration-whose",
       question:
-        "Име и правен статус, адрес по регистрация и за кореспонденция.",
+        "Кой от двата номера, 179940540 или 179876340, е на Димитър — продавача, и регистриран ли е по ЗДДС.",
       text: answer,
       updatedBy: TEST_ADMIN_EMAIL,
     }),

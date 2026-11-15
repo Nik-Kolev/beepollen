@@ -25,7 +25,7 @@ function shown(day: string) {
   return `${date}.${month}.${year}`;
 }
 
-test("a promotion is added, a second one refused, the first edited and ended", async ({
+test("a promotion is added, shown as a card instead of the form, edited and ended", async ({
   page,
   context,
 }) => {
@@ -35,7 +35,9 @@ test("a promotion is added, a second one refused, the first edited and ended", a
   const article = page
     .getByRole("article")
     .filter({ has: page.getByRole("heading", { name: PRODUCT, exact: true }) });
-  const form = article.getByRole("form", { name: `Промоция за ${PRODUCT}` });
+  const panel = article.getByRole("region", { name: "Промоция" });
+  const form = panel.getByRole("form", { name: `Промоция за ${PRODUCT}` });
+  const status = panel.getByRole("status");
   const starts = sofiaDay(1);
   const ends = sofiaDay(3);
 
@@ -44,48 +46,46 @@ test("a promotion is added, a second one refused, the first edited and ended", a
   await form.getByLabel("От").fill(sofiaDay(-1));
   await form.getByLabel("До (включително)").fill(ends);
   await form.getByRole("button", { name: "Добави промоция" }).click();
-  await expect(form.getByRole("status")).toHaveText(
-    "Началната дата вече е минала.",
-  );
+  await expect(status).toHaveText("Началната дата вече е минала.");
   await expect(form.getByLabel("От")).toHaveAttribute("aria-invalid", "true");
 
-  await form.getByLabel("Процент (%)").fill("20");
   await form.getByLabel("От").fill(starts);
-  await form.getByLabel("До (включително)").fill(ends);
+  const posts: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST") posts.push(request.url());
+  });
   await form.getByRole("button", { name: "Добави промоция" }).click();
-  await expect(form.getByRole("status")).toHaveText("Запазено.");
+  await expect(status).toHaveText("Запазено.");
+  await expect(form.getByRole("button", { name: "Запазено ✓" })).toBeVisible();
+  await form.getByLabel("Процент (%)").press("Enter");
+  await page.waitForLoadState("networkidle");
+  expect(posts).toHaveLength(1);
 
-  const row = article
-    .getByRole("listitem")
-    .filter({ hasText: `${shown(starts)} – ${shown(ends)}` });
-  await expect(row).toContainText("Предстои");
-  await expect(row).toContainText("−20%");
+  const card = panel.getByText("Предстои промоция").locator("..");
+  await expect(form).toBeHidden();
+  await expect(card).toContainText(`От${shown(starts)}`);
+  await expect(card).toContainText(`До${shown(ends)}`);
+  await expect(card).toContainText("Отстъпка−20%");
+  await expect(card.getByRole("button", { name: "Редактирай" })).toBeFocused();
 
-  await form.getByLabel("Процент (%)").fill("10");
-  await form.getByLabel("От").fill(sofiaDay(5));
-  await form.getByLabel("До (включително)").fill(sofiaDay(6));
-  await form.getByRole("button", { name: "Добави промоция" }).click();
-  await expect(form.getByRole("status")).toHaveText(
-    "Продуктът вече има промоция. Редактирайте я или я прекратете.",
-  );
-  await expect(
-    article.getByRole("region", { name: "Промоция" }).getByRole("listitem"),
-  ).toHaveCount(1);
-
-  await row.getByRole("button", { name: "Редактирай" }).click();
+  await card.getByRole("button", { name: "Редактирай" }).click();
+  await expect(form.getByLabel("Процент (%)")).toBeFocused();
   await expect(form.getByLabel("Процент (%)")).toHaveValue("20");
   await expect(form.getByLabel("От")).toHaveValue(starts);
   await form.getByLabel("Процент (%)").fill("25");
   await form.getByRole("button", { name: "Запази промоцията" }).click();
-  await expect(form.getByRole("status")).toHaveText("Запазено.");
-  await expect(row).toContainText("−25%");
+  await expect(status).toHaveText("Запазено.");
+  await expect(form).toBeHidden();
+  await expect(card).toContainText("Отстъпка−25%");
 
-  await row.getByRole("button", { name: "Редактирай" }).click();
-  await row.getByRole("button", { name: "Прекрати" }).click();
-  await expect(row).toContainText("Прекратена");
-  await expect(row.getByRole("button", { name: "Прекрати" })).toHaveCount(0);
-  await expect(form.getByLabel("Процент (%)")).toHaveValue("");
+  await card.getByRole("button", { name: "Прекрати" }).click();
+  const ended = panel
+    .getByRole("listitem")
+    .filter({ hasText: `Прекратена промоция на ${shown(sofiaDay(0))}` });
+  await expect(ended).toContainText(`От${shown(starts)}`);
+  await expect(ended).toContainText("Отстъпка−25%");
   await expect(
     form.getByRole("button", { name: "Добави промоция" }),
   ).toBeVisible();
+  await expect(form.getByLabel("Процент (%)")).toBeFocused();
 });

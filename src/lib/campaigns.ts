@@ -28,6 +28,18 @@ export const campaignInput = z.discriminatedUnion("kind", [
   }),
 ]);
 
+const SUBSCRIBER = {
+  orders: {
+    some: {
+      consents: { some: { kind: "OFFERS" as const, withdrawnAt: null } },
+    },
+  },
+};
+
+export function countCampaignRecipients() {
+  return prisma.customer.count({ where: SUBSCRIBER });
+}
+
 export type CampaignRefusal =
   | "INVALID_INPUT"
   | "PROMOTION_NOT_RUNNING"
@@ -74,11 +86,7 @@ export async function createCampaign(
     }
 
     const subscribers = await tx.customer.findMany({
-      where: {
-        orders: {
-          some: { consents: { some: { kind: "OFFERS", withdrawnAt: null } } },
-        },
-      },
+      where: SUBSCRIBER,
       select: {
         id: true,
         orders: {

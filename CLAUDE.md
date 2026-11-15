@@ -377,6 +377,14 @@ before each send, and `eraseCustomer` marks the customer's waiting rows
 `UNSUBSCRIBED`. With no `RESEND_API_KEY` the batch stops and leaves everything
 pending.
 
+`/admin/campaigns` makes a campaign through `startCampaign` and sends its first
+batch in `after()`, since one batch can take longer than a proxy waits for a
+response. When a campaign was made in the last 14 Sofia days, inclusive, the
+server refuses a new one with `RECENT` until the admin confirms it, so the
+warning cannot be skipped by a crafted request. A restock campaign sends
+`CAMPAIGN_RESTOCK_VARIANT` until the owner picks a variant. The preview rewrites
+photo URLs to the page's own origin, because `img-src` allows only `'self'`.
+
 Resend reports back to `POST /api/webhooks/resend`, verified by the SDK's
 `webhooks.verify` against `RESEND_WEBHOOK_SECRET`; with that or
 `RESEND_API_KEY` unset every call is refused. Each buyer email's event keeps

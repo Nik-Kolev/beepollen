@@ -20,12 +20,14 @@ const PAGES = [
   ["the admin order list", "/admin/orders"],
   ["the admin product list", "/admin/products"],
   ["the admin statistics page", "/admin/analytics"],
+  ["the admin campaign page", "/admin/campaigns"],
 ] as const;
 
 const SIGNED_IN: readonly string[] = [
   "/admin/orders",
   "/admin/products",
   "/admin/analytics",
+  "/admin/campaigns",
 ];
 
 for (const [name, path] of PAGES) {

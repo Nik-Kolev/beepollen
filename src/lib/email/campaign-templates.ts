@@ -99,12 +99,22 @@ function subscribedText(unsubscribeUrl: string) {
   return `${SUBSCRIBED} Отписване: ${unsubscribeUrl}`;
 }
 
+export function promotionSubject(productName: string) {
+  return `Промоция: ${productName}`;
+}
+
+export function restockSubject(productNames: string[]) {
+  return productNames.length > 0
+    ? `Ново зареждане: ${productNames.join(", ")}`
+    : "Ново зареждане";
+}
+
 export function promotionEmail(data: PromotionEmailData): EmailMessage {
   const { product } = data;
   const dates = `От ${formatDay(data.startsOn)} до ${formatDay(data.endsOn)} включително.`;
 
   return {
-    subject: `Промоция: ${product.name}`,
+    subject: promotionSubject(product.name),
     html: renderLayout({
       preheader: `${product.name} за ${formatPrice(product.priceCents)} вместо ${formatPrice(product.regularPriceCents)}. ${dates}`,
       heading: `${product.name} на промоция`,
@@ -175,7 +185,7 @@ export function restockEmail(
   const names = data.products.map(({ name }) => name).join(", ");
 
   return {
-    subject: names ? `Ново зареждане: ${names}` : "Ново зареждане",
+    subject: restockSubject(data.products.map(({ name }) => name)),
     html: renderLayout({
       preheader: names
         ? `Отново в наличност: ${names}.`

@@ -218,6 +218,12 @@ export function deleteOldPriceChanges(slug: string) {
   `);
 }
 
+export function deleteCampaigns() {
+  runInE2eDb(`
+    await prisma.campaign.deleteMany({});
+  `);
+}
+
 function runInE2eDb(body: string) {
   const script = `
     import("@/lib/prisma").then(async (module) => {

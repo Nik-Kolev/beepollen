@@ -5,6 +5,7 @@ import { signOutOfAdmin } from "@/app/admin/actions";
 const SECTIONS = [
   { href: "/admin/orders", label: "Поръчки" },
   { href: "/admin/products", label: "Продукти" },
+  { href: "/admin/campaigns", label: "Кампании" },
   { href: "/admin/analytics", label: "Статистика" },
   { href: "/admin/todo", label: "За попълване" },
 ] as const;

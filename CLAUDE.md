@@ -33,7 +33,8 @@ invent an origin, certificate or review — plausible text survives to launch
 unnoticed, and Lorem ipsum and `TODO:` cannot.
 
 The owner's phone is a real fact he supplied and lives once, as `OWNER_PHONE` in
-`src/lib/site.ts`; every page that shows it reads it from there.
+`src/lib/site.ts`; every page that shows it reads it from there. The shop's
+contact address, `CONTACT_EMAIL`, lives beside it the same way.
 
 Prices are the single exception, added because checkout cannot be tested against
 a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,
@@ -58,8 +59,12 @@ out, and `e2e/about.spec.ts` asserts that. Showing it means dropping the
 from git history.
 
 `/admin/todo` lists everything the owner still owes. Product fields are read
-from the database; the rest is `OWNER_TODOS` in `src/lib/owner-todos.ts`, each
-item naming its files and the exact `TODO` text it stands for.
+from the database, and a product shows only when it owes one; the rest is
+`OWNER_TODOS` in `src/lib/owner-todos.ts`, each item naming its files and the
+exact `TODO` text it stands for. A `TODO` that is the developer's to fill at
+launch — the publication date, the invented numbers — sits in a
+`developerOnly` group: the test still counts it, the page never shows it, and
+it carries no `id`.
 `tests/owner-todos.test.ts` fails when a `TODO` under `src/` or in
 `prisma/seed.ts` is covered by no item, or when an item's text is gone from its
 files — so a new `TODO:` joins that list in the same change, and a filled one
@@ -69,12 +74,13 @@ phrase ends at `</Todo>`; one in a string ends at the closing quote; a `TODO_*`
 name is matched as a whole word — so no identifier may start with `TODO_`
 unless it is a placeholder.
 
-The owner answers on that page: every item with an `id`, and the price and
-every owed field of each published product, has a field saved to
+The owner answers on that page: every item with an `id`, and every owed field
+of each published product, has a field saved to
 `OwnerAnswer` under that key, and „Изтегли отговорите“ downloads them as JSON
 for the developer to move into the code by hand. Nothing reads an answer into
 the site. An item's `id` is its stored key, so renaming one orphans its
-answer.
+answer; a removed question's answers stay in the table and the download,
+named by their key.
 
 The catalogue is pollen only. Honey and comb were seeded early against borrowed
 free-licensed photographs and removed once the catalogue settled on pollen alone

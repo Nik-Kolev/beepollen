@@ -8,7 +8,9 @@ type OwnerTodo = {
   markers: string[];
 };
 
-type OwnerTodoGroup = { title: string; items: OwnerTodo[] };
+type OwnerTodoGroup =
+  | { title: string; developerOnly?: false; items: OwnerTodo[] }
+  | { title: string; developerOnly: true; items: Omit<OwnerTodo, "id">[] };
 
 const TERMS = "src/app/(shop)/terms/page.tsx";
 const PRIVACY = "src/app/(shop)/privacy/page.tsx";
@@ -33,31 +35,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         files: [TERMS],
         markers: ["TODO: регистрация в БАБХ и номер"],
       },
-      {
-        id: "contact-email",
-        text: "Имейл за контакт.",
-        files: [TERMS, PRIVACY],
-        markers: ["TODO: имейл"],
-      },
-      {
-        id: "publication-date",
-        text: "Дата на публикуване на общите условия, поверителността и бисквитките.",
-        files: [TERMS, PRIVACY, COOKIES],
-        markers: ["TODO: дата на публикуване"],
-      },
-    ],
-  },
-  {
-    title: "Доставка, плащане, връщане и спорове",
-    items: [
-      {
-        id: "dispute-body",
-        text: "Органът за алтернативно решаване на спорове и адресът на сайта му.",
-        files: [TERMS],
-        markers: [
-          "TODO: компетентната обща помирителна комисия към Комисията за защита на потребителите и адресът на сайта ѝ",
-        ],
-      },
     ],
   },
   {
@@ -71,26 +48,24 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
       },
       {
         id: "accounting-retention",
-        text: "Срокът по Закона за счетоводството, потвърден от счетоводител, и кой е счетоводителят.",
+        text: "Имате ли счетоводител, и колко години според него трябва да се пазят документите за продажбите? Името му не е нужно.",
         files: [PRIVACY],
         markers: [
           "TODO: срокът по Закона за счетоводството, потвърден от счетоводителя",
           "TODO: счетоводител — счетоводните документи.",
         ],
       },
-      {
-        id: "hosting",
-        text: "Хостинг доставчикът и регионът на сървъра.",
-        files: [PRIVACY],
-        markers: [
-          "TODO: хостинг доставчик и регион на сървъра — базата данни на магазина.",
-        ],
-      },
     ],
   },
   {
-    title: "Измислени числа — изтриват се при старта",
+    title: "Попълват се при старта — не се показват на собственика",
+    developerOnly: true,
     items: [
+      {
+        text: "Дата на публикуване на общите условия, поверителността и бисквитките.",
+        files: [TERMS, PRIVACY, COOKIES],
+        markers: ["TODO: дата на публикуване"],
+      },
       {
         text: "Цените на продуктите (TODO_PRICE). Изтриват се, не се поправят.",
         files: ["prisma/seed.ts"],
@@ -163,19 +138,22 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         markers: ["TODO: правен статус"],
       },
       {
-        id: "withdrawal-exception",
-        text: "Важи ли за прашеца някое изключение от правото на отказ в 14 дни?",
-        files: [],
-        markers: [],
+        id: "sealed-packaging",
+        text: "Запечатани ли са пакетите с прашец — залепени или заварени, така че да личи, ако са отваряни? Само тогава отворен пакет може да не се приема обратно.",
+        files: [TERMS],
+        markers: ["TODO: потвърждение, че пакетите са запечатани"],
       },
     ],
   },
 ];
 
+export const OWNER_PAGE_GROUPS = OWNER_TODOS.flatMap((group) =>
+  group.developerOnly ? [] : [group],
+);
+
 export const PRODUCT_FIELD_LABEL = {
   summary: "Кратко описание",
   description: "Описание",
-  variety: "Сорт",
   netWeightGrams: "Нетно количество",
   composition: "Състав",
   origin: "Произход",

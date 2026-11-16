@@ -3,7 +3,11 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 
-import { OWNER_TODOS, owedProductFields } from "@/lib/owner-todos";
+import {
+  OWNER_PAGE_GROUPS,
+  OWNER_TODOS,
+  owedProductFields,
+} from "@/lib/owner-todos";
 
 const NOT_OWED = new Set([
   "src/lib/owner-todos.ts",
@@ -98,7 +102,6 @@ test("every item on the todo page is still owed in each file it names", () => {
 const FILLED = {
   summary: "Сушен пчелен прашец.",
   description: "Събран от нашия пчелин.",
-  variety: "40% акация, 60% липа",
   netWeightGrams: 500,
   composition: "Пчелен прашец",
   origin: "България",
@@ -116,11 +119,25 @@ test("an empty, blank, TODO or Lorem ipsum field is owed", () => {
     owedProductFields({
       ...FILLED,
       description: "Lorem ipsum dolor sit amet.",
-      variety: null,
       netWeightGrams: null,
       composition: "  ",
       origin: "TODO: страна на добив",
     }),
-    ["description", "variety", "netWeightGrams", "composition", "origin"],
+    ["description", "netWeightGrams", "composition", "origin"],
   );
+});
+
+test("the developer's items stay out of the owner's page", () => {
+  const ownerTexts = new Set(
+    OWNER_PAGE_GROUPS.flatMap((group) => group.items.map((item) => item.text)),
+  );
+  const developerItems = OWNER_TODOS.filter(
+    (group) => group.developerOnly,
+  ).flatMap((group) => group.items);
+
+  assert.ok(developerItems.length > 0);
+  for (const item of developerItems) {
+    assert.ok(!ownerTexts.has(item.text), item.text);
+    assert.ok(!("id" in item), item.text);
+  }
 });

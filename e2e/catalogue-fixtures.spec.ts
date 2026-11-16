@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { TEST_ADMIN_EMAIL } from "./admin-env";
+import { signInAs } from "./admin-session";
 import { deleteTestProduct, publishTestProduct } from "./e2e-db";
 
 const SINGLE_IMAGE_SLUG = "test-edna-snimka";
@@ -52,4 +54,37 @@ test("a product with no photo and no food information shows only what it has", a
   );
   expect(jsonLd.image).toEqual([]);
   expect(jsonLd.weight).toBeUndefined();
+});
+
+test("the owner's todo page lists only the products that still owe a field, with a box for each owed field", async ({
+  page,
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  await page.goto("/admin/todo");
+
+  const products = page.getByRole("region", { name: "Продукти в базата" });
+  await expect(products.getByRole("heading", { level: 3 })).toHaveText([
+    `Тестов продукт ${SINGLE_IMAGE_SLUG}`,
+    `Тестов продукт ${NO_IMAGE_SLUG}`,
+  ]);
+
+  const fixture = products
+    .getByRole("listitem")
+    .filter({ hasText: `Тестов продукт ${NO_IMAGE_SLUG}` });
+  await expect(fixture.getByRole("textbox")).toHaveCount(8);
+  for (const label of [
+    "Кратко описание",
+    "Описание",
+    "Нетно количество",
+    "Състав",
+    "Произход",
+    "Условия на съхранение",
+    "Срок на годност",
+    "Алергени",
+  ]) {
+    await expect(
+      fixture.getByRole("textbox", { name: label, exact: true }),
+    ).toBeVisible();
+  }
 });

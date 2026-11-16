@@ -10,11 +10,13 @@ import {
   EMAIL_ANSWER_KEY,
   EMAIL_ANSWER_QUESTION,
   listOwnerAnswers,
-  PRODUCT_ANSWER_LABEL,
-  type ProductAnswerField,
   productAnswerKey,
 } from "@/lib/owner-answers";
-import { OWNER_TODOS, owedProductFields } from "@/lib/owner-todos";
+import {
+  OWNER_PAGE_GROUPS,
+  owedProductFields,
+  PRODUCT_FIELD_LABEL,
+} from "@/lib/owner-todos";
 import { listPublishedProductsForTodos } from "@/lib/products";
 import { SITE_URL } from "@/lib/site";
 
@@ -32,10 +34,13 @@ const SAMPLE_EMAIL = renderLayout({
 
 export default async function AdminTodo() {
   const { email } = await requireAdmin("/admin/todo");
-  const [products, answers] = await Promise.all([
+  const [published, answers] = await Promise.all([
     listPublishedProductsForTodos(),
     listOwnerAnswers(),
   ]);
+  const products = published
+    .map((product) => ({ product, fields: owedProductFields(product) }))
+    .filter(({ fields }) => fields.length > 0);
 
   return (
     <div className="w-full">
@@ -54,18 +59,13 @@ export default async function AdminTodo() {
         Изтегли отговорите
       </a>
 
-      <section aria-labelledby="products-heading" className={`${CARD} mt-4`}>
-        <h2 id="products-heading" className="text-lg font-semibold">
-          Продукти в базата
-        </h2>
-        <ul role="list" className="mt-3 flex flex-col gap-6">
-          {products.map((product) => {
-            const fields: ProductAnswerField[] = [
-              "price",
-              ...owedProductFields(product),
-            ];
-
-            return (
+      {products.length > 0 && (
+        <section aria-labelledby="products-heading" className={`${CARD} mt-4`}>
+          <h2 id="products-heading" className="text-lg font-semibold">
+            Продукти в базата
+          </h2>
+          <ul role="list" className="mt-3 flex flex-col gap-6">
+            {products.map(({ product, fields }) => (
               <li key={product.slug}>
                 <h3 className="font-medium">{product.name}</h3>
                 {fields.map((field) => {
@@ -74,18 +74,18 @@ export default async function AdminTodo() {
                     <OwnerAnswerForm
                       key={key}
                       answerKey={key}
-                      label={PRODUCT_ANSWER_LABEL[field]}
+                      label={PRODUCT_FIELD_LABEL[field]}
                       initial={answers.get(key) ?? ""}
                     />
                   );
                 })}
               </li>
-            );
-          })}
-        </ul>
-      </section>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      {OWNER_TODOS.map((group) => (
+      {OWNER_PAGE_GROUPS.map((group) => (
         <section
           key={group.title}
           aria-label={group.title}

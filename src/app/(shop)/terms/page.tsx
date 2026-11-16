@@ -6,7 +6,7 @@ import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
 import { Todo } from "@/components/todo";
 import { DELIVERY_PERIOD } from "@/lib/delivery";
-import { OWNER_PHONE } from "@/lib/site";
+import { CONTACT_EMAIL, OWNER_PHONE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Общи условия",
@@ -21,7 +21,7 @@ const SELLER = [
   ["Продавач", "Димитър Димитров, TODO: правен статус"],
   ["Адрес", `${SELLER_ADDRESS} (по регистрация и за кореспонденция)`],
   ["Телефон", OWNER_PHONE.display],
-  ["Имейл", "TODO: имейл"],
+  ["Имейл", CONTACT_EMAIL],
   ["Регистрация", "TODO: ЕИК, БУЛСТАТ или номер на земеделски производител"],
   ["Контролен орган", "TODO: регистрация в БАБХ и номер"],
   ["ДДС", "TODO: регистриран ли е по ЗДДС и номер"],
@@ -36,7 +36,7 @@ const ORDER_STEPS = [
 ];
 
 const FORM_LINES = [
-  `До: Димитър Димитров, ${SELLER_ADDRESS}, имейл: TODO: имейл`,
+  `До: Димитър Димитров, ${SELLER_ADDRESS}, имейл: ${CONTACT_EMAIL}`,
   "С настоящото уведомявам/уведомяваме*, че се отказвам/отказваме* от сключения от мен/нас* договор за покупка на следните стоки:",
   "Поръчано на*/получено на*:",
   "Име на потребителя/ите:",
@@ -123,7 +123,8 @@ export default function TermsPage() {
             Неотворените пакети могат да се върнат. Отворен пакет не може да се
             върне, защото е запечатан по хигиенни причини и след отваряне не
             може да бъде продаден отново (чл. 57, т. 5 от Закона за защита на
-            потребителите).
+            потребителите).{" "}
+            <Todo>TODO: потвърждение, че пакетите са запечатани</Todo>
           </p>
           <p>Отказът се заявява по един от тези начини:</p>
           <ul role="list" className="flex list-disc flex-col gap-2 pl-5">
@@ -153,18 +154,26 @@ export default function TermsPage() {
             Отговаряме за несъответствие на стоката с договора според закона.
             Ако получите повреден пакет или продукт, който не отговаря на
             описанието, се свържете с нас на {OWNER_PHONE.display} или на{" "}
-            <Todo>TODO: имейл</Todo>.
+            <a href={`mailto:${CONTACT_EMAIL}`} className={TEXT_LINK}>
+              {CONTACT_EMAIL}
+            </a>
+            .
           </p>
         </Section>
 
         <Section id="disputes" title="Решаване на спорове">
           <p>
             Ако не постигнем съгласие, можете да се обърнете към орган за
-            алтернативно решаване на спорове:{" "}
-            <Todo>
-              TODO: компетентната обща помирителна комисия към Комисията за
-              защита на потребителите и адресът на сайта ѝ
-            </Todo>
+            алтернативно решаване на спорове: общата помирителна комисия към
+            Комисията за защита на потребителите със седалище в гр. Шумен, която
+            разглежда спорове от областите Шумен, Търговище и Разград. Заявление
+            се подава през{" "}
+            <a
+              href="https://kzp.bg/bg/kak-da-poiskam-formirane-pomiritelna-komisiya"
+              className={TEXT_LINK}
+            >
+              сайта на комисията
+            </a>
             .
           </p>
         </Section>

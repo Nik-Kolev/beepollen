@@ -5,7 +5,7 @@ import { Container } from "@/components/container";
 import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
 import { Todo } from "@/components/todo";
-import { OWNER_PHONE } from "@/lib/site";
+import { CONTACT_EMAIL, OWNER_PHONE } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Политика за поверителност",
@@ -96,7 +96,7 @@ const PURPOSES: Purpose[] = [
 const RECIPIENTS = [
   "Еконт Експрес — име, телефон и избраният офис, за да достави пратката.",
   "Viber Media (Люксембург) — телефонът ви, ако се свържем с вас за поръчката през Viber.",
-  "TODO: хостинг доставчик и регион на сървъра — базата данни на магазина.",
+  "DigitalOcean (САЩ, сървър във Франкфурт, Германия) — сървърът на сайта и базата данни на магазина.",
   "Backblaze (САЩ, сървъри в ЕС) — резервните копия на базата данни на магазина.",
   "Resend (САЩ) — изпращането на имейлите за поръчката и на офертите. Resend ни съобщава, ако имейлът не е доставен или е отбелязан като спам.",
   "Google (САЩ) — Google Analytics, само ако сте приели бисквитките.",
@@ -130,7 +130,11 @@ export default function PrivacyPage() {
         <Section id="controller" title="Кой отговаря за данните">
           <p>
             Димитър Димитров, гр. Попово, ул. „Сан Стефано“ 10, телефон{" "}
-            {OWNER_PHONE.display}, имейл <Todo>TODO: имейл</Todo>.
+            {OWNER_PHONE.display}, имейл{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`} className={TEXT_LINK}>
+              {CONTACT_EMAIL}
+            </a>
+            .
           </p>
           <p>
             Нямаме длъжностно лице по защита на данните, защото законът не го
@@ -188,8 +192,11 @@ export default function PrivacyPage() {
             ))}
           </ul>
           <p>
-            За всяко от тях ни пишете на <Todo>TODO: имейл</Todo>. Отговаряме до
-            един месец. Съгласието за бисквитките променяте от{" "}
+            За всяко от тях ни пишете на{" "}
+            <a href={`mailto:${CONTACT_EMAIL}`} className={TEXT_LINK}>
+              {CONTACT_EMAIL}
+            </a>
+            . Отговаряме до един месец. Съгласието за бисквитките променяте от{" "}
             <Link href="/cookies" className={TEXT_LINK}>
               политиката за бисквитките
             </Link>

@@ -1,3 +1,4 @@
+import { nutritionRows, WEB_NUTRITION_PER_100G } from "@/lib/nutrition";
 import { PRODUCERS } from "@/lib/producers";
 
 type OwnerTodo = {
@@ -139,6 +140,25 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     ],
   },
   {
+    title: "Хранителна стойност",
+    items: [
+      {
+        id: "nutrition-declaration",
+        text: "Нужна ли е хранителна декларация за прашеца? Решава БАБХ.",
+        files: [],
+        markers: [],
+      },
+      ...(nutritionRows(WEB_NUTRITION_PER_100G) ?? [])
+        .filter((row) => row.key !== "energy")
+        .map((row) => ({
+          id: `nutrition-${row.key}`,
+          text: `${row.label} на 100 г: ${row.value}. Числото е средно от етикети на пчелен прашец в интернет и вече е на сайта — ако имате етикет или анализ на вашия прашец с друго число, напишете го. Енергийната стойност се изчислява от тези числа.`,
+          files: [],
+          markers: [],
+        })),
+    ],
+  },
+  {
     title: "Отворени въпроси",
     items: [
       {
@@ -146,12 +166,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         text: "Регистриран земеделски производител ли е продавачът? От това зависят правният статус, номерът и ДДС.",
         files: [TERMS],
         markers: ["TODO: правен статус"],
-      },
-      {
-        id: "nutrition-declaration",
-        text: "Нужна ли е хранителна декларация за прашеца? Решава БАБХ.",
-        files: [],
-        markers: [],
       },
       {
         id: "withdrawal-exception",

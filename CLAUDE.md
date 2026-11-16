@@ -1018,6 +1018,15 @@ the page on purpose. Outside the test fixtures, e2e and unit, which publish
 products without food information on purpose, the seed is the only writer of `isPublished`; a
 future one calls the same check.
 
+The nutrition declaration is stored per 100 g as whole milligrams, energy as
+kJ and kcal, and rounded for display by the EU labelling guidance in
+`src/lib/nutrition.ts`. `WEB_NUTRITION_PER_100G` is the median of published
+bee-pollen labels with the energy calculated from it, seeded onto both products
+and quoted on `/admin/todo` for the owner to correct, energy excepted, since it
+follows from the rest; it is not invented, so it
+is no `TODO_` placeholder. The table shows only when every value is present, and
+`assertPublishable` does not require it until the owner's ОДБХ says it is owed.
+
 ## Agent files
 
 `AGENTS.md` is owned by Next.js tooling, not by this project. `next dev` rewrites

@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "Product" ADD COLUMN "carbohydrateMg" INTEGER;
+ALTER TABLE "Product" ADD COLUMN "energyKcal" INTEGER;
+ALTER TABLE "Product" ADD COLUMN "energyKj" INTEGER;
+ALTER TABLE "Product" ADD COLUMN "fatMg" INTEGER;
+ALTER TABLE "Product" ADD COLUMN "proteinMg" INTEGER;
+ALTER TABLE "Product" ADD COLUMN "saltMg" INTEGER;
+ALTER TABLE "Product" ADD COLUMN "saturatesMg" INTEGER;
+ALTER TABLE "Product" ADD COLUMN "sugarsMg" INTEGER;

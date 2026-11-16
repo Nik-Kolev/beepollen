@@ -107,11 +107,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         markers: ["TODO_COD_FEE_CENTS"],
       },
       {
-        text: "Посетителите и източниците в статистиката (TODO_VISITORS). Заменят се от Google Analytics.",
-        files: ["src/lib/analytics.ts"],
-        markers: ["TODO_VISITORS"],
-      },
-      {
         text: "„TODO: цена“ се показва навсякъде, където продукт няма цена.",
         files: [
           "src/components/product-price.tsx",

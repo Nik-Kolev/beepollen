@@ -30,9 +30,11 @@
     "ci": "npm run format:check && npm run lint && npm run typecheck && npm run test:unit && npm run db:setup && npm run build"
   },
   "dependencies": {
+    "@google-analytics/data": "7.3.0",
     "@next/third-parties": "16.4.6",
     "@prisma/adapter-libsql": "^7.10.1",
     "@prisma/client": "^7.10.1",
+    "google-auth-library": "11.3.4",
     "leaflet": "^1.9.4",
     "next": "16.4.6",
     "next-auth": "5.0.0-beta.32",
@@ -64,6 +66,7 @@
     "esbuild@0.28.2": true,
     "fsevents": false,
     "prisma@7.10.1": true,
-    "@prisma/engines@7.10.1": true
+    "@prisma/engines@7.10.1": true,
+    "protobufjs": false
   }
 }

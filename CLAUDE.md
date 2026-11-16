@@ -46,7 +46,9 @@ zero-price draft the tests need is not in the seed:
 seeding, so it never reaches a database anyone reviews. The Econt
 tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is another invented
 number, for the same reason; it is replaced by calculated Econt prices rather than
-corrected. `TODO_VISITORS` in `src/lib/analytics.ts` is the third: the admin's
+corrected. `TODO_COD_FEE_CENTS` in `src/lib/delivery.ts` is the cash-on-delivery
+fee, one for every carrier, invented for the same reason and replaced by the
+carriers' own fees. `TODO_VISITORS` in `src/lib/analytics.ts` is the fourth: the admin's
 visitor and traffic-source counts until GA4 is wired, announced as sample numbers
 on the page, and deleted when the GA4 read replaces it. Ask before inventing a
 number anywhere else.
@@ -492,8 +494,10 @@ unit test that passes one gives each order its own contact with
 `distinctBuyer()`. A browser checkout always carries an IP, so an e2e helper
 that places more than three orders gives each its own phone and email.
 
-`deliveryCents` is priced by `placeOrder` from the delivery method alone and never
-read from the caller — the tariff for an Econt office, zero for `LOCAL`.
+`deliveryCents` and `codFeeCents` are priced by `placeOrder` from the delivery
+method alone and never read from the caller — the tariff and the cash-on-delivery
+fee for an Econt office, zero for `LOCAL`. Both are in `totalCents`, since the
+buyer pays the whole amount at the courier's counter.
 
 A `Promotion` lowers one product's price, as a percentage or a fixed price, from
 `startsOn` to `endsOn` inclusive — calendar days in `Europe/Sofia`, stored as

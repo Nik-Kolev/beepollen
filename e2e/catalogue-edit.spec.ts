@@ -313,7 +313,7 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await expect(submit).toBeDisabled();
   await expect(
     page.getByRole("region", { name: "Потвърждение" }),
-  ).toContainText("Общо30,40 €");
+  ).toContainText("Общо32,90 €");
   await main.getByRole("button", { name: `Премахни ${PRODUCT}` }).click();
 
   await expect(main.getByText(OTHER_PRODUCT, { exact: true })).toBeVisible();

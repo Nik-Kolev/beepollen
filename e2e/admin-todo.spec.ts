@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
-import { PREVIEWS } from "@/lib/email/previews";
+import { nutritionRows, WEB_NUTRITION_PER_100G } from "@/lib/nutrition";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
@@ -36,13 +36,25 @@ test("the todo page asks the owner's open questions and nothing the seed already
 
   for (const group of [
     "Продавач и правни данни",
-    "Лични данни",
+    "Хранителна стойност",
     "Отворени въпроси",
   ]) {
     await expect(
       page.getByRole("region", { name: group }).getByRole("listitem").first(),
     ).toBeVisible();
   }
+  const table = page
+    .getByRole("region", { name: "Хранителна стойност" })
+    .getByRole("table", { name: "Хранителна стойност на 100 г" });
+  const rows = nutritionRows(WEB_NUTRITION_PER_100G) ?? [];
+  expect(rows.length).toBeGreaterThan(0);
+  await expect(table.getByRole("rowheader")).toHaveText(
+    rows.map(({ label }) => label),
+  );
+  await expect(table.getByRole("cell")).toHaveText(
+    rows.map(({ value }) => value),
+  );
+
   await expect(
     page.getByRole("region", { name: /Попълват се при старта/ }),
   ).toHaveCount(0);
@@ -50,31 +62,11 @@ test("the todo page asks the owner's open questions and nothing the seed already
   await expect(page.getByText(/Хостинг доставчикът/)).toHaveCount(0);
 
   const { violations } = await new AxeBuilder({ page })
-    .exclude("iframe")
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
   expect(
     violations.map((v) => `${v.id} on ${v.nodes.length}: ${v.help}`),
   ).toEqual([]);
-});
-
-test("the todo page shows one empty email frame with a field for suggestions", async ({
-  page,
-  context,
-}) => {
-  await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin/todo");
-
-  const emails = page.getByRole("region", { name: "Имейли" });
-  await expect(emails.locator("iframe")).toHaveCount(1);
-  await expect(
-    page
-      .frameLocator('iframe[title="Примерен имейл"]')
-      .getByRole("heading", { name: "Примерен имейл" }),
-  ).toBeVisible();
-  await expect(
-    emails.getByRole("textbox", { name: "Предложения за имейлите" }),
-  ).toBeVisible();
 });
 
 test("an answer saved on the todo page is there after a reload and in the download", async ({
@@ -89,7 +81,7 @@ test("an answer saved on the todo page is there after a reload and in the downlo
   const answer = `Пчелен прашец ООД, гр. Попово ${Date.now()}`;
   const form = answerForm(
     page,
-    "Кой от двата номера, 179940540 или 179876340, е на Димитър — продавача, и регистриран ли е по ЗДДС.",
+    "Регистриран ли сте по ЗДДС? Ако да — номерът.",
   );
   await form.getByRole("textbox").fill(answer);
   await form.getByRole("button", { name: "Запази" }).click();
@@ -110,9 +102,8 @@ test("an answer saved on the todo page is there after a reload and in the downlo
 
   expect(rows).toContainEqual(
     expect.objectContaining({
-      key: "seller-registration-whose",
-      question:
-        "Кой от двата номера, 179940540 или 179876340, е на Димитър — продавача, и регистриран ли е по ЗДДС.",
+      key: "seller-vat",
+      question: "Регистриран ли сте по ЗДДС? Ако да — номерът.",
       text: answer,
       updatedBy: TEST_ADMIN_EMAIL,
     }),
@@ -130,15 +121,15 @@ test("text typed while a save is in flight is never reported as saved", async ({
 
   const form = answerForm(
     page,
-    "Колко дълго се пазят поръчките и данните за контакт.",
+    "Трябва ли регистрация в БАБХ за продажбата на прашеца? Ако трябва и я имате — номерът и за какво е.",
   );
   const field = form.getByRole("textbox");
-  await field.fill("5 години");
+  await field.fill("Не");
   const saved = page.waitForResponse(
     (response) => response.request().method() === "POST",
   );
   await form.getByRole("button", { name: "Запази" }).click();
-  await field.pressSequentially(", после се трият");
+  await field.pressSequentially(", не трябва");
   await saved;
   await page.waitForTimeout(2000);
 
@@ -186,103 +177,4 @@ test("the admin header's four sections fit a 320px screen without scrolling side
       () => document.documentElement.scrollWidth - window.innerWidth,
     ),
   ).toBeLessThanOrEqual(0);
-});
-
-function sampleForm(page: Page) {
-  return page.locator("form").filter({
-    has: page.getByRole("textbox", {
-      name: "Изпрати всички имейли като примери до",
-    }),
-  });
-}
-
-test("the sample button sends every email and lists how each one went", async ({
-  page,
-  context,
-}) => {
-  await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin/todo");
-
-  const form = sampleForm(page);
-  await expect(form.getByRole("textbox")).toHaveValue("beepollenbg@gmail.com");
-  await form.getByRole("button", { name: "Изпрати примерите" }).click();
-
-  await expect(form.getByRole("status")).toHaveText(
-    `Изпратени 0 от ${PREVIEWS.length}.`,
-  );
-  const lines = form
-    .getByRole("list", { name: "Резултат" })
-    .getByRole("listitem");
-  await expect(lines).toHaveText(
-    PREVIEWS.map(
-      (preview) => `${preview.title}: не е пратен — изпращането не е настроено`,
-    ),
-  );
-
-  const { violations } = await new AxeBuilder({ page })
-    .include("form")
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .analyze();
-  expect(violations).toEqual([]);
-});
-
-test("an address that is not an email is refused, and typing clears the refusal", async ({
-  page,
-  context,
-}) => {
-  await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin/todo");
-
-  const form = sampleForm(page);
-  const field = form.getByRole("textbox");
-  await field.fill("abc");
-  await form.getByRole("button", { name: "Изпрати примерите" }).click();
-
-  await expect(form.getByRole("status")).toHaveText(
-    "Въведете валиден имейл адрес.",
-  );
-  await expect(field).toHaveAttribute("aria-invalid", "true");
-  await expect(form.getByRole("list", { name: "Резултат" })).toHaveCount(0);
-
-  await field.fill("owner@example.com");
-  await expect(form.getByRole("status")).toHaveText("");
-  await expect(field).not.toHaveAttribute("aria-invalid");
-});
-
-test("a result that arrives after the address was edited is not shown under the new address", async ({
-  page,
-  context,
-}) => {
-  await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin/todo");
-
-  let release = () => {};
-  const held = new Promise<void>((resolve) => (release = resolve));
-  await page.route("**/admin/todo", async (route) => {
-    if (route.request().method() === "POST") await held;
-    await route.continue();
-  });
-
-  const form = sampleForm(page);
-  const posted = page.waitForRequest(
-    (request) =>
-      request.method() === "POST" && request.url().endsWith("/admin/todo"),
-  );
-  await form.getByRole("button", { name: "Изпрати примерите" }).click();
-  await posted;
-  await form.getByRole("textbox").fill("owner@example.com");
-
-  const answered = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" &&
-      response.url().endsWith("/admin/todo"),
-  );
-  release();
-  await answered;
-  await expect(
-    form.getByRole("button", { name: "Изпрати примерите" }),
-  ).toHaveAttribute("aria-disabled", "false");
-
-  await expect(form.getByRole("status")).toHaveText("");
-  await expect(form.getByRole("list", { name: "Резултат" })).toHaveCount(0);
 });

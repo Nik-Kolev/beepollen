@@ -72,7 +72,7 @@ export function OwnerAnswerForm({
       onSubmit={handleSubmit}
       className="mt-2 flex max-w-2xl flex-col gap-2"
     >
-      <label htmlFor={`${id}-text`} className={LABEL}>
+      <label htmlFor={`${id}-text`} className={`${LABEL} whitespace-pre-line`}>
         {label}
       </label>
       <textarea

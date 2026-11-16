@@ -6,7 +6,6 @@ import {
   promotionEmail,
   restockEmail,
 } from "@/lib/email/campaign-templates";
-import { PREVIEWS } from "@/lib/email/previews";
 import { SITE_URL } from "@/lib/site";
 
 const UNSUBSCRIBE = `${SITE_URL}/subscription/unsubscribe?token=abc`;
@@ -126,16 +125,6 @@ test("a restock email without products links to the shop", () => {
   assert.equal(subject, "Ново зареждане");
   assert.match(html, new RegExp(`href="${SITE_URL}"[^>]*>Към магазина</a>`));
   assert.ok(text.includes(`Към магазина: ${SITE_URL}`));
-});
-
-test("the previews include the promotion email and one restock email", () => {
-  const titles = PREVIEWS.map(({ title }) => title);
-  assert.ok(titles.some((title) => title.startsWith("Промоция")));
-  assert.equal(
-    titles.filter((title) => title.startsWith("Ново зареждане")).length,
-    1,
-  );
-  for (const preview of PREVIEWS) assert.ok(preview.render().html);
 });
 
 test("the promotion email keeps the order: photo, name, prices, days, owner's text, button", () => {

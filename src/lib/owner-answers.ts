@@ -7,10 +7,6 @@ import {
 } from "@/lib/owner-todos";
 import prisma from "@/lib/prisma";
 
-export const EMAIL_ANSWER_KEY = "emails";
-
-export const EMAIL_ANSWER_QUESTION = "Предложения за имейлите";
-
 export const OWNER_ANSWER_MAX_LENGTH = 5000;
 
 const QUESTION_BY_ID = new Map(
@@ -32,11 +28,7 @@ function productKeyParts(key: string) {
 }
 
 export function isOwnerAnswerKey(key: string) {
-  return (
-    key === EMAIL_ANSWER_KEY ||
-    QUESTION_BY_ID.has(key) ||
-    productKeyParts(key) !== null
-  );
+  return QUESTION_BY_ID.has(key) || productKeyParts(key) !== null;
 }
 
 const ownerAnswerInput = z.object({
@@ -92,7 +84,6 @@ export async function exportOwnerAnswers(
         fieldRank.indexOf(product.field),
       ];
     }
-    if (key === EMAIL_ANSWER_KEY) return [2, 0, 0];
     const todo = todoRank.indexOf(key);
     return todo === -1 ? [3, 0, 0] : [1, todo, 0];
   }
@@ -114,9 +105,7 @@ export async function exportOwnerAnswers(
     const product = productKeyParts(key);
     const question = product
       ? `${productName.get(product.slug) ?? product.slug}: ${PRODUCT_FIELD_LABEL[product.field]}`
-      : key === EMAIL_ANSWER_KEY
-        ? EMAIL_ANSWER_QUESTION
-        : (QUESTION_BY_ID.get(key) ?? key);
+      : (QUESTION_BY_ID.get(key) ?? key);
 
     return {
       key,

@@ -7,6 +7,7 @@ import { BackToProductsLink } from "@/components/back-to-products-link";
 import { Container } from "@/components/container";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductPrice } from "@/components/product-price";
+import { nutritionRows } from "@/lib/nutrition";
 import {
   getPublishedProductBySlug,
   listPublishedProductSlugs,
@@ -66,6 +67,7 @@ export default async function ProductPage({
   const productInformation = information.filter(
     (row): row is [string, string] => row[1] !== null,
   );
+  const nutrition = nutritionRows(product);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -136,6 +138,50 @@ export default async function ProductPage({
                 ))}
               </dl>
             </section>
+
+            {nutrition && (
+              <section className="mt-8">
+                <h2 id="nutrition-heading" className="text-lg font-semibold">
+                  Хранителна стойност
+                </h2>
+                <table
+                  aria-labelledby="nutrition-heading"
+                  className="border-line divide-line mt-3 w-full divide-y border-y text-sm"
+                >
+                  <thead>
+                    <tr>
+                      <th
+                        scope="col"
+                        className="text-ink-soft py-2 text-left font-normal"
+                      >
+                        <span className="sr-only">Хранителна съставка</span>
+                      </th>
+                      <th
+                        scope="col"
+                        className="text-ink-soft py-2 text-right font-normal"
+                      >
+                        на 100 г
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-line divide-y">
+                    {nutrition.map((row) => (
+                      <tr key={row.key}>
+                        <th
+                          scope="row"
+                          className={`py-2 text-left font-normal ${row.nested ? "text-ink-soft pl-4" : ""}`}
+                        >
+                          {row.label}
+                        </th>
+                        <td className="py-2 pl-4 text-right whitespace-nowrap tabular-nums">
+                          {row.value}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
           </div>
         </div>
       </div>

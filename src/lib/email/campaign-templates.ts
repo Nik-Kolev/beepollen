@@ -31,7 +31,7 @@ export type RestockEmailData = {
 };
 
 const SUBSCRIBED =
-  "Получавате този имейл, защото сте абонирани за офертите ни.";
+  "Получавате този имейл, защото сте абонирани за промоциите и известията ни за ново зареждане.";
 
 function formatDay(day: string) {
   const [year, month, date] = day.split("-");

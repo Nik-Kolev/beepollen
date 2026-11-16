@@ -15,6 +15,8 @@ const HEAD_FONT = "Georgia, 'Times New Roman', serif";
 
 const SHOP_NAME = "Пчелни продукти Д & Н Димитрови";
 
+const PREHEADER_FILL = "&#847;&zwnj;&nbsp;".repeat(80);
+
 export function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -61,7 +63,7 @@ export function renderLayout(content: EmailContent) {
 <title>${escapeHtml(content.heading)}</title>
 </head>
 <body style="margin:0;padding:0;background:${EMAIL_COLOR.surface};">
-<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeHtml(content.preheader)}</div>
+<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${escapeHtml(content.preheader)}${PREHEADER_FILL}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${EMAIL_COLOR.surface};">
   <tr>
     <td align="center" style="padding:24px 12px;">

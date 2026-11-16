@@ -6,7 +6,13 @@ import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
 import { Todo } from "@/components/todo";
 import { DELIVERY_PERIOD } from "@/lib/delivery";
-import { CONTACT_EMAIL, OWNER_PHONE } from "@/lib/site";
+import { CONTACT_EMAIL, OWNER_PHONE, SELLER } from "@/lib/site";
+import {
+  CONFORMITY,
+  REFUND_TERMS,
+  RETURN_TERMS,
+  WITHDRAWAL_RIGHT,
+} from "@/lib/withdrawal-terms";
 
 export const metadata: Metadata = {
   title: "Общи условия",
@@ -15,14 +21,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/terms" },
 };
 
-const SELLER_ADDRESS = "гр. Попово, ул. „Сан Стефано“ 10";
-
-const SELLER = [
-  ["Продавач", "Димитър Димитров, TODO: правен статус"],
-  ["Адрес", `${SELLER_ADDRESS} (по регистрация и за кореспонденция)`],
+const SELLER_ROWS = [
+  ["Продавач", `${SELLER.name}, TODO: правен статус`],
+  ["Адрес", `${SELLER.address} (по регистрация и за кореспонденция)`],
   ["Телефон", OWNER_PHONE.display],
   ["Имейл", CONTACT_EMAIL],
-  ["Регистрация", "ЕИК 179940540"],
+  ["Регистрация", `ЕИК ${SELLER.eik}`],
   ["Контролен орган", "TODO: регистрация в БАБХ и номер"],
   ["ДДС", "TODO: регистриран ли е по ЗДДС и номер"],
 ];
@@ -36,7 +40,7 @@ const ORDER_STEPS = [
 ];
 
 const FORM_LINES = [
-  `До: Димитър Димитров, ${SELLER_ADDRESS}, имейл: ${CONTACT_EMAIL}`,
+  `До: ${SELLER.name}, ${SELLER.address}, имейл: ${CONTACT_EMAIL}`,
   "С настоящото уведомявам/уведомяваме*, че се отказвам/отказваме* от сключения от мен/нас* договор за покупка на следните стоки:",
   "Поръчано на*/получено на*:",
   "Име на потребителя/ите:",
@@ -58,7 +62,7 @@ export default function TermsPage() {
 
         <Section id="seller" title="Продавач">
           <dl className="grid gap-x-4 gap-y-1 sm:grid-cols-[auto_1fr]">
-            {SELLER.map(([term, value]) => (
+            {SELLER_ROWS.map(([term, value]) => (
               <div key={term} className="contents">
                 <dt className="text-ink-soft">{term}</dt>
                 <dd className="mb-2 sm:mb-0">{value}</dd>
@@ -114,11 +118,7 @@ export default function TermsPage() {
         </Section>
 
         <Section id="withdrawal" title="Право на отказ">
-          <p>
-            Можете да се откажете от договора без да посочвате причина в срок от
-            14 дни от деня, в който получите стоката. Можете да го направите и
-            преди да я получите.
-          </p>
+          <p>{WITHDRAWAL_RIGHT}</p>
           <p>
             Неотворените пакети могат да се върнат. Отворен пакет не може да се
             върне, защото е запечатан по хигиенни причини и след отваряне не
@@ -140,23 +140,22 @@ export default function TermsPage() {
           </ul>
           <p>
             Достатъчно е да изпратите заявлението преди края на 14-дневния срок.
-            Върнете стоката до офис на Еконт или Спиди в гр. Попово в същия
-            срок. Разходите за връщане са за ваша сметка. Възстановяваме
-            платената сума, включително първоначалната доставка, до 14 дни от
-            отказа, като можем да изчакаме, докато получим стоката или
-            доказателство, че сте я изпратили.
+            След като го получим, ще ви се обадим, за да уговорим връщането.{" "}
+            {RETURN_TERMS}
           </p>
+          <p>{REFUND_TERMS}</p>
         </Section>
 
         <Section id="complaints" title="Рекламации">
           <p>
-            Отговаряме за несъответствие на стоката с договора според закона.
-            Ако получите повреден пакет или продукт, който не отговаря на
-            описанието, се свържете с нас на {OWNER_PHONE.display} или на{" "}
+            {CONFORMITY} Ако получите повреден пакет или продукт, който не
+            отговаря на описанието, се свържете с нас на {OWNER_PHONE.display}{" "}
+            или на{" "}
             <a href={`mailto:${CONTACT_EMAIL}`} className={TEXT_LINK}>
               {CONTACT_EMAIL}
             </a>
-            .
+            . При рекламация разходите по изпращането на стоката са за наша
+            сметка.
           </p>
         </Section>
 

@@ -34,7 +34,15 @@ unnoticed, and Lorem ipsum and `TODO:` cannot.
 
 The owner's phone is a real fact he supplied and lives once, as `OWNER_PHONE` in
 `src/lib/site.ts`; every page that shows it reads it from there. The shop's
-contact address, `CONTACT_EMAIL`, lives beside it the same way.
+contact address, `CONTACT_EMAIL`, lives beside it the same way, and so does
+`SELLER` — the name, address and ЕИК that `/terms`, `/privacy` and the order
+confirmation print.
+
+On a withdrawal the refund covers the goods only: the delivery and the
+cash-on-delivery fee, paid to the courier, are not refunded. That stands until
+the owner answers `return-costs` on `/admin/todo`, and was chosen knowing that
+ЗЗП чл. 54, ал. 1 likely requires the cheapest standard delivery back. `/terms`
+and the order confirmation say it in the same words and change together.
 
 Prices are the single exception, added because checkout cannot be tested against
 a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,

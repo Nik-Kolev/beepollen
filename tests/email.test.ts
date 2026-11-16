@@ -15,7 +15,13 @@ import { type EmailClient, sendEmail } from "@/lib/email/transport";
 import { EMAIL_WARNING_LIMIT, emailUsage } from "@/lib/email/usage";
 import { formatPrice } from "@/lib/money";
 import prisma from "@/lib/prisma";
-import { OWNER_PHONE, SITE_URL } from "@/lib/site";
+import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
+import {
+  CONFORMITY,
+  REFUND_TERMS,
+  RETURN_TERMS,
+  WITHDRAWAL_RIGHT,
+} from "@/lib/withdrawal-terms";
 
 after(async () => {
   await prisma.$disconnect();
@@ -50,6 +56,9 @@ const WITHDRAWAL = {
   reference: ORDER.reference,
   withdrawnAt: new Date("2026-10-22T07:30:00Z"),
   sent: false,
+  local: false,
+  contactPhone: ORDER.contactPhone,
+  email: ORDER.email,
 };
 
 const ALL = [
@@ -159,8 +168,9 @@ test("an accepted order for Popovo promises a phone call and free delivery", () 
 
   for (const body of [html, text]) {
     assert.ok(body.includes("доставката в гр. Попово"));
-    assert.ok(body.includes("Безплатна"));
-    assert.ok(!body.includes("Еконт"));
+    assert.match(body, /[Бб]езплатна/);
+    assert.ok(!body.includes("до офис на Еконт:"));
+    assert.ok(!body.includes(`Еконт, ${OFFICE.name}`));
     assert.ok(!body.includes(COD_FEE_LABEL));
   }
 });
@@ -184,15 +194,94 @@ test("the withdrawal email gives the Sofia time and says what happens next", () 
 
   assert.ok(unsent.text.includes("22.10.2026 г., 10:30"));
   assert.ok(unsent.text.includes("Поръчката няма да бъде изпратена."));
-  assert.ok(sent.text.includes("уговорим връщането на стоката"));
+  assert.ok(
+    sent.text.includes(
+      "уговорим връщането до офис на Еконт или Спиди в гр. Попово",
+    ),
+  );
+  assert.ok(
+    sent.text.includes(
+      "Изпратете стоката обратно до 14 дни от отказа; изпращането е за ваша сметка.",
+    ),
+  );
   assert.ok(!sent.text.includes("Поръчката няма да бъде изпратена."));
+});
+
+test("a Popovo buyer who withdraws after the hand-over is called, never sent to an office", () => {
+  const { html, text } = withdrawalReceivedEmail({
+    ...WITHDRAWAL,
+    sent: true,
+    local: true,
+  });
+
+  for (const body of [html, text]) {
+    assert.ok(
+      body.includes(
+        "Ще ви се обадим, за да уговорим как да ни върнете стоката.",
+      ),
+    );
+    assert.ok(!body.includes("Еконт"));
+  }
+});
+
+test("the withdrawal email restates the phone and the email of the order withdrawn", () => {
+  const { html, text } = withdrawalReceivedEmail(WITHDRAWAL);
+
+  for (const body of [html, text]) {
+    assert.ok(body.includes(ORDER.reference));
+    assert.ok(
+      body.includes(
+        `Данни от поръчката: телефон ${ORDER.contactPhone}, имейл ${ORDER.email}.`,
+      ),
+    );
+    assert.ok(!body.includes(ORDER.contactName));
+  }
+});
+
+test("the accepted order carries the seller and the same withdrawal terms as /terms", () => {
+  const { html, text } = orderAcceptedEmail(ORDER);
+
+  for (const body of [html, text]) {
+    assert.ok(
+      body.includes(
+        `Продавач: ${SELLER.name}, ${SELLER.address}, ЕИК ${SELLER.eik}, тел. ${OWNER_PHONE.display}, ${CONTACT_EMAIL}.`,
+      ),
+    );
+    for (const sentence of [
+      WITHDRAWAL_RIGHT,
+      RETURN_TERMS,
+      REFUND_TERMS,
+      CONFORMITY,
+    ]) {
+      assert.ok(body.includes(sentence), sentence);
+    }
+    assert.ok(body.includes("Отворен пакет не може да се върне"));
+  }
+});
+
+test("the cancelled email gives the reason and the shop's phone", () => {
+  const { html, text } = orderCancelledEmail(ORDER);
+
+  for (const body of [html, text]) {
+    assert.ok(body.includes("защото продуктът свърши"));
+    assert.ok(body.includes(OWNER_PHONE.display));
+  }
+});
+
+test("an order cancelled after the buyer withdrew is never blamed on stock", () => {
+  const { html, text } = orderCancelledEmail(ORDER, true);
+
+  for (const body of [html, text]) {
+    assert.ok(body.includes("е анулирана след отказа ви"));
+    assert.ok(!body.includes("продуктът свърши"));
+  }
 });
 
 test("the sent email names the office and the sum to pay on collection", () => {
   const { text } = orderSentEmail({ ...ORDER, office: OFFICE });
 
   assert.ok(text.includes("Павликени, пл. Стефан Караджа №16"));
-  assert.ok(text.includes(`При получаване платете ${formatPrice(5440)}.`));
+  assert.ok(text.includes(`При получаване ще платите ${formatPrice(5440)}.`));
 });
 
 test("an accepted order says nothing about a subscription unless given an unsubscribe link", () => {

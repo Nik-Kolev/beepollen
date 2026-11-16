@@ -6,7 +6,7 @@ import { readEmailToken } from "@/lib/email-token";
 import { OWNER_PHONE } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Отписване от офертите",
+  title: "Отписване от промоциите и известията",
   alternates: { canonical: "/subscription/unsubscribe" },
   robots: { index: false, follow: false },
   referrer: "strict-origin",
@@ -21,7 +21,7 @@ export default async function UnsubscribePage(
     return (
       <SubscriptionStep
         heading="Отписахте се"
-        text="Няма да ви изпращаме повече оферти и напомняния. Имейлите за поръчките ви ще продължат да идват."
+        text="Няма да ви изпращаме повече промоции и известия за ново зареждане. Имейлите за поръчките ви ще продължат да идват."
       />
     );
   }
@@ -33,8 +33,8 @@ export default async function UnsubscribePage(
   ) {
     return (
       <SubscriptionStep
-        heading="Отписване от офертите"
-        text="Натиснете бутона и спираме офертите и напомнянията по имейл."
+        heading="Отписване от промоциите и известията"
+        text="Натиснете бутона и спираме промоциите и известията за ново зареждане по имейл."
         form={{ action: unsubscribeAction, token, label: "Отписване" }}
       />
     );

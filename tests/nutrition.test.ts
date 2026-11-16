@@ -84,7 +84,7 @@ test("saturates show down to 0,1 g and salt to the hundredth below 1 g", () => {
   assert.equal(formatNutrient("saltMg", 12), "0 г");
 });
 
-test("the owner is asked about every nutrient but not the energy, which is calculated", () => {
+test("the owner is asked about every row of the table, the energy included", () => {
   const ids = OWNER_PAGE_GROUPS.flatMap((group) => group.items).map(
     (item) => item.id,
   );
@@ -93,6 +93,7 @@ test("the owner is asked about every nutrient but not the energy, which is calcu
     ids.filter((id) => id?.startsWith("nutrition-")),
     [
       "nutrition-declaration",
+      "nutrition-energy",
       "nutrition-fat",
       "nutrition-saturates",
       "nutrition-carbohydrate",

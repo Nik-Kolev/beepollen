@@ -47,6 +47,8 @@ import {
 } from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
 import {
+  COD_FEE_LABEL,
+  codFeePrice,
   deliveryPrice,
   DISPATCH_NOTE,
   LOCAL_DELIVERY_CITY,
@@ -244,16 +246,18 @@ function FilledCheckout({
     (line) => isPurchasable(line) && !unavailable.has(line.slug),
   );
   const itemsCents = purchasableTotal(sellable);
-  const deliveryCents = deliveryPrice(
-    answers.localDelivery ? "LOCAL" : "ECONT_OFFICE",
-  );
+  const deliveryMethod = answers.localDelivery ? "LOCAL" : "ECONT_OFFICE";
+  const deliveryCents = deliveryPrice(deliveryMethod);
+  const codFeeCents = codFeePrice(deliveryMethod);
   const blocked = blockedReason(lines);
   const itemCount = sellable.reduce((total, line) => total + line.quantity, 0);
   const totalText = !ready
     ? null
     : itemsCents === null
       ? "TODO: цена"
-      : formatPrice(itemsCents + (itemCount > 0 ? deliveryCents : 0));
+      : formatPrice(
+          itemsCents + (itemCount > 0 ? deliveryCents + codFeeCents : 0),
+        );
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [pickerRound, setPickerRound] = useState(0);
   const [deliveryTouched, setDeliveryTouched] = useState(false);
@@ -489,6 +493,13 @@ function FilledCheckout({
               <span>Доставка</span>
               <span className="font-semibold tabular-nums">
                 {deliveryCents === 0 ? "Безплатна" : formatPrice(deliveryCents)}
+              </span>
+            </p>
+
+            <p className="mt-2 flex items-center justify-between">
+              <span>{COD_FEE_LABEL}</span>
+              <span className="font-semibold tabular-nums">
+                {codFeeCents === 0 ? "Няма" : formatPrice(codFeeCents)}
               </span>
             </p>
 

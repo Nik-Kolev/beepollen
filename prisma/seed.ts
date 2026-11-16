@@ -1,5 +1,6 @@
 import { officeRow, readOfficeSnapshot } from "@/lib/econt-snapshot";
 import { assertPublishable } from "@/lib/food-information";
+import { WEB_NUTRITION_PER_100G } from "@/lib/nutrition";
 import prisma from "@/lib/prisma";
 
 const SUMMARY =
@@ -28,6 +29,7 @@ const FOOD_INFORMATION = {
   bestBefore: "1 година",
   allergenInfo:
     "Пчелният прашец е съставен от полени на различни растения и може да предизвика алергична реакция при хора, алергични към полени или пчелни продукти. Не е подходящ за деца под 3 години.",
+  ...WEB_NUTRITION_PER_100G,
 };
 
 const products = [

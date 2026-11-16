@@ -10,7 +10,7 @@ import {
   productAnswerKey,
   saveOwnerAnswer,
 } from "@/lib/owner-answers";
-import { OWNER_TODOS } from "@/lib/owner-todos";
+import { OWNER_PAGE_GROUPS } from "@/lib/owner-todos";
 import prisma from "@/lib/prisma";
 
 const ADMIN = "admin@example.com";
@@ -24,33 +24,34 @@ after(async () => {
   await prisma.$disconnect();
 });
 
-test("every answerable todo item, every product field, the price and the emails have a key", () => {
-  for (const item of OWNER_TODOS.flatMap((group) => group.items)) {
-    if (item.id) assert.ok(isOwnerAnswerKey(item.id), item.id);
-  }
+const OWNER_IDS = OWNER_PAGE_GROUPS.flatMap((group) =>
+  group.items.flatMap((item) => (item.id ? [item.id] : [])),
+);
+
+test("every answerable todo item, every product field and the emails have a key", () => {
+  for (const id of OWNER_IDS) assert.ok(isOwnerAnswerKey(id), id);
   assert.ok(isOwnerAnswerKey(EMAIL_ANSWER_KEY));
-  assert.ok(
-    isOwnerAnswerKey(productAnswerKey("pchelen-prashets-1kg", "price")),
-  );
   assert.ok(
     isOwnerAnswerKey(productAnswerKey("pchelen-prashets-1kg", "composition")),
   );
 });
 
 test("the todo items' keys are unique", () => {
-  const ids = OWNER_TODOS.flatMap((group) =>
-    group.items.flatMap((item) => (item.id ? [item.id] : [])),
-  );
-  assert.equal(new Set(ids).size, ids.length);
+  assert.equal(new Set(OWNER_IDS).size, OWNER_IDS.length);
 });
 
 test("a key the page never renders is refused and nothing is stored", async () => {
   for (const key of [
     "seller-registration-whosex",
+    "hosting",
+    "contact-email",
+    "publication-date",
+    "product:pchelen-prashets-1kg:price",
+    "product:pchelen-prashets-1kg:variety",
     "product:pchelen-prashets-1kg:priceCents",
     "product:pchelen-prashets-1kg:toString",
-    "product:Pchelen:price",
-    "product::price",
+    "product:Pchelen:storage",
+    "product::storage",
     "",
   ]) {
     assert.deepEqual(
@@ -69,14 +70,14 @@ test("a key the page never renders is refused and nothing is stored", async () =
 test("an answer over the limit is refused, one at the limit is kept", async () => {
   assert.deepEqual(
     await saveOwnerAnswer(
-      { key: "hosting", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH + 1) },
+      { key: "order-retention", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH + 1) },
       ADMIN,
     ),
     { ok: false, code: "TOO_LONG" },
   );
   assert.deepEqual(
     await saveOwnerAnswer(
-      { key: "hosting", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH) },
+      { key: "order-retention", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH) },
       ADMIN,
     ),
     { ok: true },
@@ -84,7 +85,7 @@ test("an answer over the limit is refused, one at the limit is kept", async () =
   assert.deepEqual(
     await saveOwnerAnswer(
       {
-        key: "hosting",
+        key: "order-retention",
         text: ` \n${"а".repeat(OWNER_ANSWER_MAX_LENGTH)}\n `,
       },
       ADMIN,
@@ -94,38 +95,46 @@ test("an answer over the limit is refused, one at the limit is kept", async () =
 });
 
 test("saving again overwrites the answer, trimmed, and records who saved it", async () => {
-  await saveOwnerAnswer({ key: "hosting", text: "DigitalOcean" }, ADMIN);
+  await saveOwnerAnswer({ key: "order-retention", text: "5 години" }, ADMIN);
   await saveOwnerAnswer(
-    { key: "hosting", text: "  DigitalOcean, Франкфурт \n" },
+    { key: "order-retention", text: "  5 години, после се трият \n" },
     "owner@example.com",
   );
 
   const row = await prisma.ownerAnswer.findUniqueOrThrow({
-    where: { key: "hosting" },
+    where: { key: "order-retention" },
   });
-  assert.equal(row.text, "DigitalOcean, Франкфурт");
+  assert.equal(row.text, "5 години, после се трият");
   assert.equal(row.updatedBy, "owner@example.com");
-  assert.equal((await listOwnerAnswers()).get("hosting"), row.text);
+  assert.equal((await listOwnerAnswers()).get("order-retention"), row.text);
 });
 
 test("the export names each question in page order and leaves out cleared answers", async () => {
-  const price = productAnswerKey("pchelen-prashets-1kg", "price");
+  const storage = productAnswerKey("pchelen-prashets-1kg", "storage");
   const composition = productAnswerKey("pchelen-prashets-1kg", "composition");
-  const withdrawn = productAnswerKey("spryan-produkt", "price");
-  const hosting = OWNER_TODOS.flatMap((group) => group.items).find(
-    (item) => item.id === "hosting",
-  );
+  const withdrawn = productAnswerKey("spryan-produkt", "origin");
+  assert.ok(OWNER_IDS.includes("order-retention"));
   for (const [key, text] of [
     [EMAIL_ANSWER_KEY, "По-кратко"],
-    ["hosting", "DigitalOcean"],
+    ["order-retention", "5 години"],
     ["seller-registration-whose", "Пчелни продукти"],
-    [withdrawn, "10"],
+    [withdrawn, "България"],
+    [storage, "На сухо"],
     [composition, "Прашец"],
-    [price, "24,50"],
-    ["dispute-body", ""],
+    ["farmer-status", ""],
   ]) {
     await saveOwnerAnswer({ key, text }, ADMIN);
   }
+  await prisma.ownerAnswer.createMany({
+    data: [
+      {
+        key: "product:pchelen-prashets-1kg:price",
+        text: "15",
+        updatedBy: ADMIN,
+      },
+      { key: "hosting", text: "DigitalOcean", updatedBy: ADMIN },
+    ],
+  });
 
   const rows = await exportOwnerAnswers([
     { slug: "pchelen-prashets-1kg", name: "Пчелен прашец 1 кг" },
@@ -140,21 +149,21 @@ test("the export names each question in page order and leaves out cleared answer
     })),
     [
       {
-        key: price,
-        question: "Пчелен прашец 1 кг: Цена (€)",
-        text: "24,50",
-        updatedBy: ADMIN,
-      },
-      {
         key: composition,
         question: "Пчелен прашец 1 кг: Състав",
         text: "Прашец",
         updatedBy: ADMIN,
       },
       {
+        key: storage,
+        question: "Пчелен прашец 1 кг: Условия на съхранение",
+        text: "На сухо",
+        updatedBy: ADMIN,
+      },
+      {
         key: withdrawn,
-        question: "spryan-produkt: Цена (€)",
-        text: "10",
+        question: "spryan-produkt: Произход",
+        text: "България",
         updatedBy: ADMIN,
       },
       {
@@ -165,15 +174,27 @@ test("the export names each question in page order and leaves out cleared answer
         updatedBy: ADMIN,
       },
       {
-        key: "hosting",
-        question: hosting?.text,
-        text: "DigitalOcean",
+        key: "order-retention",
+        question: "Колко дълго се пазят поръчките и данните за контакт.",
+        text: "5 години",
         updatedBy: ADMIN,
       },
       {
         key: EMAIL_ANSWER_KEY,
         question: "Предложения за имейлите",
         text: "По-кратко",
+        updatedBy: ADMIN,
+      },
+      {
+        key: "hosting",
+        question: "hosting",
+        text: "DigitalOcean",
+        updatedBy: ADMIN,
+      },
+      {
+        key: "product:pchelen-prashets-1kg:price",
+        question: "product:pchelen-prashets-1kg:price",
+        text: "15",
         updatedBy: ADMIN,
       },
     ],

@@ -33,7 +33,8 @@ invent an origin, certificate or review — plausible text survives to launch
 unnoticed, and Lorem ipsum and `TODO:` cannot.
 
 The owner's phone is a real fact he supplied and lives once, as `OWNER_PHONE` in
-`src/lib/site.ts`; every page that shows it reads it from there.
+`src/lib/site.ts`; every page that shows it reads it from there. The shop's
+contact address, `CONTACT_EMAIL`, lives beside it the same way.
 
 Prices are the single exception, added because checkout cannot be tested against
 a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,
@@ -46,10 +47,9 @@ zero-price draft the tests need is not in the seed:
 seeding, so it never reaches a database anyone reviews. The Econt
 tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is another invented
 number, for the same reason; it is replaced by calculated Econt prices rather than
-corrected. `TODO_VISITORS` in `src/lib/analytics.ts` is the third: the admin's
-visitor and traffic-source counts until GA4 is wired, announced as sample numbers
-on the page, and deleted when the GA4 read replaces it. Ask before inventing a
-number anywhere else.
+corrected. `TODO_COD_FEE_CENTS` in `src/lib/delivery.ts` is the cash-on-delivery
+fee, one for every carrier, invented for the same reason and replaced by the
+carriers' own fees. Ask before inventing a number anywhere else.
 
 The home page's „За нас“ renders only under `next dev` until the owner approves
 the drafted bios in `src/lib/producers.ts`, which `/admin/todo` quotes for him
@@ -59,8 +59,12 @@ out, and `e2e/about.spec.ts` asserts that. Showing it means dropping the
 from git history.
 
 `/admin/todo` lists everything the owner still owes. Product fields are read
-from the database; the rest is `OWNER_TODOS` in `src/lib/owner-todos.ts`, each
-item naming its files and the exact `TODO` text it stands for.
+from the database, and a product shows only when it owes one; the rest is
+`OWNER_TODOS` in `src/lib/owner-todos.ts`, each item naming its files and the
+exact `TODO` text it stands for. A `TODO` that is the developer's to fill at
+launch — the publication date, the invented numbers — sits in a
+`developerOnly` group: the test still counts it, the page never shows it, and
+it carries no `id`.
 `tests/owner-todos.test.ts` fails when a `TODO` under `src/` or in
 `prisma/seed.ts` is covered by no item, or when an item's text is gone from its
 files — so a new `TODO:` joins that list in the same change, and a filled one
@@ -70,12 +74,13 @@ phrase ends at `</Todo>`; one in a string ends at the closing quote; a `TODO_*`
 name is matched as a whole word — so no identifier may start with `TODO_`
 unless it is a placeholder.
 
-The owner answers on that page: every item with an `id`, and the price and
-every owed field of each published product, has a field saved to
+The owner answers on that page: every item with an `id`, and every owed field
+of each published product, has a field saved to
 `OwnerAnswer` under that key, and „Изтегли отговорите“ downloads them as JSON
 for the developer to move into the code by hand. Nothing reads an answer into
 the site. An item's `id` is its stored key, so renaming one orphans its
-answer.
+answer; a removed question's answers stay in the table and the download,
+named by their key.
 
 The catalogue is pollen only. Honey and comb were seeded early against borrowed
 free-licensed photographs and removed once the catalogue settled on pollen alone
@@ -173,6 +178,18 @@ which also means the real tag's reaction to a refusal is untested until a real
 property exists. Turning on Google Signals or ads features in that property makes
 the tag send to `*.g.doubleclick.net` and `www.google.com` as well, which the
 Content Security Policy blocks until they join `img-src` and `connect-src`.
+
+The admin's „Статистика“ reads GA4's Data API on the server, in
+`src/lib/ga4.ts`, through `GA_PROPERTY_ID` and `GA_SERVICE_ACCOUNT_KEY`; without
+them the page says GA is not connected, which is what the e2e suite sees, so the
+real read is covered only by the unit tests' fake `runReport`. Every range
+starts no earlier than `LAUNCH_DATE` in `src/lib/site.ts`: while it is `null`
+the numbers are labelled pre-launch test traffic, and **setting it at launch**
+hides that traffic without deleting anything in GA.
+`serverExternalPackages` keeps `@google-analytics/data` and
+`google-auth-library` out of the bundle: bundled, the client fails to encode
+every request ("toProto3JSON: don't know how to convert value"), which only a
+configured server shows, since unconfigured it never loads them.
 
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That
@@ -492,8 +509,10 @@ unit test that passes one gives each order its own contact with
 `distinctBuyer()`. A browser checkout always carries an IP, so an e2e helper
 that places more than three orders gives each its own phone and email.
 
-`deliveryCents` is priced by `placeOrder` from the delivery method alone and never
-read from the caller — the tariff for an Econt office, zero for `LOCAL`.
+`deliveryCents` and `codFeeCents` are priced by `placeOrder` from the delivery
+method alone and never read from the caller — the tariff and the cash-on-delivery
+fee for an Econt office, zero for `LOCAL`. Both are in `totalCents`, since the
+buyer pays the whole amount at the courier's counter.
 
 A `Promotion` lowers one product's price, as a percentage or a fixed price, from
 `startsOn` to `endsOn` inclusive — calendar days in `Europe/Sofia`, stored as
@@ -1013,6 +1032,15 @@ delivery, so it is not checked. `TODO:` text counts as filled, because it is on
 the page on purpose. Outside the test fixtures, e2e and unit, which publish
 products without food information on purpose, the seed is the only writer of `isPublished`; a
 future one calls the same check.
+
+The nutrition declaration is stored per 100 g as whole milligrams, energy as
+kJ and kcal, and rounded for display by the EU labelling guidance in
+`src/lib/nutrition.ts`. `WEB_NUTRITION_PER_100G` is the median of published
+bee-pollen labels with the energy calculated from it, seeded onto both products
+and quoted on `/admin/todo` for the owner to correct, energy excepted, since it
+follows from the rest; it is not invented, so it
+is no `TODO_` placeholder. The table shows only when every value is present, and
+`assertPublishable` does not require it until the owner's ОДБХ says it is owed.
 
 ## Agent files
 

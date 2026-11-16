@@ -29,6 +29,7 @@ test("a successful order and a form that has not been submitted say nothing", ()
           reference: "BP2409261",
           itemsCents: 1,
           deliveryCents: 0,
+          codFeeCents: 0,
           totalCents: 1,
         },
       },

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { deliveryLabel, orderStatus } from "@/lib/admin-orders";
 import { collapseDuplicates, MAX_LINE_QUANTITY, MAX_LINES } from "@/lib/cart";
 import {
+  codFeePrice,
   DeliveryMethod,
   deliveryPrice,
   LOCAL_DELIVERY_CITY,
@@ -150,6 +151,7 @@ export async function editOrderContact(
       officeStreet: true,
       itemsCents: true,
       deliveryCents: true,
+      codFeeCents: true,
       totalCents: true,
       sentAt: true,
       paidAt: true,
@@ -283,11 +285,14 @@ export async function editOrderContact(
     }
   }
 
-  const deliveryCents =
-    input.deliveryMethod === current.deliveryMethod
-      ? order.deliveryCents
-      : deliveryPrice(input.deliveryMethod);
-  const totalCents = itemsCents + deliveryCents;
+  const methodKept = input.deliveryMethod === current.deliveryMethod;
+  const deliveryCents = methodKept
+    ? order.deliveryCents
+    : deliveryPrice(input.deliveryMethod);
+  const codFeeCents = methodKept
+    ? order.codFeeCents
+    : codFeePrice(input.deliveryMethod);
+  const totalCents = itemsCents + deliveryCents + codFeeCents;
 
   const changes: OrderChange[] = [];
   if (input.name !== current.name) {
@@ -326,6 +331,13 @@ export async function editOrderContact(
       field: "deliveryCents",
       from: order.deliveryCents,
       to: deliveryCents,
+    });
+  }
+  if (codFeeCents !== order.codFeeCents) {
+    changes.push({
+      field: "codFeeCents",
+      from: order.codFeeCents,
+      to: codFeeCents,
     });
   }
   if (totalCents !== order.totalCents) {
@@ -376,6 +388,7 @@ export async function editOrderContact(
           ...office,
           itemsCents,
           deliveryCents,
+          codFeeCents,
           totalCents,
         },
       });

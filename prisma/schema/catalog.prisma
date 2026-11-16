@@ -23,6 +23,15 @@ model Product {
   bestBefore     String?
   allergenInfo   String?
 
+  energyKj       Int?
+  energyKcal     Int?
+  fatMg          Int?
+  saturatesMg    Int?
+  carbohydrateMg Int?
+  sugarsMg       Int?
+  proteinMg      Int?
+  saltMg         Int?
+
   images           ProductImage[]
   orderItems       OrderItem[]
   promotions       Promotion[]

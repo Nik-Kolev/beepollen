@@ -5,11 +5,11 @@ import {
   countSubscribers,
   PERIOD_LABEL,
   PERIODS,
+  rankedSources,
   TRAFFIC_SOURCE_LABEL,
-  TRAFFIC_SOURCES,
-  visitorStats,
 } from "@/lib/analytics";
 import { requireAdmin } from "@/lib/admin-session";
+import { type VisitorReport, visitorReport } from "@/lib/ga4";
 
 export const metadata: Metadata = {
   title: "Статистика",
@@ -17,10 +17,27 @@ export const metadata: Metadata = {
 
 const count = new Intl.NumberFormat("bg-BG");
 
+function notice(report: VisitorReport) {
+  if (report.status === "unconfigured") {
+    return "Google Analytics още не е свързан с админа, затова посетителите и източниците липсват. Абонатите са истински.";
+  }
+  if (report.status === "failed") {
+    return "Google Analytics не отговори, затова посетителите и източниците липсват. Опитайте отново след малко. Абонатите са истински.";
+  }
+  if (report.preLaunch) {
+    return "Тестов трафик — преди пускането. Посетителите и източниците са от Google Analytics, но са посещенията докато сайтът се прави. Абонатите са истински.";
+  }
+  return null;
+}
+
 export default async function AdminAnalytics() {
   const { email } = await requireAdmin("/admin/analytics");
-  const visitors = visitorStats();
-  const subscribers = await countSubscribers(new Date());
+  const now = new Date();
+  const [report, subscribers] = await Promise.all([
+    visitorReport(now),
+    countSubscribers(now),
+  ]);
+  const message = notice(report);
 
   return (
     <div className="w-full">
@@ -31,18 +48,16 @@ export default async function AdminAnalytics() {
         legend="Колко хора са разгледали сайта, откъде са дошли и колко са се записали за оферти по имейл."
       />
 
-      <p className="bg-surface ring-honey mt-4 rounded-xl p-4 text-sm font-medium ring-2">
-        Посетителите и източниците са примерни числа, докато сайтът не бъде
-        свързан с Google Analytics. Абонатите са истински.
-      </p>
+      {message && (
+        <p className="bg-surface ring-honey mt-4 rounded-xl p-4 text-sm font-medium ring-2">
+          {message}
+        </p>
+      )}
 
       <ul role="list" className="mt-4 grid gap-4 lg:grid-cols-3">
         {PERIODS.map((period) => {
-          const stats = visitors[period];
-          const sources = TRAFFIC_SOURCES.map((source) => ({
-            source,
-            visitors: stats.sources[source],
-          })).sort((a, b) => b.visitors - a.visitors);
+          const stats = report.status === "ok" ? report.stats[period] : null;
+          const sources = stats ? rankedSources(stats) : [];
           const sourced = sources.reduce((sum, s) => sum + s.visitors, 0);
 
           return (
@@ -59,7 +74,7 @@ export default async function AdminAnalytics() {
                   <div className="bg-ground rounded-lg p-3 text-center">
                     <dt className="text-ink-soft text-sm">Посетители</dt>
                     <dd className="text-brand-deep font-head text-3xl font-bold tabular-nums">
-                      {count.format(stats.visitors)}
+                      {stats ? count.format(stats.visitors) : "—"}
                     </dd>
                   </div>
                   <div className="bg-ground rounded-lg p-3 text-center">
@@ -73,35 +88,39 @@ export default async function AdminAnalytics() {
                 <h3 className="text-ink-soft mt-5 text-sm font-semibold">
                   Откъде идват
                 </h3>
-                <ul
-                  role="list"
-                  className="mt-2 grid grid-cols-[5.5rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2"
-                >
-                  {sources.map(({ source, visitors: n }) => {
-                    const percent =
-                      sourced > 0 ? Math.round((n / sourced) * 100) : 0;
-                    return (
-                      <li
-                        key={source}
-                        className="col-span-3 grid grid-cols-subgrid items-center text-sm"
-                      >
-                        <span>{TRAFFIC_SOURCE_LABEL[source]}</span>
-                        <span
-                          aria-hidden="true"
-                          className="bg-ground h-3 overflow-hidden rounded-full"
+                {stats ? (
+                  <ul
+                    role="list"
+                    className="mt-2 grid grid-cols-[5.5rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2"
+                  >
+                    {sources.map(({ source, visitors: n }) => {
+                      const percent =
+                        sourced > 0 ? Math.round((n / sourced) * 100) : 0;
+                      return (
+                        <li
+                          key={source}
+                          className="col-span-3 grid grid-cols-subgrid items-center text-sm"
                         >
+                          <span>{TRAFFIC_SOURCE_LABEL[source]}</span>
                           <span
-                            className="bg-brand-deep block h-full rounded-full"
-                            style={{ width: `${percent}%` }}
-                          />
-                        </span>
-                        <span className="text-right font-semibold whitespace-nowrap tabular-nums">
-                          {percent}% ({count.format(n)})
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
+                            aria-hidden="true"
+                            className="bg-ground h-3 overflow-hidden rounded-full"
+                          >
+                            <span
+                              className="bg-brand-deep block h-full rounded-full"
+                              style={{ width: `${percent}%` }}
+                            />
+                          </span>
+                          <span className="text-right font-semibold whitespace-nowrap tabular-nums">
+                            {percent}% ({count.format(n)})
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="mt-2 text-sm">Няма данни.</p>
+                )}
               </section>
             </li>
           );

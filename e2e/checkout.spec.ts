@@ -4,7 +4,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { CHECKOUT_SCROLL_KEY } from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
-import { DISPATCH_NOTE } from "@/lib/delivery";
+import { COD_FEE_LABEL, DISPATCH_NOTE } from "@/lib/delivery";
 
 import {
   LARGE_CITY,
@@ -469,7 +469,10 @@ test("the summary lists a line per product", async ({ page, isMobile }) => {
   await expect(summaryRows(page).first()).toContainText("2 бр.");
   await expect(summaryRows(page).last()).toContainText(SECOND_NAME);
   await expect(page.getByText("5,90 €", { exact: true })).toBeVisible();
-  await expect(confirmation(page)).toContainText("100,80 €");
+  await expect(
+    page.getByText(COD_FEE_LABEL, { exact: true }).locator(".."),
+  ).toHaveText(`${COD_FEE_LABEL}2,50 €`);
+  await expect(confirmation(page)).toContainText("103,30 €");
 });
 
 test("on a phone the summary starts folded and names the item count and total", async ({
@@ -487,7 +490,7 @@ test("on a phone the summary starts folded and names the item count and total", 
   await page.goto("/checkout");
 
   const toggle = page.getByRole("button", {
-    name: "Вашата поръчка · 3 бр. · 100,80 €",
+    name: "Вашата поръчка · 3 бр. · 103,30 €",
   });
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
   await expect(summaryRows(page)).toHaveCount(0);
@@ -526,6 +529,9 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
   expect(await top()).toBe(before);
   await expect(page.getByLabel("Град", { exact: true })).toBeHidden();
   await expect(page.getByText("Безплатна", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(COD_FEE_LABEL, { exact: true }).locator(".."),
+  ).toHaveText(`${COD_FEE_LABEL}Няма`);
   await expect(confirmation(page)).toContainText("94,90 €");
 
   await popovo.uncheck();
@@ -533,7 +539,7 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
   await expect(page.getByLabel("Град", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Град", { exact: true })).toHaveValue("");
   await expect(chosenOffice(page)).toBeHidden();
-  await expect(confirmation(page)).toContainText("100,80 €");
+  await expect(confirmation(page)).toContainText("103,30 €");
 });
 
 test("a withdrawn product is named and left out of the total", async ({
@@ -556,7 +562,7 @@ test("a withdrawn product is named and left out of the total", async ({
   await expect(withdrawn).toContainText("Вече не се предлага");
   await expect(withdrawn).not.toContainText("no-such-product");
   await expect(summaryRows(page)).toHaveCount(2);
-  await expect(confirmation(page)).toContainText("30,40 €");
+  await expect(confirmation(page)).toContainText("32,90 €");
 
   await expect(
     page.getByRole("button", { name: "Поръчай с плащане при доставка" }),

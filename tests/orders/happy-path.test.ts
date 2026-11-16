@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
+import { TODO_COD_FEE_CENTS } from "@/lib/delivery";
 import { TODO_ECONT_TARIFF_CENTS } from "@/lib/econt";
 import { orderReferencePrefix, placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
@@ -31,7 +32,10 @@ test("prices and names an order strictly from the database, ignoring anything th
 
   assert.equal(result.order.itemsCents, 3 * 2450);
   assert.equal(result.order.deliveryCents, TODO_ECONT_TARIFF_CENTS);
-  assert.equal(result.order.totalCents, 3 * 2450 + TODO_ECONT_TARIFF_CENTS);
+  assert.equal(
+    result.order.totalCents,
+    3 * 2450 + TODO_ECONT_TARIFF_CENTS + TODO_COD_FEE_CENTS,
+  );
   assert.ok(
     result.order.reference.startsWith(orderReferencePrefix(new Date())),
   );
@@ -105,8 +109,9 @@ test("two concurrent submissions of one idempotency key both return the same sin
   if (!first.ok || !second.ok) return;
 
   assert.equal(first.order.id, second.order.id);
-  assert.equal(first.order.totalCents, 2 * 2450 + TODO_ECONT_TARIFF_CENTS);
-  assert.equal(second.order.totalCents, 2 * 2450 + TODO_ECONT_TARIFF_CENTS);
+  const expected = 2 * 2450 + TODO_ECONT_TARIFF_CENTS + TODO_COD_FEE_CENTS;
+  assert.equal(first.order.totalCents, expected);
+  assert.equal(second.order.totalCents, expected);
   assert.equal(
     [first.repeated, second.repeated].filter(Boolean).length,
     1,

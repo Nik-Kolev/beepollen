@@ -19,6 +19,7 @@ const CONTENT_SECURITY_POLICY = [
 const nextConfig: NextConfig = {
   output: process.env.BUILD_STANDALONE ? "standalone" : undefined,
   poweredByHeader: false,
+  serverExternalPackages: ["@google-analytics/data", "google-auth-library"],
   async headers() {
     return [
       {

@@ -70,6 +70,8 @@ export default defineConfig({
       EMAIL_TOKEN_SECRET: TEST_EMAIL_TOKEN_SECRET,
       REVALIDATE_SECRET: TEST_REVALIDATE_SECRET,
       NEXT_PUBLIC_GA_MEASUREMENT_ID: "G-E2ETEST000",
+      GA_PROPERTY_ID: "",
+      GA_SERVICE_ACCOUNT_KEY: "",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

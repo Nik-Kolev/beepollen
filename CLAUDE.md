@@ -48,10 +48,7 @@ tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is another invented
 number, for the same reason; it is replaced by calculated Econt prices rather than
 corrected. `TODO_COD_FEE_CENTS` in `src/lib/delivery.ts` is the cash-on-delivery
 fee, one for every carrier, invented for the same reason and replaced by the
-carriers' own fees. `TODO_VISITORS` in `src/lib/analytics.ts` is the fourth: the admin's
-visitor and traffic-source counts until GA4 is wired, announced as sample numbers
-on the page, and deleted when the GA4 read replaces it. Ask before inventing a
-number anywhere else.
+carriers' own fees. Ask before inventing a number anywhere else.
 
 The home page's „За нас“ renders only under `next dev` until the owner approves
 the drafted bios in `src/lib/producers.ts`, which `/admin/todo` quotes for him
@@ -175,6 +172,18 @@ which also means the real tag's reaction to a refusal is untested until a real
 property exists. Turning on Google Signals or ads features in that property makes
 the tag send to `*.g.doubleclick.net` and `www.google.com` as well, which the
 Content Security Policy blocks until they join `img-src` and `connect-src`.
+
+The admin's „Статистика“ reads GA4's Data API on the server, in
+`src/lib/ga4.ts`, through `GA_PROPERTY_ID` and `GA_SERVICE_ACCOUNT_KEY`; without
+them the page says GA is not connected, which is what the e2e suite sees, so the
+real read is covered only by the unit tests' fake `runReport`. Every range
+starts no earlier than `LAUNCH_DATE` in `src/lib/site.ts`: while it is `null`
+the numbers are labelled pre-launch test traffic, and **setting it at launch**
+hides that traffic without deleting anything in GA.
+`serverExternalPackages` keeps `@google-analytics/data` and
+`google-auth-library` out of the bundle: bundled, the client fails to encode
+every request ("toProto3JSON: don't know how to convert value"), which only a
+configured server shows, since unconfigured it never loads them.
 
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That

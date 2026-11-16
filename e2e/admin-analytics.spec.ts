@@ -9,12 +9,6 @@ const PERIOD_HEADINGS = [
   "Общо",
 ] as const;
 
-function sourceCount(row: string) {
-  const match = /\(([^)]+)\)\s*$/.exec(row);
-  if (!match) throw new Error(`no count at the end of "${row}"`);
-  return Number(match[1].replace(/\D/g, ""));
-}
-
 test("the admin reaches the statistics from the order list's navigation", async ({
   page,
   context,
@@ -43,22 +37,25 @@ test("the admin reaches the statistics from the order list's navigation", async 
   }
 });
 
-test("each period shows visitors, subscribers and its sources from most to fewest", async ({
+test("without Google Analytics connected each period shows its subscribers and no visitor numbers", async ({
   page,
   context,
 }) => {
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/analytics");
 
+  await expect(
+    page.getByText(/^Google Analytics още не е свързан с админа/),
+  ).toBeVisible();
+
   for (const heading of PERIOD_HEADINGS) {
     const card = page.getByRole("region", { name: heading, exact: true });
     await expect(card.getByText("Посетители", { exact: true })).toBeVisible();
+    await expect(
+      card.getByText("Посетители", { exact: true }).locator("xpath=.."),
+    ).toContainText("—");
     await expect(card.getByText("Абонати", { exact: true })).toBeVisible();
-
-    const rows = card.getByRole("list").getByRole("listitem");
-    await expect(rows).toHaveCount(6);
-    const counts = (await rows.allTextContents()).map(sourceCount);
-
-    expect(counts, heading).toEqual([...counts].sort((a, b) => b - a));
+    await expect(card.getByText("Няма данни.", { exact: true })).toBeVisible();
+    await expect(card.getByRole("list")).toHaveCount(0);
   }
 });

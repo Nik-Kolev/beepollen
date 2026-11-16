@@ -31,7 +31,8 @@ const SAMPLE_ORDER: OrderEmailData = {
     { name: "Пчелен прашец 1 кг", quantity: 1, unitPriceCents: 2200 },
   ],
   deliveryCents: 590,
-  totalCents: 5190,
+  codFeeCents: 250,
+  totalCents: 5440,
   office: SAMPLE_OFFICE,
 };
 
@@ -83,6 +84,7 @@ export const PREVIEWS: {
         ...SAMPLE_ORDER,
         office: null,
         deliveryCents: 0,
+        codFeeCents: 0,
         totalCents: 4600,
       }),
   },

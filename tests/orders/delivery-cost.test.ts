@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 
-import { inPlace, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import {
+  inPlace,
+  LOCAL_DELIVERY_CITY,
+  TODO_COD_FEE_CENTS,
+} from "@/lib/delivery";
 import { listEcontOffices } from "@/lib/delivery-offices";
 import { TODO_ECONT_TARIFF_CENTS } from "@/lib/econt";
 import { placeOrder } from "@/lib/orders";
@@ -27,7 +31,7 @@ async function localOffice() {
   return office;
 }
 
-test("an Econt order is charged the tariff, and the total includes it", async () => {
+test("an Econt order is charged the tariff and the COD fee, and the total includes both", async () => {
   const result = await placeOrder(validCheckoutInput(), null);
 
   assert.equal(result.ok, true);
@@ -39,7 +43,11 @@ test("an Econt order is charged the tariff, and the total includes it", async ()
 
   assert.equal(order.deliveryMethod, "ECONT_OFFICE");
   assert.equal(order.deliveryCents, TODO_ECONT_TARIFF_CENTS);
-  assert.equal(order.totalCents, order.itemsCents + TODO_ECONT_TARIFF_CENTS);
+  assert.equal(order.codFeeCents, TODO_COD_FEE_CENTS);
+  assert.equal(
+    order.totalCents,
+    order.itemsCents + TODO_ECONT_TARIFF_CENTS + TODO_COD_FEE_CENTS,
+  );
 });
 
 test("a local order needs no office, costs nothing to deliver and stores no office", async () => {
@@ -57,6 +65,7 @@ test("a local order needs no office, costs nothing to deliver and stores no offi
 
   assert.equal(order.deliveryMethod, "LOCAL");
   assert.equal(order.deliveryCents, 0);
+  assert.equal(order.codFeeCents, 0);
   assert.equal(order.totalCents, order.itemsCents);
   assert.equal(order.officeCarrier, null);
   assert.equal(order.officeCode, null);
@@ -82,11 +91,12 @@ test("a local order ignores an office code sent alongside it", async () => {
   assert.equal(order.deliveryCents, 0);
 });
 
-test("a delivery price or total sent by the caller is ignored", async () => {
+test("a delivery price, COD fee or total sent by the caller is ignored", async () => {
   const result = await placeOrder(
     validCheckoutInput({
       deliveryMethod: "ECONT_OFFICE",
       deliveryCents: 0,
+      codFeeCents: 0,
       totalCents: 1,
     }),
     null,
@@ -96,9 +106,10 @@ test("a delivery price or total sent by the caller is ignored", async () => {
   if (!result.ok) return;
 
   assert.equal(result.order.deliveryCents, TODO_ECONT_TARIFF_CENTS);
+  assert.equal(result.order.codFeeCents, TODO_COD_FEE_CENTS);
   assert.equal(
     result.order.totalCents,
-    result.order.itemsCents + TODO_ECONT_TARIFF_CENTS,
+    result.order.itemsCents + TODO_ECONT_TARIFF_CENTS + TODO_COD_FEE_CENTS,
   );
 });
 

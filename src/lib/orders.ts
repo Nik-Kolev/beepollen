@@ -5,6 +5,7 @@ import { collapseDuplicates, MAX_LINE_QUANTITY, MAX_LINES } from "@/lib/cart";
 import { CONSENT_WORDING } from "@/lib/consent";
 import {
   DeliveryMethod,
+  codFeePrice,
   deliveryPrice,
   LOCAL_DELIVERY_CITY,
 } from "@/lib/delivery";
@@ -98,6 +99,7 @@ export type PlacedOrder = {
   reference: string;
   itemsCents: number;
   deliveryCents: number;
+  codFeeCents: number;
   totalCents: number;
 };
 
@@ -138,6 +140,7 @@ function findByIdempotencyKey(idempotencyKey: string) {
       reference: true,
       itemsCents: true,
       deliveryCents: true,
+      codFeeCents: true,
       totalCents: true,
     },
   });
@@ -277,6 +280,7 @@ export async function placeOrder(
     0,
   );
   const deliveryCents = deliveryPrice(input.deliveryMethod);
+  const codFeeCents = codFeePrice(input.deliveryMethod);
 
   const consents: {
     kind: "TERMS" | "OFFERS";
@@ -327,7 +331,8 @@ export async function placeOrder(
             reference: nextOrderReference(prefix, last?.reference ?? null),
             itemsCents,
             deliveryCents,
-            totalCents: itemsCents + deliveryCents,
+            codFeeCents,
+            totalCents: itemsCents + deliveryCents + codFeeCents,
             idempotencyKey: input.idempotencyKey,
             items: { create: lines },
             consents: { create: consents },
@@ -338,6 +343,7 @@ export async function placeOrder(
             reference: true,
             itemsCents: true,
             deliveryCents: true,
+            codFeeCents: true,
             totalCents: true,
           },
         });

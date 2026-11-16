@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { after, test } from "node:test";
 
 import { applyOrderStep } from "@/lib/admin-orders";
-import { deliveryPrice } from "@/lib/delivery";
+import { codFeePrice, deliveryPrice } from "@/lib/delivery";
 import { officeLabel } from "@/lib/econt";
 import { parseOrderChanges } from "@/lib/order-change";
 import { editOrderContact } from "@/lib/order-edit";
@@ -163,13 +163,20 @@ test("a corrected email joins an existing customer and keeps the old one while i
   assert.equal(await prisma.customer.count({ where: { email: existing } }), 1);
 });
 
-test("another office is read back and snapshotted, and the same method keeps the delivery price", async () => {
+test("another office is read back and snapshotted, and the same method keeps the delivery price and the COD fee", async () => {
   const reference = await place();
   await prisma.order.update({
     where: { reference },
     data: {
       deliveryCents: 123,
-      totalCents: { increment: 123 - deliveryPrice("ECONT_OFFICE") },
+      codFeeCents: 77,
+      totalCents: {
+        increment:
+          123 -
+          deliveryPrice("ECONT_OFFICE") +
+          77 -
+          codFeePrice("ECONT_OFFICE"),
+      },
     },
   });
   const before = await orderOf(reference);
@@ -192,6 +199,8 @@ test("another office is read back and snapshotted, and the same method keeps the
   assert.equal(order.officeCity, "Тестово");
   assert.equal(order.officeStreet, "ул. Тестова 2");
   assert.equal(order.deliveryCents, 123);
+  assert.equal(order.codFeeCents, 77);
+  assert.equal(order.totalCents, before.totalCents);
 });
 
 test("switching to Попово clears the office and reprices delivery and the total", async () => {
@@ -211,6 +220,7 @@ test("switching to Попово clears the office and reprices delivery and the 
       to: "Попово — на ръка",
     },
     { field: "deliveryCents", from: before.deliveryCents, to: 0 },
+    { field: "codFeeCents", from: before.codFeeCents, to: 0 },
     { field: "totalCents", from: before.totalCents, to: before.itemsCents },
   ]);
   const order = await orderOf(reference);
@@ -221,10 +231,11 @@ test("switching to Попово clears the office and reprices delivery and the 
   assert.equal(order.officeCity, null);
   assert.equal(order.officeStreet, null);
   assert.equal(order.deliveryCents, 0);
+  assert.equal(order.codFeeCents, 0);
   assert.equal(order.totalCents, order.itemsCents);
 });
 
-test("switching from Попово to an office prices the office delivery", async () => {
+test("switching from Попово to an office prices the office delivery and the COD fee", async () => {
   const reference = await place({ deliveryMethod: "LOCAL", officeCode: "" });
 
   const result = await editOrderContact(
@@ -238,7 +249,12 @@ test("switching from Попово to an office prices the office delivery", asyn
   const order = await orderOf(reference);
   assert.equal(order.officeCode, TEST_OFFICE_CODE);
   assert.equal(order.deliveryCents, deliveryPrice("ECONT_OFFICE"));
-  assert.equal(order.totalCents, order.itemsCents + order.deliveryCents);
+  assert.equal(order.codFeeCents, codFeePrice("ECONT_OFFICE"));
+  assert.ok(order.codFeeCents > 0);
+  assert.equal(
+    order.totalCents,
+    order.itemsCents + order.deliveryCents + order.codFeeCents,
+  );
 });
 
 test("an unknown office and an office in Попово are refused and write nothing", async () => {
@@ -599,7 +615,10 @@ test("a new quantity keeps the line's order price and reprices the order", async
     { slug: SMALL, name: small.name, unitPriceCents: 999, quantity: 3 },
   ]);
   assert.equal(order.itemsCents, 2997);
-  assert.equal(order.totalCents, 2997 + order.deliveryCents);
+  assert.equal(
+    order.totalCents,
+    2997 + order.deliveryCents + order.codFeeCents,
+  );
   assert.deepEqual(result.changes, [
     {
       field: "item",
@@ -609,7 +628,7 @@ test("a new quantity keeps the line's order price and reprices the order", async
     {
       field: "totalCents",
       from: before.totalCents,
-      to: 2997 + order.deliveryCents,
+      to: 2997 + order.deliveryCents + order.codFeeCents,
     },
   ]);
 });

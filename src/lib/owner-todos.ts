@@ -101,6 +101,11 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         markers: ["TODO_ECONT_TARIFF_CENTS"],
       },
       {
+        text: "Таксата за наложен платеж (TODO_COD_FEE_CENTS), една за Еконт и Спиди. Заменя се с таксите на куриерите.",
+        files: ["src/lib/delivery.ts"],
+        markers: ["TODO_COD_FEE_CENTS"],
+      },
+      {
         text: "Посетителите и източниците в статистиката (TODO_VISITORS). Заменят се от Google Analytics.",
         files: ["src/lib/analytics.ts"],
         markers: ["TODO_VISITORS"],

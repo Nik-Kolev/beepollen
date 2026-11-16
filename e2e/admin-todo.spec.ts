@@ -15,7 +15,7 @@ function answerForm(scope: Page | Locator, label: string) {
   });
 }
 
-test("the todo page lists what each product still owes and every group of open items", async ({
+test("the todo page asks the owner's open questions and nothing the seed already answers", async ({
   page,
   context,
 }) => {
@@ -28,29 +28,26 @@ test("the todo page lists what each product still owes and every group of open i
     "page",
   );
 
-  const products = page.getByRole("region", { name: "Продукти в базата" });
-  const pollen = products
-    .getByRole("listitem")
-    .filter({ hasText: "Пчелен прашец 500 г" });
   await expect(
-    pollen.getByRole("textbox", { name: "Цена (€)", exact: true }),
-  ).toBeVisible();
-  await expect(
-    pollen.getByRole("textbox", { name: "Сорт", exact: true }),
-  ).toBeVisible();
-  await expect(
-    pollen.getByRole("textbox", { name: "Състав", exact: true }),
+    page.getByRole("region", { name: "Продукти в базата" }),
   ).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Цена (€)" })).toHaveCount(0);
+  await expect(page.getByRole("textbox", { name: "Сорт" })).toHaveCount(0);
 
   for (const group of [
     "Продавач и правни данни",
-    "Измислени числа — изтриват се при старта",
+    "Лични данни",
     "Отворени въпроси",
   ]) {
     await expect(
       page.getByRole("region", { name: group }).getByRole("listitem").first(),
     ).toBeVisible();
   }
+  await expect(
+    page.getByRole("region", { name: /Попълват се при старта/ }),
+  ).toHaveCount(0);
+  await expect(page.getByText(/Дата на публикуване/)).toHaveCount(0);
+  await expect(page.getByText(/Хостинг доставчикът/)).toHaveCount(0);
 
   const { violations } = await new AxeBuilder({ page })
     .exclude("iframe")
@@ -98,14 +95,6 @@ test("an answer saved on the todo page is there after a reload and in the downlo
   await form.getByRole("button", { name: "Запази" }).click();
   await expect(form.getByRole("status")).toHaveText("Запазено.");
 
-  const price = answerForm(
-    page.getByRole("region", { name: "Продукти в базата" }),
-    "Цена (€)",
-  ).first();
-  await price.getByRole("textbox").fill("24,50");
-  await price.getByRole("button", { name: "Запази" }).click();
-  await expect(price.getByRole("status")).toHaveText("Запазено.");
-
   await page.reload();
   await expect(form.getByRole("textbox")).toHaveValue(answer);
 
@@ -128,12 +117,6 @@ test("an answer saved on the todo page is there after a reload and in the downlo
       updatedBy: TEST_ADMIN_EMAIL,
     }),
   );
-  expect(rows).toContainEqual(
-    expect.objectContaining({
-      question: expect.stringMatching(/: Цена \(€\)$/),
-      text: "24,50",
-    }),
-  );
 });
 
 test("text typed while a save is in flight is never reported as saved", async ({
@@ -145,14 +128,17 @@ test("text typed while a save is in flight is never reported as saved", async ({
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/todo");
 
-  const form = answerForm(page, "Хостинг доставчикът и регионът на сървъра.");
+  const form = answerForm(
+    page,
+    "Колко дълго се пазят поръчките и данните за контакт.",
+  );
   const field = form.getByRole("textbox");
-  await field.fill("DigitalOcean");
+  await field.fill("5 години");
   const saved = page.waitForResponse(
     (response) => response.request().method() === "POST",
   );
   await form.getByRole("button", { name: "Запази" }).click();
-  await field.pressSequentially(", Франкфурт");
+  await field.pressSequentially(", после се трият");
   await saved;
   await page.waitForTimeout(2000);
 

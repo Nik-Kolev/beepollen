@@ -114,7 +114,6 @@ export function listPublishedProductsForTodos() {
       name: true,
       summary: true,
       description: true,
-      variety: true,
       netWeightGrams: true,
       composition: true,
       origin: true,

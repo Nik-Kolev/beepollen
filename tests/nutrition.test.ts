@@ -6,7 +6,7 @@ import {
   nutritionRows,
   WEB_NUTRITION_PER_100G,
 } from "@/lib/nutrition";
-import { OWNER_TODOS } from "@/lib/owner-todos";
+import { OWNER_PAGE_GROUPS } from "@/lib/owner-todos";
 import prisma from "@/lib/prisma";
 
 after(async () => {
@@ -85,7 +85,7 @@ test("saturates show down to 0,1 g and salt to the hundredth below 1 g", () => {
 });
 
 test("the owner is asked about every nutrient but not the energy, which is calculated", () => {
-  const ids = OWNER_TODOS.flatMap((group) => group.items).map(
+  const ids = OWNER_PAGE_GROUPS.flatMap((group) => group.items).map(
     (item) => item.id,
   );
 

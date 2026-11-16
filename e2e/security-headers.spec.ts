@@ -108,7 +108,7 @@ test("Google Analytics, once accepted, breaks no rule of the policy", async ({
   expect(violations).toEqual([]);
 });
 
-test("the admin's pages, the email previews included, break no rule of the policy", async ({
+test("the admin's pages break no rule of the policy", async ({
   page,
   context,
 }) => {

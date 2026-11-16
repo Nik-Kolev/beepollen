@@ -2,35 +2,20 @@ import type { Metadata } from "next";
 
 import { AdminHeader } from "@/components/admin/admin-header";
 import { OwnerAnswerForm } from "@/components/admin/owner-answer-form";
-import { SampleEmailForm } from "@/components/admin/sample-email-form";
 import { requireAdmin } from "@/lib/admin-session";
-import { renderLayout } from "@/lib/email/layout";
-import { SAMPLE_DEFAULT_ADDRESS } from "@/lib/email/samples";
-import {
-  EMAIL_ANSWER_KEY,
-  EMAIL_ANSWER_QUESTION,
-  listOwnerAnswers,
-  productAnswerKey,
-} from "@/lib/owner-answers";
+import { listOwnerAnswers, productAnswerKey } from "@/lib/owner-answers";
 import {
   OWNER_PAGE_GROUPS,
   owedProductFields,
   PRODUCT_FIELD_LABEL,
 } from "@/lib/owner-todos";
 import { listPublishedProductsForTodos } from "@/lib/products";
-import { SITE_URL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "За попълване",
 };
 
 const CARD = "bg-surface ring-line rounded-xl p-4 shadow-sm ring-1 sm:p-5";
-
-const SAMPLE_EMAIL = renderLayout({
-  preheader: "",
-  heading: "Примерен имейл",
-  bodyHtml: "",
-}).replaceAll(`${SITE_URL}/email/`, "/email/");
 
 export default async function AdminTodo() {
   const { email } = await requireAdmin("/admin/todo");
@@ -104,6 +89,28 @@ export default async function AdminTodo() {
                 ) : (
                   <p>{item.text}</p>
                 )}
+                {item.table && (
+                  <table className="mt-3 w-full max-w-sm text-sm">
+                    <caption className="sr-only">
+                      Хранителна стойност на 100 г
+                    </caption>
+                    <tbody>
+                      {item.table.map(({ key, label, value, nested }) => (
+                        <tr key={key} className="border-line border-b">
+                          <th
+                            scope="row"
+                            className={`py-1.5 pr-4 text-left font-normal ${nested ? "pl-4" : ""}`}
+                          >
+                            {label}
+                          </th>
+                          <td className="py-1.5 text-right tabular-nums">
+                            {value}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
                 {item.files.length > 0 && (
                   <p className="text-ink-soft mt-1 font-mono text-xs break-all">
                     {item.files.join(" · ")}
@@ -114,28 +121,6 @@ export default async function AdminTodo() {
           </ul>
         </section>
       ))}
-
-      <section aria-labelledby="emails-heading" className={`${CARD} mt-4`}>
-        <h2 id="emails-heading" className="text-lg font-semibold">
-          Имейли
-        </h2>
-        <p className="text-ink-soft mt-1 text-sm">
-          Рамката, в която сайтът праща всеки имейл. Текстовете ще напишем ние —
-          тук можете да оставите предложения.
-        </p>
-        <iframe
-          title="Примерен имейл"
-          srcDoc={SAMPLE_EMAIL}
-          sandbox=""
-          className="border-line mt-3 h-[28rem] w-full rounded-lg border bg-white"
-        />
-        <OwnerAnswerForm
-          answerKey={EMAIL_ANSWER_KEY}
-          label={EMAIL_ANSWER_QUESTION}
-          initial={answers.get(EMAIL_ANSWER_KEY) ?? ""}
-        />
-        <SampleEmailForm initial={SAMPLE_DEFAULT_ADDRESS} />
-      </section>
     </div>
   );
 }

@@ -51,9 +51,9 @@ corrected. `TODO_COD_FEE_CENTS` in `src/lib/delivery.ts` is the cash-on-delivery
 fee, one for every carrier, invented for the same reason and replaced by the
 carriers' own fees. Ask before inventing a number anywhere else.
 
-The home page's „За нас“ renders only under `next dev` until the owner approves
-the drafted bios in `src/lib/producers.ts`, which `/admin/todo` quotes for him
-to correct: every build, the live site and the e2e suite included, leaves it
+The home page's „За нас“ renders only under `next dev` until the owner's own
+text, asked for on `/admin/todo`, replaces the drafted bios in
+`src/lib/producers.ts`: every build, the live site and the e2e suite included, leaves it
 out, and `e2e/about.spec.ts` asserts that. Showing it means dropping the
 `NODE_ENV` check in `(shop)/page.tsx` and restoring that spec's layout tests
 from git history.
@@ -423,13 +423,6 @@ The campaign emails live in `src/lib/email/campaign-templates.ts`. „Ново
 compact list since a restock names one or two products. The owner's
 text is escaped and split into paragraphs on blank lines, and a product photo is
 the product's first image loaded from `SITE_URL`, like the emblem.
-
-`src/lib/email/previews.ts` renders every email with a sample order, so a new
-email joins that list in the same change. `/admin/todo` no longer shows them:
-the owner sees one empty frame and a field for suggestions, since the wording
-is the developer's. Its „Изпрати примерите“ sends every one of them, subject
-prefixed „[Пример]“, to the address typed; each press is a new run with its own
-idempotency keys, and spends one send per preview of Resend's free daily quota.
 
 ## Orders
 
@@ -1037,8 +1030,10 @@ The nutrition declaration is stored per 100 g as whole milligrams, energy as
 kJ and kcal, and rounded for display by the EU labelling guidance in
 `src/lib/nutrition.ts`. `WEB_NUTRITION_PER_100G` is the median of published
 bee-pollen labels with the energy calculated from it, seeded onto both products
-and quoted on `/admin/todo` for the owner to correct, energy excepted, since it
-follows from the rest; it is not invented, so it
+and shown on `/admin/todo` as the table the site carries, with a field per row,
+energy included, for the owner to correct. An energy he gives that disagrees
+with the one calculated from his other values is checked with him before
+either goes into the code; it is not invented, so it
 is no `TODO_` placeholder. The table shows only when every value is present, and
 `assertPublishable` does not require it until the owner's ОДБХ says it is owed.
 

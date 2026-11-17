@@ -154,7 +154,11 @@ test("a promotion started today shows the struck regular price on every shop pag
   await panel
     .getByText("Активна промоция")
     .locator("..")
-    .getByRole("button", { name: "Прекрати" })
+    .getByRole("button", { name: "Прекрати", exact: true })
+    .click();
+  await page
+    .getByRole("dialog", { name: "Сигурни ли сте?" })
+    .getByRole("button", { name: "Прекрати промоцията" })
     .click();
   await expect(
     panel

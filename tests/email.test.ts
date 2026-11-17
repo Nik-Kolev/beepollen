@@ -11,10 +11,12 @@ import {
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { COD_FEE_LABEL, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import { escapeHtml } from "@/lib/email/layout";
 import { type EmailClient, sendEmail } from "@/lib/email/transport";
 import { EMAIL_WARNING_LIMIT, emailUsage } from "@/lib/email/usage";
 import {
   LEGAL_GUARANTEE_EMAIL_NOTICE,
+  LEGAL_GUARANTEE_NOTICE_ALT,
   LEGAL_GUARANTEE_PATH,
   YOUR_EUROPE_GUARANTEES,
 } from "@/lib/legal-guarantee";
@@ -263,6 +265,7 @@ test("the accepted order carries the EU's legal guarantee notice and its links",
   assert.ok(
     html.includes(`<img src="${SITE_URL}${LEGAL_GUARANTEE_EMAIL_NOTICE}"`),
   );
+  assert.ok(html.includes(`alt="${escapeHtml(LEGAL_GUARANTEE_NOTICE_ALT)}"`));
   assert.ok(html.includes(`href="${page}"`));
   assert.ok(html.includes(`href="${YOUR_EUROPE_GUARANTEES.href}"`));
   assert.ok(text.includes(page));

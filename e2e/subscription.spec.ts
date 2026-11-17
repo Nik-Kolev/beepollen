@@ -38,7 +38,7 @@ test("an unsubscribe link withdraws only once its button is pressed", async ({
   await page.goto(`/subscription/unsubscribe?token=${token}`);
 
   await expect(
-    page.getByRole("heading", { name: "Отписване от офертите" }),
+    page.getByRole("heading", { name: "Отписване от промоциите и известията" }),
   ).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
     "content",

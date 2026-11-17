@@ -242,8 +242,44 @@ test("a withdrawal is acknowledged to the buyer and recorded on the withdrawal",
   assert.equal(sent.length, 1);
   assert.equal(sent[0].to, input.email);
   assert.equal(sent[0].idempotencyKey, `withdrawal/${reference}`);
-  assert.ok(sent[0].message.text.includes("уговорим връщането на стоката"));
+  assert.ok(sent[0].message.text.includes("уговорим връщането"));
+  assert.ok(sent[0].message.text.includes(`имейл ${input.email}`));
   assert.equal(await statusOf(reference, "WITHDRAWN"), "SENT");
+});
+
+test("a Popovo order withdrawn after the hand-over is acknowledged with a call, not an office", async () => {
+  const { reference, input } = await place({
+    deliveryMethod: "LOCAL",
+    officeCode: "",
+  });
+  await applyOrderStep(reference, "handOver", "new");
+  await withdrawFromOrder(
+    { reference, name: "Иван Иванов", phone: input.phone, email: input.email },
+    null,
+  );
+  const { sent, send } = recorder();
+
+  await sendWithdrawalEmails(reference, send, "");
+
+  assert.ok(
+    sent[0].message.text.includes("уговорим как да ни върнете стоката"),
+  );
+  assert.ok(!sent[0].message.text.includes("Еконт"));
+});
+
+test("cancelling an order the buyer withdrew says so instead of blaming stock", async () => {
+  const { reference, input } = await place();
+  await withdrawFromOrder(
+    { reference, name: "Иван Иванов", phone: input.phone, email: input.email },
+    null,
+  );
+  const eventId = await step(reference, "cancel", "new");
+  const { sent, send } = recorder();
+
+  await sendStepEmail(reference, "cancel", eventId, send);
+
+  assert.ok(sent[0].message.text.includes("е анулирана след отказа ви"));
+  assert.ok(!sent[0].message.text.includes("продуктът свърши"));
 });
 
 test("a withdrawal also tells the owner, naming who withdrew and whether the order left", async () => {
@@ -358,7 +394,7 @@ test("an order switched to Попово is emailed with hand delivery and no off
 
   const text = sent[0].message.text;
   assert.ok(text.includes(`гр. ${LOCAL_DELIVERY_CITY}`));
-  assert.ok(text.includes("Доставка: Безплатна"));
+  assert.ok(text.includes("Доставка: безплатна"));
   assert.ok(!text.includes(before.officeStreet));
 });
 

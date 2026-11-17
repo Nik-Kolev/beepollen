@@ -168,7 +168,7 @@ export function sendStepEmail(
 
     const message =
       step === "cancel"
-        ? orderCancelledEmail(data)
+        ? orderCancelledEmail(data, order.withdrawnAt !== null)
         : data.office
           ? orderSentEmail({ ...data, office: data.office })
           : null;
@@ -229,7 +229,14 @@ export function sendWithdrawalEmails(
     const withdrawnAt = loaded?.order.withdrawnAt;
     if (!loaded || !withdrawnAt) return;
     const { order, data } = loaded;
-    const withdrawal = { reference, withdrawnAt, sent: order.sentAt !== null };
+    const withdrawal = {
+      reference,
+      withdrawnAt,
+      sent: order.sentAt !== null,
+      local: data.office === null,
+      contactPhone: data.contactPhone,
+      email: data.email,
+    };
 
     const sent = await send({
       to: data.email,
@@ -250,8 +257,6 @@ export function sendWithdrawalEmails(
         message: ownerWithdrawalEmail({
           ...withdrawal,
           withdrawalName: order.withdrawalName,
-          contactPhone: data.contactPhone,
-          email: data.email,
         }),
         idempotencyKey: `owner-withdrawal/${reference}`,
       });

@@ -10,8 +10,14 @@ import {
   textFooter,
 } from "@/lib/email/layout";
 import { formatPrice } from "@/lib/money";
-import { SITE_URL } from "@/lib/site";
+import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
 import { formatWithdrawalTime } from "@/lib/withdrawal-messages";
+import {
+  CONFORMITY,
+  REFUND_TERMS,
+  RETURN_TERMS,
+  WITHDRAWAL_RIGHT,
+} from "@/lib/withdrawal-terms";
 
 export type OrderEmailData = {
   reference: string;
@@ -30,6 +36,9 @@ export type WithdrawalEmailData = {
   reference: string;
   withdrawnAt: Date;
   sent: boolean;
+  local: boolean;
+  contactPhone: string;
+  email: string;
 };
 
 export type EmailMessage = {
@@ -119,7 +128,7 @@ function linesText(order: OrderEmailData) {
       (item) =>
         `${item.name} — ${item.quantity} × ${formatPrice(item.unitPriceCents)} = ${formatPrice(item.quantity * item.unitPriceCents)}`,
     ),
-    `Доставка: ${order.deliveryCents === 0 ? "Безплатна" : formatPrice(order.deliveryCents)}`,
+    `Доставка: ${order.deliveryCents === 0 ? "безплатна" : formatPrice(order.deliveryCents)}`,
     ...(order.codFeeCents > 0
       ? [`${COD_FEE_LABEL}: ${formatPrice(order.codFeeCents)}`]
       : []),
@@ -137,7 +146,8 @@ function link(href: string, label: string) {
   return `<a href="${escapeHtml(href)}" style="color:${EMAIL_COLOR.action};">${escapeHtml(label)}</a>`;
 }
 
-const SUBSCRIBED = "Абонирани сте за офертите и напомнянията ни по имейл.";
+const SUBSCRIBED =
+  "Абонирани сте за промоциите и известията ни за ново зареждане.";
 
 function subscribedHtml(order: OrderEmailData) {
   return order.unsubscribeUrl
@@ -155,11 +165,19 @@ function subscribedText(order: OrderEmailData) {
     : [];
 }
 
+const SELLER_LINE = `Продавач: ${SELLER.name}, ${SELLER.address}, ЕИК ${SELLER.eik}, тел. ${OWNER_PHONE.display}, ${CONTACT_EMAIL}.`;
+
+const WITHDRAWAL_TERMS = [
+  WITHDRAWAL_RIGHT,
+  "Отворен пакет не може да се върне: пакетите са вакуумирани по хигиенни причини.",
+  RETURN_TERMS,
+  REFUND_TERMS,
+  CONFORMITY,
+];
+
 export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
   const greeting = `Здравейте! Приехме поръчка ${order.reference}.`;
   const payment = "Плащате при получаване.";
-  const withdrawal =
-    "Имате право да се откажете от поръчката в срок от 14 дни от получаването ѝ.";
 
   return {
     subject: `Поръчка ${order.reference} е приета`,
@@ -171,9 +189,11 @@ export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
         orderSummary(order),
         linesHtml(order),
         paragraph(`${escapeHtml(deliverySentence(order))} ${payment}`),
+        ...WITHDRAWAL_TERMS.map((line) => paragraph(escapeHtml(line))),
         paragraph(
-          `${withdrawal} Формулярът за отказ е на ${link(`${SITE_URL}/withdraw`, `${SITE_URL}/withdraw`)}, а условията — на ${link(`${SITE_URL}/terms`, "страницата с общите условия")}.`,
+          `Формулярът за отказ е на ${link(`${SITE_URL}/withdraw`, `${SITE_URL}/withdraw`)}, а условията — на ${link(`${SITE_URL}/terms`, "страницата с общите условия")}.`,
         ),
+        paragraph(escapeHtml(SELLER_LINE)),
         ...subscribedHtml(order),
       ].join("\n"),
     }),
@@ -182,7 +202,9 @@ export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
       greeting,
       linesText(order),
       `${deliverySentence(order)} ${payment}`,
-      `${withdrawal} Формулярът за отказ: ${SITE_URL}/withdraw. Общите условия: ${SITE_URL}/terms.`,
+      ...WITHDRAWAL_TERMS,
+      `Формулярът за отказ: ${SITE_URL}/withdraw. Общите условия: ${SITE_URL}/terms.`,
+      SELLER_LINE,
       ...subscribedText(order),
       textFooter(),
     ].join("\n\n"),
@@ -226,35 +248,37 @@ export function ownerNotificationEmail(order: OrderEmailData): EmailMessage {
 export function withdrawalReceivedEmail(
   withdrawal: WithdrawalEmailData,
 ): EmailMessage {
-  const received = `Здравейте! Получихме отказа ви от поръчка ${withdrawal.reference}, заявен на ${formatWithdrawalTime(withdrawal.withdrawnAt)}.`;
-  const next = withdrawal.sent
-    ? "Ще се свържем с вас, за да уговорим връщането на стоката."
-    : "Поръчката няма да бъде изпратена.";
+  const received = `Здравейте! Получихме отказа ви от договора по поръчка ${withdrawal.reference}, заявен на ${formatWithdrawalTime(withdrawal.withdrawnAt)}.`;
+  const content = `Данни от поръчката: телефон ${withdrawal.contactPhone}, имейл ${withdrawal.email}.`;
+  const next = !withdrawal.sent
+    ? "Поръчката няма да бъде изпратена."
+    : withdrawal.local
+      ? "Ще ви се обадим, за да уговорим как да ни върнете стоката."
+      : "Ще ви се обадим, за да уговорим връщането до офис на Еконт или Спиди в гр. Попово. Изпратете стоката обратно до 14 дни от отказа; изпращането е за ваша сметка.";
 
   return {
-    subject: `Отказът от поръчка ${withdrawal.reference} е получен`,
+    subject: `Отказът от договора по поръчка ${withdrawal.reference} е получен`,
     html: renderLayout({
       preheader: next,
       heading: "Отказът е получен",
       bodyHtml: [
         paragraph(escapeHtml(received)),
+        paragraph(escapeHtml(content)),
         paragraph(escapeHtml(next)),
       ].join("\n"),
     }),
-    text: ["Отказът е получен", received, next, textFooter()].join("\n\n"),
+    text: ["Отказът е получен", received, content, next, textFooter()].join(
+      "\n\n",
+    ),
   };
 }
 
 export function ownerWithdrawalEmail(
-  withdrawal: WithdrawalEmailData & {
-    withdrawalName: string | null;
-    contactPhone: string;
-    email: string;
-  },
+  withdrawal: WithdrawalEmailData & { withdrawalName: string | null },
 ): EmailMessage {
   const received = `Купувачът заяви отказ от поръчка ${withdrawal.reference} на ${formatWithdrawalTime(withdrawal.withdrawnAt)}.`;
   const next = withdrawal.sent
-    ? "Поръчката вече е изпратена — уговорете връщането на стоката."
+    ? "Поръчката вече е изпратена или предадена — уговорете връщането на стоката."
     : "Поръчката още не е изпратена — не я изпращайте.";
   const name = withdrawal.withdrawalName ? [withdrawal.withdrawalName] : [];
 
@@ -291,7 +315,7 @@ export function orderSentEmail(
   order: OrderEmailData & { office: { name: string; street: string } },
 ): EmailMessage {
   const sent = `Здравейте! Изпратихме поръчка ${order.reference} до офис на Еконт: ${officeText(order.office)}.`;
-  const pay = `При получаване платете ${formatPrice(order.totalCents)}.`;
+  const pay = `При получаване ще платите ${formatPrice(order.totalCents)}.`;
 
   return {
     subject: `Поръчка ${order.reference} е изпратена`,
@@ -315,7 +339,7 @@ export function orderSentEmail(
 export function orderUpdatedEmail(order: OrderEmailData): EmailMessage {
   const updated = `Здравейте! Обновихме данните по поръчка ${order.reference}.`;
   const payment = "Плащате при получаване.";
-  const phone = `Телефон за връзка: ${order.contactPhone}.`;
+  const phone = `Телефонът, на който ще ви търсим: ${order.contactPhone}.`;
 
   return {
     subject: `Поръчка ${order.reference} е обновена`,
@@ -343,16 +367,27 @@ export function orderUpdatedEmail(order: OrderEmailData): EmailMessage {
   };
 }
 
-export function orderCancelledEmail(order: OrderEmailData): EmailMessage {
-  const cancelled = `Здравейте! Поръчка ${order.reference} е анулирана и няма да бъде изпратена.`;
+export function orderCancelledEmail(
+  order: OrderEmailData,
+  withdrawn = false,
+): EmailMessage {
+  const cancelled = withdrawn
+    ? `Здравейте! Поръчка ${order.reference} е анулирана след отказа ви и няма да бъде изпратена.`
+    : `Здравейте! Поръчка ${order.reference} е анулирана, защото продуктът свърши, и няма да бъде изпратена.`;
+  const contact = `За въпроси: ${OWNER_PHONE.display}.`;
 
   return {
     subject: `Поръчка ${order.reference} е анулирана`,
     html: renderLayout({
       preheader: cancelled,
       heading: "Поръчката е анулирана",
-      bodyHtml: paragraph(escapeHtml(cancelled)),
+      bodyHtml: [
+        paragraph(escapeHtml(cancelled)),
+        paragraph(escapeHtml(contact)),
+      ].join("\n"),
     }),
-    text: ["Поръчката е анулирана", cancelled, textFooter()].join("\n\n"),
+    text: ["Поръчката е анулирана", cancelled, contact, textFooter()].join(
+      "\n\n",
+    ),
   };
 }

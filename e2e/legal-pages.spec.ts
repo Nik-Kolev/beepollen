@@ -1,5 +1,13 @@
 import { expect, type Page, test } from "@playwright/test";
 
+import {
+  CONFORMITY,
+  REFUND_TERMS,
+  RETURN_TERMS,
+  SEALED_PACKAGES,
+  WITHDRAWAL_RIGHT,
+} from "@/lib/withdrawal-terms";
+
 function legalLink(page: Page, name: string) {
   return page
     .getByRole("navigation", { name: "Правна информация" })
@@ -28,6 +36,25 @@ test("the footer's legal links open the terms, privacy and cookie pages", async 
   await expect(
     page.getByRole("heading", { level: 1, name: "Политика за бисквитките" }),
   ).toBeVisible();
+});
+
+test("the terms carry the withdrawal wording the order email repeats", async ({
+  page,
+}) => {
+  await page.goto("/terms");
+
+  const withdrawal = page.getByRole("region", { name: "Право на отказ" });
+  for (const sentence of [
+    WITHDRAWAL_RIGHT,
+    SEALED_PACKAGES,
+    RETURN_TERMS,
+    REFUND_TERMS,
+  ]) {
+    await expect(withdrawal).toContainText(sentence);
+  }
+  await expect(page.getByRole("region", { name: "Рекламации" })).toContainText(
+    CONFORMITY,
+  );
 });
 
 test("the terms link to the privacy and cookie pages", async ({ page }) => {

@@ -16,6 +16,7 @@ import {
   CONFORMITY,
   REFUND_TERMS,
   RETURN_TERMS,
+  SEALED_PACKAGES,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -169,7 +170,7 @@ const SELLER_LINE = `Продавач: ${SELLER.name}, ${SELLER.address}, ЕИК
 
 const WITHDRAWAL_TERMS = [
   WITHDRAWAL_RIGHT,
-  "Отворен пакет не може да се върне: пакетите са вакуумирани по хигиенни причини.",
+  SEALED_PACKAGES,
   RETURN_TERMS,
   REFUND_TERMS,
   CONFORMITY,
@@ -254,7 +255,7 @@ export function withdrawalReceivedEmail(
     ? "Поръчката няма да бъде изпратена."
     : withdrawal.local
       ? "Ще ви се обадим, за да уговорим как да ни върнете стоката."
-      : "Ще ви се обадим, за да уговорим връщането до офис на Еконт или Спиди в гр. Попово. Изпратете стоката обратно до 14 дни от отказа; изпращането е за ваша сметка.";
+      : `Ще ви се обадим, за да уговорим връщането. ${RETURN_TERMS}`;
 
   return {
     subject: `Отказът от договора по поръчка ${withdrawal.reference} е получен`,

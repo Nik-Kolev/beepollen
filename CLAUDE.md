@@ -957,7 +957,10 @@ none, so a write that met another process's lock — an e2e helper, the seed —
 failed at once with `SQLITE_BUSY`, which Prisma reports as "Operation has timed
 out". The wait blocks the whole process, so a lock held by a second client in
 the same process can never be released during it; `tests/busy-timeout.test.ts`
-holds its lock from a child process for that reason.
+holds its lock from a child process for that reason. It also opens every
+transaction as `BEGIN IMMEDIATE`, not the adapter's `DEFERRED`: SQLite refuses a
+deferred transaction's first write at once, timeout or not, when another process
+began writing after it read, since waiting would deadlock.
 
 **Migrations are authored on the host and applied in the container.** Compose
 syncs one way, host→container, so a migration created inside the container writes

@@ -78,7 +78,23 @@ test("a promotion is added, shown as a card instead of the form, edited and ende
   await expect(form).toBeHidden();
   await expect(card).toContainText("Отстъпка−25%");
 
-  await card.getByRole("button", { name: "Прекрати" }).click();
+  const endButton = card.getByRole("button", { name: "Прекрати", exact: true });
+  const dialog = page.getByRole("dialog", { name: "Сигурни ли сте?" });
+  const postsBeforeEnd = posts.length;
+  await endButton.click();
+  await expect(dialog).toContainText(
+    `Промоцията на ${PRODUCT} от ${shown(starts)} до ${shown(ends)} спира веднага.`,
+  );
+  await expect(dialog.getByRole("button", { name: "Отказ" })).toBeFocused();
+  await dialog.getByRole("button", { name: "Отказ" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(endButton).toBeFocused();
+  await page.waitForLoadState("networkidle");
+  expect(posts).toHaveLength(postsBeforeEnd);
+  await expect(card).toContainText("Отстъпка−25%");
+
+  await endButton.click();
+  await dialog.getByRole("button", { name: "Прекрати промоцията" }).click();
   const ended = panel
     .getByRole("listitem")
     .filter({ hasText: `Прекратена промоция на ${shown(sofiaDay(0))}` });

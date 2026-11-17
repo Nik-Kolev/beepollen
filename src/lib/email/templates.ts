@@ -9,6 +9,13 @@ import {
   renderLayout,
   textFooter,
 } from "@/lib/email/layout";
+import {
+  LEGAL_GUARANTEE_EMAIL_NOTICE,
+  LEGAL_GUARANTEE_NOTICE_ALT,
+  LEGAL_GUARANTEE_PATH,
+  LEGAL_GUARANTEE_RIGHTS,
+  YOUR_EUROPE_GUARANTEES,
+} from "@/lib/legal-guarantee";
 import { formatPrice } from "@/lib/money";
 import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
 import { formatWithdrawalTime } from "@/lib/withdrawal-messages";
@@ -147,6 +154,17 @@ function link(href: string, label: string) {
   return `<a href="${escapeHtml(href)}" style="color:${EMAIL_COLOR.action};">${escapeHtml(label)}</a>`;
 }
 
+const LEGAL_GUARANTEE_URL = `${SITE_URL}${LEGAL_GUARANTEE_PATH}`;
+
+const LEGAL_GUARANTEE_HTML = [
+  `<a href="${escapeHtml(LEGAL_GUARANTEE_URL)}" style="display:block;margin:0 0 12px;"><img src="${SITE_URL}${LEGAL_GUARANTEE_EMAIL_NOTICE}" width="550" alt="${escapeHtml(LEGAL_GUARANTEE_NOTICE_ALT)}" style="display:block;border:0;width:100%;max-width:550px;height:auto;"></a>`,
+  paragraph(
+    `${link(LEGAL_GUARANTEE_URL, LEGAL_GUARANTEE_RIGHTS)} · ${link(YOUR_EUROPE_GUARANTEES.href, YOUR_EUROPE_GUARANTEES.display)}`,
+  ),
+].join("\n");
+
+const LEGAL_GUARANTEE_TEXT = `${LEGAL_GUARANTEE_RIGHTS}: ${LEGAL_GUARANTEE_URL}. Повече: ${YOUR_EUROPE_GUARANTEES.href}.`;
+
 const SUBSCRIBED =
   "Абонирани сте за промоциите и известията ни за ново зареждане.";
 
@@ -194,6 +212,7 @@ export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
         paragraph(
           `Формулярът за отказ е на ${link(`${SITE_URL}/withdraw`, `${SITE_URL}/withdraw`)}, а условията — на ${link(`${SITE_URL}/terms`, "страницата с общите условия")}.`,
         ),
+        LEGAL_GUARANTEE_HTML,
         paragraph(escapeHtml(SELLER_LINE)),
         ...subscribedHtml(order),
       ].join("\n"),
@@ -205,6 +224,7 @@ export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
       `${deliverySentence(order)} ${payment}`,
       ...WITHDRAWAL_TERMS,
       `Формулярът за отказ: ${SITE_URL}/withdraw. Общите условия: ${SITE_URL}/terms.`,
+      LEGAL_GUARANTEE_TEXT,
       SELLER_LINE,
       ...subscribedText(order),
       textFooter(),

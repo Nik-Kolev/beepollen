@@ -13,6 +13,11 @@ import {
 import { COD_FEE_LABEL, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import { type EmailClient, sendEmail } from "@/lib/email/transport";
 import { EMAIL_WARNING_LIMIT, emailUsage } from "@/lib/email/usage";
+import {
+  LEGAL_GUARANTEE_EMAIL_NOTICE,
+  LEGAL_GUARANTEE_PATH,
+  YOUR_EUROPE_GUARANTEES,
+} from "@/lib/legal-guarantee";
 import { formatPrice } from "@/lib/money";
 import prisma from "@/lib/prisma";
 import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
@@ -249,6 +254,19 @@ test("the accepted order carries the seller and the same withdrawal terms as /te
       assert.ok(body.includes(sentence), sentence);
     }
   }
+});
+
+test("the accepted order carries the EU's legal guarantee notice and its links", () => {
+  const { html, text } = orderAcceptedEmail(ORDER);
+  const page = `${SITE_URL}${LEGAL_GUARANTEE_PATH}`;
+
+  assert.ok(
+    html.includes(`<img src="${SITE_URL}${LEGAL_GUARANTEE_EMAIL_NOTICE}"`),
+  );
+  assert.ok(html.includes(`href="${page}"`));
+  assert.ok(html.includes(`href="${YOUR_EUROPE_GUARANTEES.href}"`));
+  assert.ok(text.includes(page));
+  assert.ok(text.includes(YOUR_EUROPE_GUARANTEES.href));
 });
 
 test("the cancelled email gives the reason and the shop's phone", () => {

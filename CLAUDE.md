@@ -201,10 +201,11 @@ configured server shows, since unconfigured it never loads them.
 
 `/legal-guarantee` shows the EU's harmonised notice on the legal guarantee,
 which ЗЗП чл. 47, ал. 1, т. 12 requires since 27 Sep 2026.
-`public/legal-guarantee-notice-bg.svg` is the Commission's own file, unedited:
-its guidelines forbid changing any element or converting it to another format,
-so a PNG for the order email has to come from their PNG download, never from
-rendering this one.
+The order confirmation carries it too, as `public/email/legal-guarantee-notice-bg.png`.
+Both files are the Commission's own, unedited: its guidelines forbid changing
+any element or converting one format into another, so a replacement comes from
+their download page — which answers `curl` with a bot-wall page, so fetch it in
+a browser.
 
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That

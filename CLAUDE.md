@@ -358,7 +358,7 @@ refuses to send without `EMAIL_REPLY_TO`. Resend reports a rejected email as
 Without a verified domain, the default test sender delivers only to the Resend
 account's own address. Every send that reaches Resend writes an `EmailSend`
 row, outcome and time only, never the recipient, so the daily count for
-`deploy/email-check.sh` covers the owner's and the sample emails as well as the
+`deploy/email-check.sh` covers the owner's and the campaign emails as well as the
 buyer's; a failure to write it is logged and never fails the send.
 
 Sending runs in `after()` from the checkout, withdrawal and admin step actions,

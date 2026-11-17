@@ -5,6 +5,7 @@ import { Container } from "@/components/container";
 import { TEXT_LINK } from "@/components/link-styles";
 import {
   LEGAL_GUARANTEE_NOTICE,
+  LEGAL_GUARANTEE_NOTICE_ALT,
   LEGAL_GUARANTEE_PATH,
   YOUR_EUROPE_GUARANTEES,
 } from "@/lib/legal-guarantee";
@@ -39,7 +40,7 @@ export default function LegalGuaranteePage() {
         <figure className="flex flex-col gap-3">
           <Image
             src={LEGAL_GUARANTEE_NOTICE}
-            alt="Известие на Европейския съюз за законовата гаранция: минимална двугодишна защита за стоки, продавани в Европейския съюз. Продавачите отговарят за всяка липса на съответствие, която е съществувала при доставката, и предлагат безплатен ремонт или замяна, а в някои случаи намаление на цената или пълно възстановяване на платената сума."
+            alt={LEGAL_GUARANTEE_NOTICE_ALT}
             width={595}
             height={842}
             unoptimized

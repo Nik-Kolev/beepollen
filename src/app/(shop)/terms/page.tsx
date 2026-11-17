@@ -11,6 +11,7 @@ import {
   CONFORMITY,
   REFUND_TERMS,
   RETURN_TERMS,
+  SEALED_PACKAGES,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -119,12 +120,7 @@ export default function TermsPage() {
 
         <Section id="withdrawal" title="Право на отказ">
           <p>{WITHDRAWAL_RIGHT}</p>
-          <p>
-            Неотворените пакети могат да се върнат. Отворен пакет не може да се
-            върне, защото е запечатан по хигиенни причини и след отваряне не
-            може да бъде продаден отново (чл. 57, т. 5 от Закона за защита на
-            потребителите). Пакетите са вакуумирани.
-          </p>
+          <p>{SEALED_PACKAGES}</p>
           <p>Отказът се заявява по един от тези начини:</p>
           <ul role="list" className="flex list-disc flex-col gap-2 pl-5">
             <li>

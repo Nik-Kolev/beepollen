@@ -20,6 +20,7 @@ import {
   CONFORMITY,
   REFUND_TERMS,
   RETURN_TERMS,
+  SEALED_PACKAGES,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -194,16 +195,7 @@ test("the withdrawal email gives the Sofia time and says what happens next", () 
 
   assert.ok(unsent.text.includes("22.10.2026 г., 10:30"));
   assert.ok(unsent.text.includes("Поръчката няма да бъде изпратена."));
-  assert.ok(
-    sent.text.includes(
-      "уговорим връщането до офис на Еконт или Спиди в гр. Попово",
-    ),
-  );
-  assert.ok(
-    sent.text.includes(
-      "Изпратете стоката обратно до 14 дни от отказа; изпращането е за ваша сметка.",
-    ),
-  );
+  assert.ok(sent.text.includes(RETURN_TERMS));
   assert.ok(!sent.text.includes("Поръчката няма да бъде изпратена."));
 });
 
@@ -249,13 +241,13 @@ test("the accepted order carries the seller and the same withdrawal terms as /te
     );
     for (const sentence of [
       WITHDRAWAL_RIGHT,
+      SEALED_PACKAGES,
       RETURN_TERMS,
       REFUND_TERMS,
       CONFORMITY,
     ]) {
       assert.ok(body.includes(sentence), sentence);
     }
-    assert.ok(body.includes("Отворен пакет не може да се върне"));
   }
 });
 

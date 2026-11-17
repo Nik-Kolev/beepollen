@@ -26,7 +26,7 @@ searches for, and Cyrillic in a URL percent-encodes into garbage when shared.
 One light theme: no dark mode, and no extra light shades invented alongside it.
 
 Lorem ipsum stands in for undecided copy, and an explicit `TODO:` string stands
-in for a fact the owner still owes — a price, a variety, a food-information field.
+in for a fact the owner still owes — a price, a VAT number, a food-information field.
 The seed and the product pages render them on purpose: they are page content, not
 unfinished code. Never replace one with plausible Bulgarian filler, and never
 invent an origin, certificate or review — plausible text survives to launch

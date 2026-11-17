@@ -54,6 +54,10 @@ import {
   LOCAL_DELIVERY_CITY,
 } from "@/lib/delivery";
 import type { EcontOffice } from "@/lib/econt";
+import {
+  LEGAL_GUARANTEE_PATH,
+  LEGAL_GUARANTEE_RIGHTS,
+} from "@/lib/legal-guarantee";
 import { formatPrice } from "@/lib/money";
 import type { PlaceOrderResult, PlacedOrder } from "@/lib/orders";
 import type { CartProduct } from "@/lib/products";
@@ -673,6 +677,17 @@ function FilledCheckout({
                   className={TEXT_LINK}
                 >
                   Политика за поверителност
+                </Link>
+              </p>
+
+              <p className="text-sm">
+                <Link
+                  href={LEGAL_GUARANTEE_PATH}
+                  target="_blank"
+                  aria-describedby="new-tab-note"
+                  className={TEXT_LINK}
+                >
+                  {LEGAL_GUARANTEE_RIGHTS}
                 </Link>
                 <span id="new-tab-note" className="sr-only">
                   Отваря се в нов раздел.

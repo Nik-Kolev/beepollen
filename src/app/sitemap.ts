@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
 
+import { LEGAL_GUARANTEE_PATH } from "@/lib/legal-guarantee";
 import { listPublishedProductSlugs } from "@/lib/products";
 import { SITE_URL } from "@/lib/site";
 
-const PAGES = ["/", "/terms", "/privacy", "/cookies"];
+const PAGES = ["/", "/terms", "/privacy", "/cookies", LEGAL_GUARANTEE_PATH];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await listPublishedProductSlugs();

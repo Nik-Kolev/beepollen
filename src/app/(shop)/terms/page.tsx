@@ -6,6 +6,7 @@ import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
 import { Todo } from "@/components/todo";
 import { DELIVERY_PERIOD } from "@/lib/delivery";
+import { LEGAL_GUARANTEE_PATH } from "@/lib/legal-guarantee";
 import { CONTACT_EMAIL, OWNER_PHONE, SELLER } from "@/lib/site";
 import {
   CONFORMITY,
@@ -152,6 +153,13 @@ export default function TermsPage() {
             </a>
             . При рекламация разходите по изпращането на стоката са за наша
             сметка.
+          </p>
+          <p>
+            Официалното известие на Европейския съюз е на страницата{" "}
+            <Link href={LEGAL_GUARANTEE_PATH} className={TEXT_LINK}>
+              „Законова гаранция“
+            </Link>
+            .
           </p>
         </Section>
 

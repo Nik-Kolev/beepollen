@@ -17,7 +17,12 @@ import {
   sofiaToday,
   withPromotion,
 } from "@/lib/promotions";
-import { rateLimitSubject, takeToken, takeTokens } from "@/lib/rate-limit";
+import {
+  rateLimitSubject,
+  returnTokens,
+  takeToken,
+  takeTokens,
+} from "@/lib/rate-limit";
 
 export const ORDER_RATE_LIMIT = { limit: 10, windowMs: 5 * 60 * 1000 };
 
@@ -261,109 +266,120 @@ export async function placeOrder(
     return { ok: false, code: "UNKNOWN_OFFICE" };
   }
 
-  if (
-    ipAddress &&
-    !takeTokens([
-      { key: "orders", options: ORDER_CAPS.overall },
-      {
-        key: `orders-email:${inboxOf(input.email)}`,
-        options: ORDER_CAPS.perContact,
-      },
-      { key: `orders-phone:${input.phone}`, options: ORDER_CAPS.perContact },
-    ])
-  ) {
+  const caps = ipAddress
+    ? [
+        { key: "orders", options: ORDER_CAPS.overall },
+        {
+          key: `orders-email:${inboxOf(input.email)}`,
+          options: ORDER_CAPS.perContact,
+        },
+        { key: `orders-phone:${input.phone}`, options: ORDER_CAPS.perContact },
+      ]
+    : [];
+  const takenAt = Date.now();
+  if (caps.length > 0 && !takeTokens(caps, takenAt)) {
     return { ok: false, code: "REJECTED" };
   }
 
-  const itemsCents = lines.reduce(
-    (total, line) => total + line.unitPriceCents * line.quantity,
-    0,
-  );
-  const deliveryCents = deliveryPrice(input.deliveryMethod);
-  const codFeeCents = codFeePrice(input.deliveryMethod);
+  let placed = false;
+  try {
+    const itemsCents = lines.reduce(
+      (total, line) => total + line.unitPriceCents * line.quantity,
+      0,
+    );
+    const deliveryCents = deliveryPrice(input.deliveryMethod);
+    const codFeeCents = codFeePrice(input.deliveryMethod);
 
-  const consents: {
-    kind: "TERMS" | "OFFERS";
-    wording: string;
-    ipAddress: string | null;
-  }[] = [
-    { kind: "TERMS", wording: CONSENT_WORDING.TERMS, ipAddress },
-    ...(input.acceptsOffers
-      ? [
-          {
-            kind: "OFFERS" as const,
-            wording: CONSENT_WORDING.OFFERS,
-            ipAddress,
-          },
-        ]
-      : []),
-  ];
+    const consents: {
+      kind: "TERMS" | "OFFERS";
+      wording: string;
+      ipAddress: string | null;
+    }[] = [
+      { kind: "TERMS", wording: CONSENT_WORDING.TERMS, ipAddress },
+      ...(input.acceptsOffers
+        ? [
+            {
+              kind: "OFFERS" as const,
+              wording: CONSENT_WORDING.OFFERS,
+              ipAddress,
+            },
+          ]
+        : []),
+    ];
 
-  const prefix = orderReferencePrefix(new Date());
+    const prefix = orderReferencePrefix(new Date());
 
-  for (let attempt = 1; attempt <= REFERENCE_ATTEMPTS; attempt += 1) {
-    try {
-      const order = await prisma.$transaction(async (tx) => {
-        const customer = await tx.customer.upsert({
-          where: { email: input.email },
-          update: { name: input.name, phone: input.phone },
-          create: { name: input.name, email: input.email, phone: input.phone },
-          select: { id: true },
+    for (let attempt = 1; attempt <= REFERENCE_ATTEMPTS; attempt += 1) {
+      try {
+        const order = await prisma.$transaction(async (tx) => {
+          const customer = await tx.customer.upsert({
+            where: { email: input.email },
+            update: { name: input.name, phone: input.phone },
+            create: {
+              name: input.name,
+              email: input.email,
+              phone: input.phone,
+            },
+            select: { id: true },
+          });
+
+          const last = await tx.order.findFirst({
+            where: { reference: { startsWith: prefix } },
+            orderBy: { id: "desc" },
+            select: { reference: true },
+          });
+
+          return tx.order.create({
+            data: {
+              customerId: customer.id,
+              contactName: input.name,
+              contactPhone: input.phone,
+              deliveryMethod: input.deliveryMethod,
+              officeCarrier: office?.carrier ?? null,
+              officeCode: office?.code ?? null,
+              officeName: office?.name ?? null,
+              officeCity: office?.city ?? null,
+              officeStreet: office?.street ?? null,
+              reference: nextOrderReference(prefix, last?.reference ?? null),
+              itemsCents,
+              deliveryCents,
+              codFeeCents,
+              totalCents: itemsCents + deliveryCents + codFeeCents,
+              idempotencyKey: input.idempotencyKey,
+              items: { create: lines },
+              consents: { create: consents },
+              events: { create: { kind: "PLACED" } },
+            },
+            select: {
+              id: true,
+              reference: true,
+              itemsCents: true,
+              deliveryCents: true,
+              codFeeCents: true,
+              totalCents: true,
+            },
+          });
         });
 
-        const last = await tx.order.findFirst({
-          where: { reference: { startsWith: prefix } },
-          orderBy: { id: "desc" },
-          select: { reference: true },
-        });
+        placed = true;
+        return { ok: true, order, repeated: false };
+      } catch (error) {
+        const conflicts = conflictingFields(error);
 
-        return tx.order.create({
-          data: {
-            customerId: customer.id,
-            contactName: input.name,
-            contactPhone: input.phone,
-            deliveryMethod: input.deliveryMethod,
-            officeCarrier: office?.carrier ?? null,
-            officeCode: office?.code ?? null,
-            officeName: office?.name ?? null,
-            officeCity: office?.city ?? null,
-            officeStreet: office?.street ?? null,
-            reference: nextOrderReference(prefix, last?.reference ?? null),
-            itemsCents,
-            deliveryCents,
-            codFeeCents,
-            totalCents: itemsCents + deliveryCents + codFeeCents,
-            idempotencyKey: input.idempotencyKey,
-            items: { create: lines },
-            consents: { create: consents },
-            events: { create: { kind: "PLACED" } },
-          },
-          select: {
-            id: true,
-            reference: true,
-            itemsCents: true,
-            deliveryCents: true,
-            codFeeCents: true,
-            totalCents: true,
-          },
-        });
-      });
+        if (conflicts.includes("idempotencyKey")) {
+          const winner = await findByIdempotencyKey(input.idempotencyKey);
 
-      return { ok: true, order, repeated: false };
-    } catch (error) {
-      const conflicts = conflictingFields(error);
+          if (!winner) throw error;
 
-      if (conflicts.includes("idempotencyKey")) {
-        const winner = await findByIdempotencyKey(input.idempotencyKey);
+          return { ok: true, order: winner, repeated: true };
+        }
 
-        if (!winner) throw error;
-
-        return { ok: true, order: winner, repeated: true };
+        if (!conflicts.includes("reference")) throw error;
       }
-
-      if (!conflicts.includes("reference")) throw error;
     }
-  }
 
-  return { ok: false, code: "REJECTED" };
+    return { ok: false, code: "REJECTED" };
+  } finally {
+    if (!placed) returnTokens(caps, takenAt);
+  }
 }

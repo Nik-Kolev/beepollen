@@ -503,7 +503,10 @@ orders an hour across every address, and 3 a day per phone and per inbox, where
 `inboxOf` drops a `+tag` and Gmail's dots so one mailbox cannot be reached under
 many spellings. A replayed submission is answered before them and never refused
 by them, and a refused one — unknown office, unavailable product — spends
-nothing, so a request that writes no order cannot close the shop. They keep their own store, each
+nothing, so a request that writes no order cannot close the shop. A request that
+took them and then wrote no new order — every reference taken, a thrown write, a
+concurrent twin answered with the committed order — gives them back through
+`returnTokens`. They keep their own store, each
 entry expiring by its own window, so a flood of per-address keys cannot evict a
 day-long count. They apply only when an IP is passed, like the limiter, so a
 unit test that passes one gives each order its own contact with

@@ -199,6 +199,13 @@ hides that traffic without deleting anything in GA.
 every request ("toProto3JSON: don't know how to convert value"), which only a
 configured server shows, since unconfigured it never loads them.
 
+`/legal-guarantee` shows the EU's harmonised notice on the legal guarantee,
+which ЗЗП чл. 47, ал. 1, т. 12 requires since 27 Sep 2026.
+`public/legal-guarantee-notice-bg.svg` is the Commission's own file, unedited:
+its guidelines forbid changing any element or converting it to another format,
+so a PNG for the order email has to come from their PNG download, never from
+rendering this one.
+
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That
 claim holds only while the list is complete, so a new key joins the page in the
@@ -322,8 +329,9 @@ Metadata inheritance is shallow and per top-level key: a page that omits
 `alternates` inherits its parent's canonical and so declares itself a duplicate
 of it. Every page-level `generateMetadata` sets its own.
 
-`app/sitemap.ts` lists `/`, every published product, `/terms`, `/privacy` and `/cookies`,
-and `app/robots.ts` keeps crawlers out of `/admin` only. `/cart` and `/checkout`
+`app/sitemap.ts` lists `/`, every published product, `/terms`, `/privacy`,
+`/cookies` and `/legal-guarantee`, and `app/robots.ts` keeps crawlers out of
+`/admin` only. `/cart` and `/checkout`
 stay crawlable on purpose: their `noindex` meta is what keeps them out of search,
 and a crawler barred by `robots.txt` never reads it. Both
 build their URLs from `SITE_URL`. A new public page joins the sitemap's list in

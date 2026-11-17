@@ -4,6 +4,7 @@ import { Bee } from "@/components/art/bee";
 import { HiveBox } from "@/components/art/hive-box";
 import { Container } from "@/components/container";
 import { CurrentYear } from "@/components/layout/current-year";
+import { LEGAL_GUARANTEE_PATH } from "@/lib/legal-guarantee";
 import { OWNER_PHONE } from "@/lib/site";
 
 const deliveryLines = [
@@ -106,6 +107,14 @@ export function Footer() {
                   className="inline-flex min-h-11 items-center underline underline-offset-4 hover:no-underline"
                 >
                   Бисквитки
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href={LEGAL_GUARANTEE_PATH}
+                  className="inline-flex min-h-11 items-center underline underline-offset-4 hover:no-underline"
+                >
+                  Законова гаранция
                 </Link>
               </li>
               <li>

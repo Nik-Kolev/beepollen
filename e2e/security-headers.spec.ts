@@ -74,6 +74,7 @@ test("the shop's pages, the map included, break no rule of the policy", async ({
     "/terms",
     "/privacy",
     "/cookies",
+    "/legal-guarantee",
     "/withdraw",
     "/subscription/unsubscribe",
     "/no-such-page",

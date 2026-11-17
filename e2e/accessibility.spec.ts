@@ -11,6 +11,7 @@ const PAGES = [
   ["the cart page", "/cart"],
   ["the checkout page", "/checkout"],
   ["the cookie policy page", "/cookies"],
+  ["the legal guarantee page", "/legal-guarantee"],
   ["the privacy policy page", "/privacy"],
   ["the terms page", "/terms"],
   ["the withdrawal page", "/withdraw"],

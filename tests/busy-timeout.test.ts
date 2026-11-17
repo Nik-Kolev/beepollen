@@ -21,7 +21,7 @@ const HOLD_LOCK = `
   });
 `;
 
-test("a write waits for another process's lock instead of failing at once", async () => {
+async function holdLock() {
   const holder = spawn(process.execPath, ["--import", "tsx", "-e", HOLD_LOCK], {
     stdio: ["ignore", "pipe", "inherit"],
   });
@@ -32,6 +32,11 @@ test("a write waits for another process's lock instead of failing at once", asyn
       throw new Error(`the lock holder exited ${code} before locking`);
     }),
   ]);
+  return exited;
+}
+
+test("a write waits for another process's lock instead of failing at once", async () => {
+  const exited = await holdLock();
 
   const write =
     await prisma.$executeRaw`UPDATE "Product" SET "sortOrder" = "sortOrder"`.then(
@@ -39,6 +44,42 @@ test("a write waits for another process's lock instead of failing at once", asyn
       (error: unknown) => error,
     );
   const [exitCode] = await exited;
+
+  assert.equal(write, null);
+  assert.equal(exitCode, 0);
+});
+
+const WRITE_ONCE = `
+  import("@/lib/prisma").then(async (module) => {
+    const prisma = module.default.default ?? module.default;
+    process.stdout.write("writing");
+    await prisma.$executeRaw\`UPDATE "Product" SET "sortOrder" = "sortOrder"\`;
+    await prisma.$disconnect();
+  });
+`;
+
+test("a transaction that has read survives another process starting a write before its own", async () => {
+  const writer: { exited?: Promise<unknown[]> } = {};
+
+  const write = await prisma
+    .$transaction(async (tx) => {
+      await tx.product.findFirst();
+      const child = spawn(
+        process.execPath,
+        ["--import", "tsx", "-e", WRITE_ONCE],
+        { stdio: ["ignore", "pipe", "inherit"] },
+      );
+      writer.exited = once(child, "exit");
+      await once(child.stdout, "data");
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await tx.$executeRaw`UPDATE "Product" SET "sortOrder" = "sortOrder"`;
+    })
+    .then(
+      () => null,
+      (error: unknown) => error,
+    );
+  assert.ok(writer.exited, "the writer never started");
+  const [exitCode] = await writer.exited;
 
   assert.equal(write, null);
   assert.equal(exitCode, 0);

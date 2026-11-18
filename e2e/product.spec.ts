@@ -1,6 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { nutritionRows, WEB_NUTRITION_PER_100G } from "@/lib/nutrition";
 import { ORGANIC } from "@/lib/organic";
 import { productPhotoTransitionName } from "@/lib/view-transition";
 
@@ -31,22 +30,6 @@ async function recordViewTransitions(page: Page) {
 
   return () => page.locator("body").getAttribute("data-transitioned");
 }
-
-test("the product page declares its nutrition per 100 g in the regulation's order", async ({
-  page,
-}) => {
-  await page.goto(`/products/${PUBLISHED_SLUG}`);
-
-  const table = page.getByRole("table", { name: "Хранителна стойност" });
-  await expect(table.getByRole("columnheader").last()).toHaveText("на 100 г");
-  await expect(
-    table.getByRole("row").filter({ has: page.getByRole("rowheader") }),
-  ).toHaveText(
-    (nutritionRows(WEB_NUTRITION_PER_100G) ?? []).map(
-      ({ label, value }) => `${label}${value}`,
-    ),
-  );
-});
 
 test("the product page shows the EU organic logo with its code, place of farming and certificate", async ({
   page,

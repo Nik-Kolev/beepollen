@@ -118,7 +118,7 @@ model OrderEvent {
   order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   kind    OrderEventKind
 
-  adminEmail  String?
+  adminEmail    String?
   emailStatus   EmailStatus?
   resendEmailId String?      @unique
   changes       Json?

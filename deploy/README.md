@@ -136,12 +136,13 @@ is ever given an IPv6 address, one client holds a /64 of them and each gets
 its own allowance, so key the zone on the /64 before adding an AAAA record.
 The access log writes an IPv4 address with its last block zeroed and an IPv6
 one as its first two groups, which `/privacy` relies on to leave it out, and
-the path without its query string, so an unsubscribe link's token is never
-written; each
-server block sets it, since one at the site's top level would add a second
-log beside `nginx.conf`'s full-IP one. `error.log` still names the full
-address, on errors only. Security headers come from
-`next.config.ts`, not from here, so they are not sent twice.
+the path without its query string, so an unsubscribe link's token stays out
+of it; each server block sets it, since one at the site's top level would add
+a second log beside `nginx.conf`'s full-IP one. `error.log` still names the
+full address and the request with its query string, on errors only — an
+upstream that is down during a deploy, a request over the rate limit.
+Security headers come from `next.config.ts`, not from here, so they are not
+sent twice.
 
 ## 4. The app
 

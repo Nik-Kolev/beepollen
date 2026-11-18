@@ -21,6 +21,7 @@ import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
 import { formatWithdrawalTime } from "@/lib/withdrawal-messages";
 import {
   CONFORMITY,
+  OFFICE_RETURN,
   REFUND_TERMS,
   RETURN_TERMS,
   SEALED_PACKAGES,
@@ -275,7 +276,7 @@ export function withdrawalReceivedEmail(
     ? "Поръчката няма да бъде изпратена."
     : withdrawal.local
       ? "Ще ви се обадим, за да уговорим как да ни върнете стоката."
-      : `Ще ви се обадим, за да уговорим връщането. ${RETURN_TERMS}`;
+      : `Ще ви се обадим, за да уговорим връщането. ${OFFICE_RETURN}`;
 
   return {
     subject: `Отказът от договора по поръчка ${withdrawal.reference} е получен`,

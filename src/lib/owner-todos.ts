@@ -29,17 +29,6 @@ const COOKIES = "src/app/(shop)/cookies/page.tsx";
 
 export const OWNER_TODOS: OwnerTodoGroup[] = [
   {
-    title: "Продавач и правни данни",
-    items: [
-      {
-        id: "seller-vat",
-        text: "Регистриран ли сте по ЗДДС? Ако да — номерът.",
-        files: [TERMS],
-        markers: ["TODO: регистриран ли е по ЗДДС и номер"],
-      },
-    ],
-  },
-  {
     title: "Попълват се при старта — не се показват на собственика",
     developerOnly: true,
     items: [
@@ -111,18 +100,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
   {
     title: "Отворени въпроси",
     items: [
-      {
-        id: "farmer-status",
-        text: "В какво качество продавате: като физическо лице, като регистриран земеделски производител или чрез фирма? В общите условия трябва да пише кой продава и в какво качество.",
-        files: [TERMS],
-        markers: ["TODO: правен статус"],
-      },
-      {
-        id: "food-registration",
-        text: "Трябва ли регистрация в БАБХ за продажбата на прашеца? Ако трябва и я имате — номерът и за какво е.",
-        files: [TERMS],
-        markers: ["TODO: регистрация в БАБХ и номер"],
-      },
       {
         id: "return-costs",
         text: [

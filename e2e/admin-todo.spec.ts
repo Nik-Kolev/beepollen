@@ -3,10 +3,18 @@ import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 
-import { nutritionRows, WEB_NUTRITION_PER_100G } from "@/lib/nutrition";
+import { OWNER_PAGE_GROUPS } from "@/lib/owner-todos";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
+
+function question(id: string) {
+  const item = OWNER_PAGE_GROUPS.flatMap((group) => group.items).find(
+    (candidate) => "id" in candidate && candidate.id === id,
+  );
+  if (!item) throw new Error(`No owner todo with id ${id}`);
+  return item.text;
+}
 
 function answerForm(scope: Page | Locator, label: string) {
   const page = "page" in scope ? scope.page() : scope;
@@ -34,26 +42,11 @@ test("the todo page asks the owner's open questions and nothing the seed already
   await expect(page.getByRole("textbox", { name: "Цена (€)" })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Сорт" })).toHaveCount(0);
 
-  for (const group of [
-    "Продавач и правни данни",
-    "Хранителна стойност",
-    "Отворени въпроси",
-  ]) {
+  for (const group of ["Продукти и „За нас“", "Отворени въпроси"]) {
     await expect(
       page.getByRole("region", { name: group }).getByRole("listitem").first(),
     ).toBeVisible();
   }
-  const table = page
-    .getByRole("region", { name: "Хранителна стойност" })
-    .getByRole("table", { name: "Хранителна стойност на 100 г" });
-  const rows = nutritionRows(WEB_NUTRITION_PER_100G) ?? [];
-  expect(rows.length).toBeGreaterThan(0);
-  await expect(table.getByRole("rowheader")).toHaveText(
-    rows.map(({ label }) => label),
-  );
-  await expect(table.getByRole("cell")).toHaveText(
-    rows.map(({ value }) => value),
-  );
 
   await expect(
     page.getByRole("region", { name: /Попълват се при старта/ }),
@@ -79,10 +72,7 @@ test("an answer saved on the todo page is there after a reload and in the downlo
   await page.goto("/admin/todo");
 
   const answer = `Пчелен прашец ООД, гр. Попово ${Date.now()}`;
-  const form = answerForm(
-    page,
-    "Регистриран ли сте по ЗДДС? Ако да — номерът.",
-  );
+  const form = answerForm(page, question("producers-text"));
   await form.getByRole("textbox").fill(answer);
   await form.getByRole("button", { name: "Запази" }).click();
   await expect(form.getByRole("status")).toHaveText("Запазено.");
@@ -102,8 +92,8 @@ test("an answer saved on the todo page is there after a reload and in the downlo
 
   expect(rows).toContainEqual(
     expect.objectContaining({
-      key: "seller-vat",
-      question: "Регистриран ли сте по ЗДДС? Ако да — номерът.",
+      key: "producers-text",
+      question: question("producers-text"),
       text: answer,
       updatedBy: TEST_ADMIN_EMAIL,
     }),
@@ -119,10 +109,7 @@ test("text typed while a save is in flight is never reported as saved", async ({
   await signInAs(context, TEST_ADMIN_EMAIL);
   await page.goto("/admin/todo");
 
-  const form = answerForm(
-    page,
-    "Трябва ли регистрация в БАБХ за продажбата на прашеца? Ако трябва и я имате — номерът и за какво е.",
-  );
+  const form = answerForm(page, question("return-costs"));
   const field = form.getByRole("textbox");
   await field.fill("Не");
   const saved = page.waitForResponse(

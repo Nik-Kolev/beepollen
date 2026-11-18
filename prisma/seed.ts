@@ -1,6 +1,5 @@
 import { officeRow, readOfficeSnapshot } from "@/lib/econt-snapshot";
 import { assertPublishable } from "@/lib/food-information";
-import { WEB_NUTRITION_PER_100G } from "@/lib/nutrition";
 import prisma from "@/lib/prisma";
 
 const SUMMARY =
@@ -19,7 +18,6 @@ const DESCRIPTION = [
     "За деца над 3 години — по половин чаена лъжичка дневно.",
     "Може да го ядете направо, разбъркан в кисело мляко или смути, или смесен с мед в съотношение 1:1. Ако го накиснете от вечерта, се яде по-лесно.",
   ].join("\n"),
-  "Био продукт. Сертификат за биологично производство: TODO: линк към сертификата и код на контролиращия орган",
 ].join("\n\n");
 
 const FOOD_INFORMATION = {
@@ -29,7 +27,6 @@ const FOOD_INFORMATION = {
   bestBefore: "1 година",
   allergenInfo:
     "Пчелният прашец е съставен от полени на различни растения и може да предизвика алергична реакция при хора, алергични към полени или пчелни продукти. Не е подходящ за деца под 3 години.",
-  ...WEB_NUTRITION_PER_100G,
 };
 
 const products = [

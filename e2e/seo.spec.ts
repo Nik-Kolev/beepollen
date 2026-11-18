@@ -41,6 +41,7 @@ test("the sitemap lists the home page, every published product and the legal pag
     [
       "/",
       "/cookies",
+      "/legal-guarantee",
       "/privacy",
       "/products/pchelen-prashets-1kg",
       "/products/pchelen-prashets-500g",

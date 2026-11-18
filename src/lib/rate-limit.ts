@@ -114,6 +114,20 @@ export function takeTokens(
   return true;
 }
 
+export function returnTokens(
+  requests: { key: string; options: RateLimitOptions }[],
+  takenAt: number,
+) {
+  for (const { key } of requests) {
+    const entry = capHits.get(key);
+    const index = entry?.at.lastIndexOf(takenAt) ?? -1;
+    if (!entry || index === -1) continue;
+
+    entry.at.splice(index, 1);
+    if (entry.at.length === 0) capHits.delete(key);
+  }
+}
+
 export function resetRateLimits() {
   hits.clear();
   capHits.clear();

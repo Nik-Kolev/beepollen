@@ -104,8 +104,17 @@ export function PromotionPanel({
   const valueRef = useRef<HTMLInputElement>(null);
   const editRef = useRef<HTMLButtonElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const [confirmingEnd, setConfirmingEnd] = useState(false);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => () => window.clearTimeout(flashTimer.current), []);
+
+  useEffect(() => {
+    if (!confirmingEnd || dialogRef.current?.open) return;
+    dialogRef.current?.showModal();
+    cancelRef.current?.focus();
+  }, [confirmingEnd]);
 
   function reset() {
     setEditing(null);
@@ -235,12 +244,50 @@ export function PromotionPanel({
             <button
               type="button"
               aria-disabled={pending}
-              onClick={() => run(() => endPromotionAction(open.id), false)}
+              onClick={() => {
+                if (!busy.current) setConfirmingEnd(true);
+              }}
               className="border-error text-error bg-surface hover:bg-ground inline-flex min-h-11 items-center rounded-md border-2 px-4 font-semibold"
             >
               Прекрати
             </button>
           </div>
+          <dialog
+            ref={dialogRef}
+            aria-labelledby={`${id}-end-title`}
+            aria-describedby={`${id}-end-text`}
+            onClose={() => setConfirmingEnd(false)}
+            className="bg-surface text-ink backdrop:bg-ink/60 m-auto w-[calc(100%-2rem)] max-w-md rounded-xl p-6 text-base shadow-xl"
+          >
+            <h2 id={`${id}-end-title`} className="text-lg font-semibold">
+              Сигурни ли сте?
+            </h2>
+            <p id={`${id}-end-text`} className="mt-2">
+              Промоцията на {name} от {formatDay(open.startsOn)} до{" "}
+              {formatDay(open.endsOn)} спира веднага. Прекратена промоция не
+              може да се пусне отново, но можете да добавите нова.
+            </p>
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                ref={cancelRef}
+                onClick={() => dialogRef.current?.close()}
+                className="border-line text-ink bg-surface hover:bg-ground inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors"
+              >
+                Отказ
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  dialogRef.current?.close();
+                  run(() => endPromotionAction(open.id), false);
+                }}
+                className="bg-error border-error text-action-ink inline-flex min-h-11 items-center justify-center rounded-md border-2 px-4 font-semibold transition-colors hover:opacity-90"
+              >
+                Прекрати промоцията
+              </button>
+            </div>
+          </dialog>
         </div>
       )}
 

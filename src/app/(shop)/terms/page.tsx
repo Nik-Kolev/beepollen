@@ -6,11 +6,13 @@ import { Section } from "@/components/legal-section";
 import { TEXT_LINK } from "@/components/link-styles";
 import { Todo } from "@/components/todo";
 import { DELIVERY_PERIOD } from "@/lib/delivery";
+import { LEGAL_GUARANTEE_PATH } from "@/lib/legal-guarantee";
 import { CONTACT_EMAIL, OWNER_PHONE, SELLER } from "@/lib/site";
 import {
   CONFORMITY,
   REFUND_TERMS,
   RETURN_TERMS,
+  SEALED_PACKAGES,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -22,13 +24,12 @@ export const metadata: Metadata = {
 };
 
 const SELLER_ROWS = [
-  ["Продавач", `${SELLER.name}, TODO: правен статус`],
+  ["Продавач", `${SELLER.name}, регистриран земеделски производител`],
   ["Адрес", `${SELLER.address} (по регистрация и за кореспонденция)`],
   ["Телефон", OWNER_PHONE.display],
   ["Имейл", CONTACT_EMAIL],
   ["Регистрация", `ЕИК ${SELLER.eik}`],
-  ["Контролен орган", "TODO: регистрация в БАБХ и номер"],
-  ["ДДС", "TODO: регистриран ли е по ЗДДС и номер"],
+  ["ДДС", "Не е регистриран по ЗДДС"],
 ];
 
 const ORDER_STEPS = [
@@ -81,7 +82,7 @@ export default function TermsPage() {
 
         <Section id="prices" title="Продукти и цени">
           <p>
-            Цените са в евро и са крайни, с включени данъци. Цената на
+            Цените са крайни. Продавачът не е регистриран по ЗДДС. Цената на
             доставката се показва в поръчката, преди да я потвърдите. Доставката
             на ръка в Попово е безплатна.
           </p>
@@ -119,12 +120,7 @@ export default function TermsPage() {
 
         <Section id="withdrawal" title="Право на отказ">
           <p>{WITHDRAWAL_RIGHT}</p>
-          <p>
-            Неотворените пакети могат да се върнат. Отворен пакет не може да се
-            върне, защото е запечатан по хигиенни причини и след отваряне не
-            може да бъде продаден отново (чл. 57, т. 5 от Закона за защита на
-            потребителите). Пакетите са вакуумирани.
-          </p>
+          <p>{SEALED_PACKAGES}</p>
           <p>Отказът се заявява по един от тези начини:</p>
           <ul role="list" className="flex list-disc flex-col gap-2 pl-5">
             <li>
@@ -156,6 +152,13 @@ export default function TermsPage() {
             </a>
             . При рекламация разходите по изпращането на стоката са за наша
             сметка.
+          </p>
+          <p>
+            Официалното известие на Европейския съюз е на страницата{" "}
+            <Link href={LEGAL_GUARANTEE_PATH} className={TEXT_LINK}>
+              „Законова гаранция“
+            </Link>
+            .
           </p>
         </Section>
 

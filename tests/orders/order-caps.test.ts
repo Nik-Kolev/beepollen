@@ -2,11 +2,21 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, beforeEach, test } from "node:test";
 
-import { inboxOf, ORDER_CAPS, placeOrder } from "@/lib/orders";
+import {
+  inboxOf,
+  nextOrderReference,
+  ORDER_CAPS,
+  orderReferencePrefix,
+  placeOrder,
+} from "@/lib/orders";
 import prisma from "@/lib/prisma";
 import { resetRateLimits } from "@/lib/rate-limit";
 
-import { distinctBuyer, validCheckoutInput } from "../support/checkout";
+import {
+  distinctBuyer,
+  TEST_OFFICE_SNAPSHOT,
+  validCheckoutInput,
+} from "../support/checkout";
 
 beforeEach(() => {
   resetRateLimits();
@@ -194,6 +204,59 @@ test("a submission refused for an unknown office or an unavailable product spend
 
   const real = await placeOrder(validCheckoutInput(distinctBuyer()), freshIp());
   assert.equal(real.ok, true);
+});
+
+test("a submission refused because every reference was taken spends none of the buyer's allowance", async () => {
+  const email = `contested-${randomUUID()}@example.com`;
+  const prefix = orderReferencePrefix(new Date());
+  const newest = await prisma.order.findFirst({
+    where: { reference: { startsWith: prefix } },
+    orderBy: { id: "desc" },
+    select: { reference: true },
+  });
+  const contested = nextOrderReference(prefix, newest?.reference ?? null);
+  const customer = await prisma.customer.create({
+    data: { name: "Блокирана номерация", email, phone: "0888000000" },
+    select: { id: true },
+  });
+  const fixture = (reference: string) => ({
+    customerId: customer.id,
+    contactName: "Блокирана номерация",
+    contactPhone: "0888000000",
+    ...TEST_OFFICE_SNAPSHOT,
+    reference,
+    itemsCents: 1,
+    totalCents: 1,
+    idempotencyKey: randomUUID(),
+  });
+  const blocker = await prisma.order.create({
+    data: fixture(`${prefix}${Number(contested.slice(prefix.length)) + 1}`),
+    select: { id: true },
+  });
+  const decoy = await prisma.order.create({
+    data: fixture(contested),
+    select: { id: true },
+  });
+
+  try {
+    const refused = await placeOrder(
+      validCheckoutInput({ ...distinctBuyer(), email }),
+      freshIp(),
+    );
+    assert.deepEqual(refused, { ok: false, code: "REJECTED" });
+  } finally {
+    await prisma.order.deleteMany({
+      where: { id: { in: [blocker.id, decoy.id] } },
+    });
+  }
+
+  for (let i = 0; i < ORDER_CAPS.perContact.limit; i++) {
+    const result = await placeOrder(
+      validCheckoutInput({ ...distinctBuyer(), email }),
+      freshIp(),
+    );
+    assert.equal(result.ok, true, `order ${i + 1}`);
+  }
 });
 
 test("the caps do not apply to a submission with no IP address", async () => {

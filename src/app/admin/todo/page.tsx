@@ -89,28 +89,6 @@ export default async function AdminTodo() {
                 ) : (
                   <p>{item.text}</p>
                 )}
-                {item.table && (
-                  <table className="mt-3 w-full max-w-sm text-sm">
-                    <caption className="sr-only">
-                      Хранителна стойност на 100 г
-                    </caption>
-                    <tbody>
-                      {item.table.map(({ key, label, value, nested }) => (
-                        <tr key={key} className="border-line border-b">
-                          <th
-                            scope="row"
-                            className={`py-1.5 pr-4 text-left font-normal ${nested ? "pl-4" : ""}`}
-                          >
-                            {label}
-                          </th>
-                          <td className="py-1.5 text-right tabular-nums">
-                            {value}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
                 {item.files.length > 0 && (
                   <p className="text-ink-soft mt-1 font-mono text-xs break-all">
                     {item.files.join(" · ")}

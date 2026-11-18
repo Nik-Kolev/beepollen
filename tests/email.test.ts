@@ -11,8 +11,15 @@ import {
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { COD_FEE_LABEL, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import { escapeHtml } from "@/lib/email/layout";
 import { type EmailClient, sendEmail } from "@/lib/email/transport";
 import { EMAIL_WARNING_LIMIT, emailUsage } from "@/lib/email/usage";
+import {
+  LEGAL_GUARANTEE_EMAIL_NOTICE,
+  LEGAL_GUARANTEE_NOTICE_ALT,
+  LEGAL_GUARANTEE_PATH,
+  YOUR_EUROPE_GUARANTEES,
+} from "@/lib/legal-guarantee";
 import { formatPrice } from "@/lib/money";
 import prisma from "@/lib/prisma";
 import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
@@ -20,6 +27,7 @@ import {
   CONFORMITY,
   REFUND_TERMS,
   RETURN_TERMS,
+  SEALED_PACKAGES,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -194,16 +202,7 @@ test("the withdrawal email gives the Sofia time and says what happens next", () 
 
   assert.ok(unsent.text.includes("22.10.2026 г., 10:30"));
   assert.ok(unsent.text.includes("Поръчката няма да бъде изпратена."));
-  assert.ok(
-    sent.text.includes(
-      "уговорим връщането до офис на Еконт или Спиди в гр. Попово",
-    ),
-  );
-  assert.ok(
-    sent.text.includes(
-      "Изпратете стоката обратно до 14 дни от отказа; изпращането е за ваша сметка.",
-    ),
-  );
+  assert.ok(sent.text.includes(RETURN_TERMS));
   assert.ok(!sent.text.includes("Поръчката няма да бъде изпратена."));
 });
 
@@ -249,14 +248,28 @@ test("the accepted order carries the seller and the same withdrawal terms as /te
     );
     for (const sentence of [
       WITHDRAWAL_RIGHT,
+      SEALED_PACKAGES,
       RETURN_TERMS,
       REFUND_TERMS,
       CONFORMITY,
     ]) {
       assert.ok(body.includes(sentence), sentence);
     }
-    assert.ok(body.includes("Отворен пакет не може да се върне"));
   }
+});
+
+test("the accepted order carries the EU's legal guarantee notice and its links", () => {
+  const { html, text } = orderAcceptedEmail(ORDER);
+  const page = `${SITE_URL}${LEGAL_GUARANTEE_PATH}`;
+
+  assert.ok(
+    html.includes(`<img src="${SITE_URL}${LEGAL_GUARANTEE_EMAIL_NOTICE}"`),
+  );
+  assert.ok(html.includes(`alt="${escapeHtml(LEGAL_GUARANTEE_NOTICE_ALT)}"`));
+  assert.ok(html.includes(`href="${page}"`));
+  assert.ok(html.includes(`href="${YOUR_EUROPE_GUARANTEES.href}"`));
+  assert.ok(text.includes(page));
+  assert.ok(text.includes(YOUR_EUROPE_GUARANTEES.href));
 });
 
 test("the cancelled email gives the reason and the shop's phone", () => {

@@ -1,20 +1,6 @@
-import {
-  type NutritionRow,
-  nutritionRows,
-  WEB_NUTRITION_PER_100G,
-} from "@/lib/nutrition";
-
-const WEB_ROWS = nutritionRows(WEB_NUTRITION_PER_100G) ?? [];
-
-const NESTED_QUESTION: Partial<Record<NutritionRow["key"], string>> = {
-  saturates: "Наситени мастни киселини (от мазнините)",
-  sugars: "Захари (от въглехидратите)",
-};
-
 type OwnerTodo = {
   id?: string;
   text: string;
-  table?: NutritionRow[];
   files: string[];
   markers: string[];
 };
@@ -28,17 +14,6 @@ const PRIVACY = "src/app/(shop)/privacy/page.tsx";
 const COOKIES = "src/app/(shop)/cookies/page.tsx";
 
 export const OWNER_TODOS: OwnerTodoGroup[] = [
-  {
-    title: "Продавач и правни данни",
-    items: [
-      {
-        id: "seller-vat",
-        text: "Регистриран ли сте по ЗДДС? Ако да — номерът.",
-        files: [TERMS],
-        markers: ["TODO: регистриран ли е по ЗДДС и номер"],
-      },
-    ],
-  },
   {
     title: "Попълват се при старта — не се показват на собственика",
     developerOnly: true,
@@ -78,12 +53,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     title: "Продукти и „За нас“",
     items: [
       {
-        id: "bio-certificate-link",
-        text: "Линкът към сертификата за биологично производство и кодът на контролиращия орган (например BG-BIO-…). Без кода продуктите не може да се наричат „био“.",
-        files: ["prisma/seed.ts"],
-        markers: ["TODO: линк към сертификата и код на контролиращия орган"],
-      },
-      {
         id: "producers-text",
         text: "Моля, напишете кратко резюме за вас и пчелина, в 3–4 реда. Ние ще го оформим за раздела „За нас“.",
         files: [],
@@ -92,43 +61,8 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
     ],
   },
   {
-    title: "Хранителна стойност",
-    items: [
-      {
-        id: "nutrition-declaration",
-        text: "Нужна ли е хранителна декларация за прашеца? Решава БАБХ.",
-        files: [],
-        markers: [],
-      },
-      {
-        text: "Това е таблицата, която е на сайта сега. Стойностите са средни от етикети на пчелен прашец в интернет. Ако имате етикет или анализ на вашия прашец и някое число е различно, напишете вашето в полето за него по-долу.",
-        table: WEB_ROWS,
-        files: [],
-        markers: [],
-      },
-      ...WEB_ROWS.map((row) => ({
-        id: `nutrition-${row.key}`,
-        text: `${NESTED_QUESTION[row.key] ?? row.label} на 100 г`,
-        files: [],
-        markers: [],
-      })),
-    ],
-  },
-  {
     title: "Отворени въпроси",
     items: [
-      {
-        id: "farmer-status",
-        text: "В какво качество продавате: като физическо лице, като регистриран земеделски производител или чрез фирма? В общите условия трябва да пише кой продава и в какво качество.",
-        files: [TERMS],
-        markers: ["TODO: правен статус"],
-      },
-      {
-        id: "food-registration",
-        text: "Трябва ли регистрация в БАБХ за продажбата на прашеца? Ако трябва и я имате — номерът и за какво е.",
-        files: [TERMS],
-        markers: ["TODO: регистрация в БАБХ и номер"],
-      },
       {
         id: "return-costs",
         text: [

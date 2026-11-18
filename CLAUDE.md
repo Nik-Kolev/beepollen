@@ -26,7 +26,7 @@ searches for, and Cyrillic in a URL percent-encodes into garbage when shared.
 One light theme: no dark mode, and no extra light shades invented alongside it.
 
 Lorem ipsum stands in for undecided copy, and an explicit `TODO:` string stands
-in for a fact the owner still owes — a price, a variety, a food-information field.
+in for a fact the owner still owes — a price, a VAT number, a food-information field.
 The seed and the product pages render them on purpose: they are page content, not
 unfinished code. Never replace one with plausible Bulgarian filler, and never
 invent an origin, certificate or review — plausible text survives to launch
@@ -199,6 +199,26 @@ hides that traffic without deleting anything in GA.
 every request ("toProto3JSON: don't know how to convert value"), which only a
 configured server shows, since unconfigured it never loads them.
 
+`/legal-guarantee` shows the EU's harmonised notice on the legal guarantee,
+which ЗЗП чл. 47, ал. 1, т. 12 requires since 27 Sep 2026.
+The order confirmation carries it too, as `public/email/legal-guarantee-notice-bg.png`.
+Both files are the Commission's own, unedited: its guidelines forbid changing
+any element or converting one format into another, so a replacement comes from
+their download page — which answers `curl` with a bot-wall page, so fetch it in
+a browser.
+
+Every product page shows the EU organic logo, the control body's code and
+„Земеделие от България“, and a link to the owner's certificate in TRACES,
+from `ORGANIC` in `src/lib/organic.ts` (Reg. (EU) 2018/848, art. 32). The
+Commission's logo manual fixes the layout: the code under the logo and the
+place under the code, both aligned with the logo's edge; a clear space of a
+tenth of the logo's height around it, which is the figure's padding; and no
+less than 13.5×9 mm, about 51×34 px. It is on every product because the certificate covers bee
+pollen and honey, and the catalogue is pollen only: a product it does not list
+must not show it. `public/eu-organic-logo.gif` is the Commission's own colour
+file, unedited, from the same kind of bot-walled download page. The
+certificate runs to 30 Oct 2027, and its renewal changes the link.
+
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That
 claim holds only while the list is complete, so a new key joins the page in the
@@ -322,8 +342,9 @@ Metadata inheritance is shallow and per top-level key: a page that omits
 `alternates` inherits its parent's canonical and so declares itself a duplicate
 of it. Every page-level `generateMetadata` sets its own.
 
-`app/sitemap.ts` lists `/`, every published product, `/terms`, `/privacy` and `/cookies`,
-and `app/robots.ts` keeps crawlers out of `/admin` only. `/cart` and `/checkout`
+`app/sitemap.ts` lists `/`, every published product, `/terms`, `/privacy`,
+`/cookies` and `/legal-guarantee`, and `app/robots.ts` keeps crawlers out of
+`/admin` only. `/cart` and `/checkout`
 stay crawlable on purpose: their `noindex` meta is what keeps them out of search,
 and a crawler barred by `robots.txt` never reads it. Both
 build their URLs from `SITE_URL`. A new public page joins the sitemap's list in
@@ -358,7 +379,7 @@ refuses to send without `EMAIL_REPLY_TO`. Resend reports a rejected email as
 Without a verified domain, the default test sender delivers only to the Resend
 account's own address. Every send that reaches Resend writes an `EmailSend`
 row, outcome and time only, never the recipient, so the daily count for
-`deploy/email-check.sh` covers the owner's and the sample emails as well as the
+`deploy/email-check.sh` covers the owner's and the campaign emails as well as the
 buyer's; a failure to write it is logged and never fails the send.
 
 Sending runs in `after()` from the checkout, withdrawal and admin step actions,
@@ -503,7 +524,10 @@ orders an hour across every address, and 3 a day per phone and per inbox, where
 `inboxOf` drops a `+tag` and Gmail's dots so one mailbox cannot be reached under
 many spellings. A replayed submission is answered before them and never refused
 by them, and a refused one — unknown office, unavailable product — spends
-nothing, so a request that writes no order cannot close the shop. They keep their own store, each
+nothing, so a request that writes no order cannot close the shop. A request that
+took them and then wrote no new order — every reference taken, a thrown write, a
+concurrent twin answered with the committed order — gives them back through
+`returnTokens`. They keep their own store, each
 entry expiring by its own window, so a flood of per-address keys cannot evict a
 day-long count. They apply only when an IP is passed, like the limiter, so a
 unit test that passes one gives each order its own contact with
@@ -954,7 +978,10 @@ none, so a write that met another process's lock — an e2e helper, the seed —
 failed at once with `SQLITE_BUSY`, which Prisma reports as "Operation has timed
 out". The wait blocks the whole process, so a lock held by a second client in
 the same process can never be released during it; `tests/busy-timeout.test.ts`
-holds its lock from a child process for that reason.
+holds its lock from a child process for that reason. It also opens every
+transaction as `BEGIN IMMEDIATE`, not the adapter's `DEFERRED`: SQLite refuses a
+deferred transaction's first write at once, timeout or not, when another process
+began writing after it read, since waiting would deadlock.
 
 **Migrations are authored on the host and applied in the container.** Compose
 syncs one way, host→container, so a migration created inside the container writes
@@ -1034,16 +1061,9 @@ the page on purpose. Outside the test fixtures, e2e and unit, which publish
 products without food information on purpose, the seed is the only writer of `isPublished`; a
 future one calls the same check.
 
-The nutrition declaration is stored per 100 g as whole milligrams, energy as
-kJ and kcal, and rounded for display by the EU labelling guidance in
-`src/lib/nutrition.ts`. `WEB_NUTRITION_PER_100G` is the median of published
-bee-pollen labels with the energy calculated from it, seeded onto both products
-and shown on `/admin/todo` as the table the site carries, with a field per row,
-energy included, for the owner to correct. An energy he gives that disagrees
-with the one calculated from his other values is checked with him before
-either goes into the code; it is not invented, so it
-is no `TODO_` placeholder. The table shows only when every value is present, and
-`assertPublishable` does not require it until the owner's ОДБХ says it is owed.
+The site carries no nutrition declaration, because the package carries none.
+Product copy therefore names no nutrient: listing one is a nutrition claim,
+which needs the declaration beside it.
 
 ## Agent files
 

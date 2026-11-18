@@ -5,6 +5,7 @@ import { notFoundMetadata } from "@/components/not-found-content";
 import { AddToCart } from "@/components/add-to-cart";
 import { BackToProductsLink } from "@/components/back-to-products-link";
 import { Container } from "@/components/container";
+import { OrganicBadge } from "@/components/organic-badge";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductPrice } from "@/components/product-price";
 import { nutritionRows } from "@/lib/nutrition";
@@ -138,6 +139,8 @@ export default async function ProductPage({
                 ))}
               </dl>
             </section>
+
+            <OrganicBadge />
 
             {nutrition && (
               <section className="mt-8">

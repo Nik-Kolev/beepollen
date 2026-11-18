@@ -1,20 +1,6 @@
-import {
-  type NutritionRow,
-  nutritionRows,
-  WEB_NUTRITION_PER_100G,
-} from "@/lib/nutrition";
-
-const WEB_ROWS = nutritionRows(WEB_NUTRITION_PER_100G) ?? [];
-
-const NESTED_QUESTION: Partial<Record<NutritionRow["key"], string>> = {
-  saturates: "Наситени мастни киселини (от мазнините)",
-  sugars: "Захари (от въглехидратите)",
-};
-
 type OwnerTodo = {
   id?: string;
   text: string;
-  table?: NutritionRow[];
   files: string[];
   markers: string[];
 };
@@ -72,29 +58,6 @@ export const OWNER_TODOS: OwnerTodoGroup[] = [
         files: [],
         markers: [],
       },
-    ],
-  },
-  {
-    title: "Хранителна стойност",
-    items: [
-      {
-        id: "nutrition-declaration",
-        text: "Нужна ли е хранителна декларация за прашеца? Решава БАБХ.",
-        files: [],
-        markers: [],
-      },
-      {
-        text: "Това е таблицата, която е на сайта сега. Стойностите са средни от етикети на пчелен прашец в интернет. Ако имате етикет или анализ на вашия прашец и някое число е различно, напишете вашето в полето за него по-долу.",
-        table: WEB_ROWS,
-        files: [],
-        markers: [],
-      },
-      ...WEB_ROWS.map((row) => ({
-        id: `nutrition-${row.key}`,
-        text: `${NESTED_QUESTION[row.key] ?? row.label} на 100 г`,
-        files: [],
-        markers: [],
-      })),
     ],
   },
   {

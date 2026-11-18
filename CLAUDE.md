@@ -1061,16 +1061,9 @@ the page on purpose. Outside the test fixtures, e2e and unit, which publish
 products without food information on purpose, the seed is the only writer of `isPublished`; a
 future one calls the same check.
 
-The nutrition declaration is stored per 100 g as whole milligrams, energy as
-kJ and kcal, and rounded for display by the EU labelling guidance in
-`src/lib/nutrition.ts`. `WEB_NUTRITION_PER_100G` is the median of published
-bee-pollen labels with the energy calculated from it, seeded onto both products
-and shown on `/admin/todo` as the table the site carries, with a field per row,
-energy included, for the owner to correct. An energy he gives that disagrees
-with the one calculated from his other values is checked with him before
-either goes into the code; it is not invented, so it
-is no `TODO_` placeholder. The table shows only when every value is present, and
-`assertPublishable` does not require it until the owner's ОДБХ says it is owed.
+The site carries no nutrition declaration, because the package carries none.
+Product copy therefore names no nutrient: listing one is a nutrition claim,
+which needs the declaration beside it.
 
 ## Agent files
 

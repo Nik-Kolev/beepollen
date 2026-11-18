@@ -6,6 +6,7 @@ export const CONTACT_EMAIL = "beepollenbg@gmail.com";
 
 export const SELLER = {
   name: "Димитър Димитров",
+  status: "регистриран земеделски производител",
   address: "гр. Попово, ул. „Сан Стефано“ 10",
   eik: "179940540",
 };

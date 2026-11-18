@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 const SELLER_ROWS = [
-  ["Продавач", `${SELLER.name}, регистриран земеделски производител`],
+  ["Продавач", `${SELLER.name}, ${SELLER.status}`],
   ["Адрес", `${SELLER.address} (по регистрация и за кореспонденция)`],
   ["Телефон", OWNER_PHONE.display],
   ["Имейл", CONTACT_EMAIL],

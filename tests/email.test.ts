@@ -25,6 +25,8 @@ import prisma from "@/lib/prisma";
 import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
 import {
   CONFORMITY,
+  LOCAL_RETURN,
+  OFFICE_RETURN,
   REFUND_TERMS,
   RETURN_TERMS,
   SEALED_PACKAGES,
@@ -202,8 +204,16 @@ test("the withdrawal email gives the Sofia time and says what happens next", () 
 
   assert.ok(unsent.text.includes("22.10.2026 г., 10:30"));
   assert.ok(unsent.text.includes("Поръчката няма да бъде изпратена."));
-  assert.ok(sent.text.includes(RETURN_TERMS));
   assert.ok(!sent.text.includes("Поръчката няма да бъде изпратена."));
+});
+
+test("an office buyer who withdraws after dispatch is told how to send it back, not the Popovo hand-over arrangement", () => {
+  const { html, text } = withdrawalReceivedEmail({ ...WITHDRAWAL, sent: true });
+
+  for (const body of [html, text]) {
+    assert.ok(body.includes(OFFICE_RETURN));
+    assert.ok(!body.includes(LOCAL_RETURN));
+  }
 });
 
 test("a Popovo buyer who withdraws after the hand-over is called, never sent to an office", () => {

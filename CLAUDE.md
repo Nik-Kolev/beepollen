@@ -36,7 +36,7 @@ The owner's phone is a real fact he supplied and lives once, as `OWNER_PHONE` in
 `src/lib/site.ts`; every page that shows it reads it from there. The shop's
 contact address, `CONTACT_EMAIL`, lives beside it the same way, and so does
 `SELLER` — the name, address and ЕИК that `/terms`, `/privacy` and the order
-confirmation print.
+confirmation print, and the legal status `/terms` prints.
 
 On a withdrawal the refund covers the goods only: the delivery and the
 cash-on-delivery fee, paid to the courier, are not refunded. That stands until

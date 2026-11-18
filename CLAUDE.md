@@ -207,6 +207,18 @@ any element or converting one format into another, so a replacement comes from
 their download page — which answers `curl` with a bot-wall page, so fetch it in
 a browser.
 
+Every product page shows the EU organic logo, the control body's code and
+„Земеделие от България“, and a link to the owner's certificate in TRACES,
+from `ORGANIC` in `src/lib/organic.ts` (Reg. (EU) 2018/848, art. 32). The
+Commission's logo manual fixes the layout: the code under the logo and the
+place under the code, both aligned with the logo's edge; a clear space of a
+tenth of the logo's height around it, which is the figure's padding; and no
+less than 13.5×9 mm, about 51×34 px. It is on every product because the certificate covers bee
+pollen and honey, and the catalogue is pollen only: a product it does not list
+must not show it. `public/eu-organic-logo.gif` is the Commission's own colour
+file, unedited, from the same kind of bot-walled download page. The
+certificate runs to 30 Oct 2027, and its renewal changes the link.
+
 `/cookies` lists every key the shop writes to a visitor's browser, cookies and
 `localStorage` alike, and says nothing else is stored without consent. That
 claim holds only while the list is complete, so a new key joins the page in the

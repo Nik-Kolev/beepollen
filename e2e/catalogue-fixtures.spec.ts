@@ -1,4 +1,6 @@
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
+
+import { ORGANIC } from "@/lib/organic";
 
 import { TEST_ADMIN_EMAIL } from "./admin-env";
 import { signInAs } from "./admin-session";
@@ -6,6 +8,13 @@ import { deleteTestProduct, publishTestProduct } from "./e2e-db";
 
 const SINGLE_IMAGE_SLUG = "test-edna-snimka";
 const NO_IMAGE_SLUG = "test-bez-snimka";
+
+function imageNames(page: Page) {
+  return page
+    .getByRole("main")
+    .getByRole("img")
+    .evaluateAll((images) => images.map((image) => image.getAttribute("alt")));
+}
 
 test.describe.configure({ mode: "serial" });
 
@@ -24,12 +33,9 @@ test.afterAll(() => {
 test("a single-image product renders no thumbnail strip", async ({ page }) => {
   await page.goto(`/products/${SINGLE_IMAGE_SLUG}`);
 
-  const main = page.getByRole("main");
-  await expect(main.getByRole("img")).toHaveCount(1);
-  await expect(main.getByRole("img")).toHaveAttribute(
-    "alt",
-    "Пчелен прашец в чиния",
-  );
+  await expect
+    .poll(() => imageNames(page))
+    .toEqual(["Пчелен прашец в чиния", ORGANIC.logoAlt]);
 });
 
 test("a product with no photo and no food information shows only what it has", async ({
@@ -45,7 +51,7 @@ test("a product with no photo and no food information shows only what it has", a
       name: `Тестов продукт ${NO_IMAGE_SLUG}`,
     }),
   ).toBeVisible();
-  await expect(main.getByRole("img")).toHaveCount(0);
+  await expect.poll(() => imageNames(page)).toEqual([ORGANIC.logoAlt]);
   await expect(main.locator("dt")).toHaveText(["Описание"]);
 
   const jsonLd = JSON.parse(

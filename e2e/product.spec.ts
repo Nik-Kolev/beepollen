@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { nutritionRows, WEB_NUTRITION_PER_100G } from "@/lib/nutrition";
+import { ORGANIC } from "@/lib/organic";
 import { productPhotoTransitionName } from "@/lib/view-transition";
 
 const PUBLISHED_SLUG = "pchelen-prashets-500g";
@@ -45,6 +46,30 @@ test("the product page declares its nutrition per 100 g in the regulation's orde
       ({ label, value }) => `${label}${value}`,
     ),
   );
+});
+
+test("the product page shows the EU organic logo with its code, place of farming and certificate", async ({
+  page,
+}) => {
+  await page.goto(`/products/${PUBLISHED_SLUG}`);
+
+  const badge = page.getByRole("region", { name: "Биологично производство" });
+  const logo = badge.getByRole("img", { name: ORGANIC.logoAlt });
+  await logo.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() =>
+      logo.evaluate(
+        (image: HTMLImageElement) => image.complete && image.naturalWidth,
+      ),
+    )
+    .toBeGreaterThan(0);
+
+  await expect(badge.locator("figcaption")).toHaveText(
+    `${ORGANIC.controlBodyCode}${ORGANIC.farming}`,
+  );
+  await expect(
+    badge.getByRole("link", { name: ORGANIC.certificate.label }),
+  ).toHaveAttribute("href", ORGANIC.certificate.href);
 });
 
 test("a catalogue card opens its product page", async ({ page }) => {

@@ -23,9 +23,15 @@ after(async () => {
   await prisma.$disconnect();
 });
 
-const OWNER_IDS = OWNER_PAGE_GROUPS.flatMap((group) =>
-  group.items.flatMap((item) => (item.id ? [item.id] : [])),
-);
+const OWNER_ITEMS = OWNER_PAGE_GROUPS.flatMap((group) => group.items);
+
+const OWNER_IDS = OWNER_ITEMS.flatMap((item) => (item.id ? [item.id] : []));
+
+function question(id: string) {
+  const item = OWNER_ITEMS.find((candidate) => candidate.id === id);
+  assert.ok(item, id);
+  return item.text;
+}
 
 test("every answerable todo item and every product field have a key", () => {
   for (const id of OWNER_IDS) assert.ok(isOwnerAnswerKey(id), id);
@@ -40,7 +46,7 @@ test("the todo items' keys are unique", () => {
 
 test("a key the page never renders is refused and nothing is stored", async () => {
   for (const key of [
-    "food-registrationx",
+    "return-costsx",
     "emails",
     "hosting",
     "contact-email",
@@ -69,14 +75,14 @@ test("a key the page never renders is refused and nothing is stored", async () =
 test("an answer over the limit is refused, one at the limit is kept", async () => {
   assert.deepEqual(
     await saveOwnerAnswer(
-      { key: "seller-vat", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH + 1) },
+      { key: "return-costs", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH + 1) },
       ADMIN,
     ),
     { ok: false, code: "TOO_LONG" },
   );
   assert.deepEqual(
     await saveOwnerAnswer(
-      { key: "seller-vat", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH) },
+      { key: "return-costs", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH) },
       ADMIN,
     ),
     { ok: true },
@@ -84,7 +90,7 @@ test("an answer over the limit is refused, one at the limit is kept", async () =
   assert.deepEqual(
     await saveOwnerAnswer(
       {
-        key: "seller-vat",
+        key: "return-costs",
         text: ` \n${"а".repeat(OWNER_ANSWER_MAX_LENGTH)}\n `,
       },
       ADMIN,
@@ -94,32 +100,35 @@ test("an answer over the limit is refused, one at the limit is kept", async () =
 });
 
 test("saving again overwrites the answer, trimmed, and records who saved it", async () => {
-  await saveOwnerAnswer({ key: "seller-vat", text: "5 години" }, ADMIN);
+  await saveOwnerAnswer({ key: "return-costs", text: "5 години" }, ADMIN);
   await saveOwnerAnswer(
-    { key: "seller-vat", text: "  5 години, после се трият \n" },
+    { key: "return-costs", text: "  5 години, после се трият \n" },
     "owner@example.com",
   );
 
   const row = await prisma.ownerAnswer.findUniqueOrThrow({
-    where: { key: "seller-vat" },
+    where: { key: "return-costs" },
   });
   assert.equal(row.text, "5 години, после се трият");
   assert.equal(row.updatedBy, "owner@example.com");
-  assert.equal((await listOwnerAnswers()).get("seller-vat"), row.text);
+  assert.equal((await listOwnerAnswers()).get("return-costs"), row.text);
 });
 
 test("the export names each question in page order and leaves out cleared answers", async () => {
   const storage = productAnswerKey("pchelen-prashets-1kg", "storage");
   const composition = productAnswerKey("pchelen-prashets-1kg", "composition");
   const withdrawn = productAnswerKey("spryan-produkt", "origin");
-  assert.ok(OWNER_IDS.includes("seller-vat"));
+  const cleared = productAnswerKey("pchelen-prashets-1kg", "summary");
+  assert.ok(
+    OWNER_IDS.indexOf("producers-text") < OWNER_IDS.indexOf("return-costs"),
+  );
   for (const [key, text] of [
-    ["food-registration", "Не трябва"],
-    ["seller-vat", "Не"],
+    ["return-costs", "Съгласен"],
+    ["producers-text", "Пчелари сме"],
     [withdrawn, "България"],
     [storage, "На сухо"],
     [composition, "Прашец"],
-    ["farmer-status", ""],
+    [cleared, ""],
   ]) {
     await saveOwnerAnswer({ key, text }, ADMIN);
   }
@@ -165,16 +174,15 @@ test("the export names each question in page order and leaves out cleared answer
         updatedBy: ADMIN,
       },
       {
-        key: "seller-vat",
-        question: "Регистриран ли сте по ЗДДС? Ако да — номерът.",
-        text: "Не",
+        key: "producers-text",
+        question: question("producers-text"),
+        text: "Пчелари сме",
         updatedBy: ADMIN,
       },
       {
-        key: "food-registration",
-        question:
-          "Трябва ли регистрация в БАБХ за продажбата на прашеца? Ако трябва и я имате — номерът и за какво е.",
-        text: "Не трябва",
+        key: "return-costs",
+        question: question("return-costs"),
+        text: "Съгласен",
         updatedBy: ADMIN,
       },
       {

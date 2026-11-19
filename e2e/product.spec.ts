@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
 import { ORGANIC } from "@/lib/organic";
+import { SELLER } from "@/lib/site";
 import { productPhotoTransitionName } from "@/lib/view-transition";
 
 const PUBLISHED_SLUG = "pchelen-prashets-500g";
@@ -106,6 +107,14 @@ test("the product page serves its data", async ({ page }) => {
     page.getByRole("term").filter({ hasText: "Нетно количество" }),
   ).toBeVisible();
   await expect(page.getByText("500 г", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("term").filter({ hasText: "Производител" }),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByRole("definition")
+      .filter({ hasText: `${SELLER.name}, ${SELLER.address}` }),
+  ).toBeVisible();
 });
 
 test("the gallery swaps the main image", async ({ page }) => {

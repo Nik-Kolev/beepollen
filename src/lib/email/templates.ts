@@ -21,10 +21,16 @@ import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
 import { formatWithdrawalTime } from "@/lib/withdrawal-messages";
 import {
   CONFORMITY,
+  DISPUTE_APPLICATION,
+  DISPUTE_BODIES,
   OFFICE_RETURN,
   REFUND_TERMS,
   RETURN_TERMS,
   SEALED_PACKAGES,
+  WITHDRAWAL_BY_FORM,
+  WITHDRAWAL_BY_STATEMENT,
+  WITHDRAWAL_DEADLINE,
+  WITHDRAWAL_FORM,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -192,8 +198,37 @@ const WITHDRAWAL_TERMS = [
   SEALED_PACKAGES,
   RETURN_TERMS,
   REFUND_TERMS,
-  CONFORMITY,
 ];
+
+const WITHDRAW_URL = `${SITE_URL}/withdraw`;
+
+const TERMS_URL = `${SITE_URL}/terms`;
+
+const WITHDRAWAL_WAYS_HTML = paragraph(
+  `Отказ можете да заявите онлайн на ${link(WITHDRAW_URL, WITHDRAW_URL)}, ${escapeHtml(WITHDRAWAL_BY_FORM)}, или ${escapeHtml(WITHDRAWAL_BY_STATEMENT)}. ${escapeHtml(WITHDRAWAL_DEADLINE)} Повече има в ${link(TERMS_URL, "общите условия")}.`,
+);
+
+const WITHDRAWAL_WAYS_TEXT = `Отказ можете да заявите онлайн на ${WITHDRAW_URL}, ${WITHDRAWAL_BY_FORM}, или ${WITHDRAWAL_BY_STATEMENT}. ${WITHDRAWAL_DEADLINE} Повече има в общите условия: ${TERMS_URL}.`;
+
+const DISPUTES_HTML = paragraph(
+  `${escapeHtml(DISPUTE_BODIES)} ${escapeHtml(DISPUTE_APPLICATION.lead)} ${link(DISPUTE_APPLICATION.href, DISPUTE_APPLICATION.label)}.`,
+);
+
+const DISPUTES_TEXT = `${DISPUTE_BODIES} ${DISPUTE_APPLICATION.lead} ${DISPUTE_APPLICATION.label}: ${DISPUTE_APPLICATION.href}.`;
+
+const WITHDRAWAL_FORM_HTML = `${paragraph(`<strong>${escapeHtml(WITHDRAWAL_FORM.title)}</strong><br>${escapeHtml(WITHDRAWAL_FORM.intro)}`)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 20px;background:${EMAIL_COLOR.ground};border-radius:8px;">
+<tr><td style="padding:12px 16px 4px;">
+${WITHDRAWAL_FORM.lines.map((line) => `<p style="margin:0 0 8px;">${escapeHtml(line)}</p>`).join("\n")}
+<p style="margin:0 0 8px;color:${EMAIL_COLOR.inkSoft};">${escapeHtml(WITHDRAWAL_FORM.note)}</p>
+</td></tr>
+</table>`;
+
+const WITHDRAWAL_FORM_TEXT = [
+  `${WITHDRAWAL_FORM.title}. ${WITHDRAWAL_FORM.intro}`,
+  ...WITHDRAWAL_FORM.lines,
+  WITHDRAWAL_FORM.note,
+].join("\n");
 
 export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
   const greeting = `Здравейте! Приехме поръчка ${order.reference}.`;
@@ -210,11 +245,12 @@ export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
         linesHtml(order),
         paragraph(`${escapeHtml(deliverySentence(order))} ${payment}`),
         ...WITHDRAWAL_TERMS.map((line) => paragraph(escapeHtml(line))),
-        paragraph(
-          `Формулярът за отказ е на ${link(`${SITE_URL}/withdraw`, `${SITE_URL}/withdraw`)}, а условията — на ${link(`${SITE_URL}/terms`, "страницата с общите условия")}.`,
-        ),
+        WITHDRAWAL_WAYS_HTML,
+        paragraph(escapeHtml(CONFORMITY)),
         LEGAL_GUARANTEE_HTML,
+        DISPUTES_HTML,
         paragraph(escapeHtml(SELLER_LINE)),
+        WITHDRAWAL_FORM_HTML,
         ...subscribedHtml(order),
       ].join("\n"),
     }),
@@ -224,9 +260,12 @@ export function orderAcceptedEmail(order: OrderEmailData): EmailMessage {
       linesText(order),
       `${deliverySentence(order)} ${payment}`,
       ...WITHDRAWAL_TERMS,
-      `Формулярът за отказ: ${SITE_URL}/withdraw. Общите условия: ${SITE_URL}/terms.`,
+      WITHDRAWAL_WAYS_TEXT,
+      CONFORMITY,
       LEGAL_GUARANTEE_TEXT,
+      DISPUTES_TEXT,
       SELLER_LINE,
+      WITHDRAWAL_FORM_TEXT,
       ...subscribedText(order),
       textFooter(),
     ].join("\n\n"),

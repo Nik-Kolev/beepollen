@@ -10,9 +10,15 @@ import { LEGAL_GUARANTEE_PATH } from "@/lib/legal-guarantee";
 import { CONTACT_EMAIL, OWNER_PHONE, SELLER } from "@/lib/site";
 import {
   CONFORMITY,
+  DISPUTE_APPLICATION,
+  DISPUTE_BODIES,
   REFUND_TERMS,
   RETURN_TERMS,
   SEALED_PACKAGES,
+  WITHDRAWAL_BY_FORM,
+  WITHDRAWAL_BY_STATEMENT,
+  WITHDRAWAL_DEADLINE,
+  WITHDRAWAL_FORM,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -38,16 +44,6 @@ const ORDER_STEPS = [
   "Отбелязвате, че сте прочели и приемате тези общи условия.",
   "Натискате „Поръчай с плащане при доставка“. С това договорът е сключен.",
   "Получавате номер на поръчката на екрана и потвърждение по имейл.",
-];
-
-const FORM_LINES = [
-  `До: ${SELLER.name}, ${SELLER.address}, имейл: ${CONTACT_EMAIL}`,
-  "С настоящото уведомявам/уведомяваме*, че се отказвам/отказваме* от сключения от мен/нас* договор за покупка на следните стоки:",
-  "Поръчано на*/получено на*:",
-  "Име на потребителя/ите:",
-  "Адрес на потребителя/ите:",
-  "Подпис на потребителя/ите (само в случай, че настоящият формуляр е на хартия):",
-  "Дата:",
 ];
 
 export default function TermsPage() {
@@ -131,13 +127,12 @@ export default function TermsPage() {
               в долната част на всяка страница — получавате потвърждение по
               имейл;
             </li>
-            <li>с формуляра по-долу, изпратен на имейла на продавача;</li>
-            <li>с друго недвусмислено заявление по телефона или по имейл.</li>
+            <li>{WITHDRAWAL_BY_FORM};</li>
+            <li>{WITHDRAWAL_BY_STATEMENT}.</li>
           </ul>
           <p>
-            Достатъчно е да изпратите заявлението преди края на 14-дневния срок.
-            След като го получим, ще ви се обадим, за да уговорим връщането.{" "}
-            {RETURN_TERMS}
+            {WITHDRAWAL_DEADLINE} След като го получим, ще ви се обадим, за да
+            уговорим връщането. {RETURN_TERMS}
           </p>
           <p>{REFUND_TERMS}</p>
         </Section>
@@ -164,16 +159,9 @@ export default function TermsPage() {
 
         <Section id="disputes" title="Решаване на спорове">
           <p>
-            Ако не постигнем съгласие, можете да се обърнете към орган за
-            алтернативно решаване на спорове: общата помирителна комисия към
-            Комисията за защита на потребителите със седалище в гр. Шумен, която
-            разглежда спорове от областите Шумен, Търговище и Разград. Заявление
-            се подава през{" "}
-            <a
-              href="https://kzp.bg/bg/kak-da-poiskam-formirane-pomiritelna-komisiya"
-              className={TEXT_LINK}
-            >
-              сайта на комисията
+            {DISPUTE_BODIES} {DISPUTE_APPLICATION.lead}{" "}
+            <a href={DISPUTE_APPLICATION.href} className={TEXT_LINK}>
+              {DISPUTE_APPLICATION.label}
             </a>
             .
           </p>
@@ -200,16 +188,13 @@ export default function TermsPage() {
           </p>
         </Section>
 
-        <Section id="form" title="Стандартен формуляр за отказ">
-          <p className="text-ink-soft text-sm">
-            Попълнете и изпратете настоящия формуляр единствено ако желаете да
-            се откажете от договора.
-          </p>
+        <Section id="form" title={WITHDRAWAL_FORM.title}>
+          <p className="text-ink-soft text-sm">{WITHDRAWAL_FORM.intro}</p>
           <div className="border-line bg-surface flex flex-col gap-2 rounded-xl border p-4 text-sm">
-            {FORM_LINES.map((line) => (
+            {WITHDRAWAL_FORM.lines.map((line) => (
               <p key={line}>{line}</p>
             ))}
-            <p className="text-ink-soft">* Ненужното се зачертава.</p>
+            <p className="text-ink-soft">{WITHDRAWAL_FORM.note}</p>
           </div>
         </Section>
       </article>

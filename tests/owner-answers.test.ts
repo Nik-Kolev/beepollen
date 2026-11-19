@@ -46,7 +46,7 @@ test("the todo items' keys are unique", () => {
 
 test("a key the page never renders is refused and nothing is stored", async () => {
   for (const key of [
-    "return-costsx",
+    "producers-textx",
     "emails",
     "hosting",
     "contact-email",
@@ -75,14 +75,14 @@ test("a key the page never renders is refused and nothing is stored", async () =
 test("an answer over the limit is refused, one at the limit is kept", async () => {
   assert.deepEqual(
     await saveOwnerAnswer(
-      { key: "return-costs", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH + 1) },
+      { key: "producers-text", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH + 1) },
       ADMIN,
     ),
     { ok: false, code: "TOO_LONG" },
   );
   assert.deepEqual(
     await saveOwnerAnswer(
-      { key: "return-costs", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH) },
+      { key: "producers-text", text: "а".repeat(OWNER_ANSWER_MAX_LENGTH) },
       ADMIN,
     ),
     { ok: true },
@@ -90,7 +90,7 @@ test("an answer over the limit is refused, one at the limit is kept", async () =
   assert.deepEqual(
     await saveOwnerAnswer(
       {
-        key: "return-costs",
+        key: "producers-text",
         text: ` \n${"а".repeat(OWNER_ANSWER_MAX_LENGTH)}\n `,
       },
       ADMIN,
@@ -100,18 +100,18 @@ test("an answer over the limit is refused, one at the limit is kept", async () =
 });
 
 test("saving again overwrites the answer, trimmed, and records who saved it", async () => {
-  await saveOwnerAnswer({ key: "return-costs", text: "5 години" }, ADMIN);
+  await saveOwnerAnswer({ key: "producers-text", text: "5 години" }, ADMIN);
   await saveOwnerAnswer(
-    { key: "return-costs", text: "  5 години, после се трият \n" },
+    { key: "producers-text", text: "  5 години, после се трият \n" },
     "owner@example.com",
   );
 
   const row = await prisma.ownerAnswer.findUniqueOrThrow({
-    where: { key: "return-costs" },
+    where: { key: "producers-text" },
   });
   assert.equal(row.text, "5 години, после се трият");
   assert.equal(row.updatedBy, "owner@example.com");
-  assert.equal((await listOwnerAnswers()).get("return-costs"), row.text);
+  assert.equal((await listOwnerAnswers()).get("producers-text"), row.text);
 });
 
 test("the export names each question in page order and leaves out cleared answers", async () => {
@@ -119,11 +119,7 @@ test("the export names each question in page order and leaves out cleared answer
   const composition = productAnswerKey("pchelen-prashets-1kg", "composition");
   const withdrawn = productAnswerKey("spryan-produkt", "origin");
   const cleared = productAnswerKey("pchelen-prashets-1kg", "summary");
-  assert.ok(
-    OWNER_IDS.indexOf("producers-text") < OWNER_IDS.indexOf("return-costs"),
-  );
   for (const [key, text] of [
-    ["return-costs", "Съгласен"],
     ["producers-text", "Пчелари сме"],
     [withdrawn, "България"],
     [storage, "На сухо"],
@@ -140,6 +136,7 @@ test("the export names each question in page order and leaves out cleared answer
         updatedBy: ADMIN,
       },
       { key: "hosting", text: "DigitalOcean", updatedBy: ADMIN },
+      { key: "return-costs", text: "Съгласен", updatedBy: ADMIN },
     ],
   });
 
@@ -180,12 +177,6 @@ test("the export names each question in page order and leaves out cleared answer
         updatedBy: ADMIN,
       },
       {
-        key: "return-costs",
-        question: question("return-costs"),
-        text: "Съгласен",
-        updatedBy: ADMIN,
-      },
-      {
         key: "hosting",
         question: "hosting",
         text: "DigitalOcean",
@@ -195,6 +186,12 @@ test("the export names each question in page order and leaves out cleared answer
         key: "product:pchelen-prashets-1kg:price",
         question: "product:pchelen-prashets-1kg:price",
         text: "15",
+        updatedBy: ADMIN,
+      },
+      {
+        key: "return-costs",
+        question: "return-costs",
+        text: "Съгласен",
         updatedBy: ADMIN,
       },
     ],

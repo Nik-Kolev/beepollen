@@ -135,12 +135,14 @@ which reads as an outage. That limit counts whole addresses: if the droplet
 is ever given an IPv6 address, one client holds a /64 of them and each gets
 its own allowance, so key the zone on the /64 before adding an AAAA record.
 The access log writes an IPv4 address with its last block zeroed and an IPv6
-one as its first two groups, which `/privacy` relies on to leave it out, and
-the path without its query string, so an unsubscribe link's token stays out
-of it; each server block sets it, since one at the site's top level would add
-a second log beside `nginx.conf`'s full-IP one. `error.log` still names the
-full address and the request with its query string, on errors only — an
-upstream that is down during a deploy, a request over the rate limit.
+one as its first two groups, and the path without its query string, so an
+unsubscribe link's token stays out of it; each server block sets it, since one
+at the site's top level would add a second log beside `nginx.conf`'s full-IP
+one. `error.log` still names the full address and the request with its query
+string, on errors only — an upstream that is down during a deploy, a request
+over the rate limit. `/privacy` describes both logs and their 15 days, the
+nginx package's logrotate keeping 14 daily files, so a change to either
+changes it.
 Security headers come from `next.config.ts`, not from here, so they are not
 sent twice.
 

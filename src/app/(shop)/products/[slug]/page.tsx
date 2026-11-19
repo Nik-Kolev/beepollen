@@ -12,7 +12,7 @@ import {
   getPublishedProductBySlug,
   listPublishedProductSlugs,
 } from "@/lib/products";
-import { SITE_URL } from "@/lib/site";
+import { SELLER, SITE_URL } from "@/lib/site";
 
 export async function generateStaticParams() {
   const products = await listPublishedProductSlugs();
@@ -63,6 +63,7 @@ export default async function ProductPage({
     ["Условия на съхранение", product.storage],
     ["Срок на годност", product.bestBefore],
     ["Алергени", product.allergenInfo],
+    ["Производител", `${SELLER.name}, ${SELLER.address}`],
   ];
   const productInformation = information.filter(
     (row): row is [string, string] => row[1] !== null,

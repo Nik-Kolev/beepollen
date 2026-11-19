@@ -42,11 +42,12 @@ test("the todo page asks the owner's open questions and nothing the seed already
   await expect(page.getByRole("textbox", { name: "Цена (€)" })).toHaveCount(0);
   await expect(page.getByRole("textbox", { name: "Сорт" })).toHaveCount(0);
 
-  for (const group of ["Продукти и „За нас“", "Отворени въпроси"]) {
-    await expect(
-      page.getByRole("region", { name: group }).getByRole("listitem").first(),
-    ).toBeVisible();
-  }
+  await expect(
+    page
+      .getByRole("region", { name: "Продукти и „За нас“" })
+      .getByRole("listitem")
+      .first(),
+  ).toBeVisible();
 
   await expect(
     page.getByRole("region", { name: /Попълват се при старта/ }),
@@ -62,65 +63,69 @@ test("the todo page asks the owner's open questions and nothing the seed already
   ).toEqual([]);
 });
 
-test("an answer saved on the todo page is there after a reload and in the download", async ({
-  page,
-  context,
-  isMobile,
-}) => {
-  test.skip(isMobile, "Both projects write the same row.");
-  await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin/todo");
+test.describe("the one answerable question, written by one test at a time", () => {
+  test.describe.configure({ mode: "default" });
 
-  const answer = `Пчелен прашец ООД, гр. Попово ${Date.now()}`;
-  const form = answerForm(page, question("producers-text"));
-  await form.getByRole("textbox").fill(answer);
-  await form.getByRole("button", { name: "Запази" }).click();
-  await expect(form.getByRole("status")).toHaveText("Запазено.");
+  test("an answer saved on the todo page is there after a reload and in the download", async ({
+    page,
+    context,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "Both projects write the same row.");
+    await signInAs(context, TEST_ADMIN_EMAIL);
+    await page.goto("/admin/todo");
 
-  await page.reload();
-  await expect(form.getByRole("textbox")).toHaveValue(answer);
+    const answer = `Пчелен прашец ООД, гр. Попово ${Date.now()}`;
+    const form = answerForm(page, question("producers-text"));
+    await form.getByRole("textbox").fill(answer);
+    await form.getByRole("button", { name: "Запази" }).click();
+    await expect(form.getByRole("status")).toHaveText("Запазено.");
 
-  const download = page.waitForEvent("download");
-  await page.getByRole("link", { name: "Изтегли отговорите" }).click();
-  const file = await (await download).path();
-  const rows = JSON.parse(readFileSync(file, "utf8")) as {
-    key: string;
-    question: string;
-    text: string;
-    updatedBy: string;
-  }[];
+    await page.reload();
+    await expect(form.getByRole("textbox")).toHaveValue(answer);
 
-  expect(rows).toContainEqual(
-    expect.objectContaining({
-      key: "producers-text",
-      question: question("producers-text"),
-      text: answer,
-      updatedBy: TEST_ADMIN_EMAIL,
-    }),
-  );
-});
+    const download = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Изтегли отговорите" }).click();
+    const file = await (await download).path();
+    const rows = JSON.parse(readFileSync(file, "utf8")) as {
+      key: string;
+      question: string;
+      text: string;
+      updatedBy: string;
+    }[];
 
-test("text typed while a save is in flight is never reported as saved", async ({
-  page,
-  context,
-  isMobile,
-}) => {
-  test.skip(isMobile, "Both projects write the same row.");
-  await signInAs(context, TEST_ADMIN_EMAIL);
-  await page.goto("/admin/todo");
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        key: "producers-text",
+        question: question("producers-text"),
+        text: answer,
+        updatedBy: TEST_ADMIN_EMAIL,
+      }),
+    );
+  });
 
-  const form = answerForm(page, question("return-costs"));
-  const field = form.getByRole("textbox");
-  await field.fill("Не");
-  const saved = page.waitForResponse(
-    (response) => response.request().method() === "POST",
-  );
-  await form.getByRole("button", { name: "Запази" }).click();
-  await field.pressSequentially(", не трябва");
-  await saved;
-  await page.waitForTimeout(2000);
+  test("text typed while a save is in flight is never reported as saved", async ({
+    page,
+    context,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "Both projects write the same row.");
+    await signInAs(context, TEST_ADMIN_EMAIL);
+    await page.goto("/admin/todo");
 
-  expect(await form.getByRole("status").textContent()).toBe("");
+    const form = answerForm(page, question("producers-text"));
+    const field = form.getByRole("textbox");
+    await field.fill("Не");
+    const saved = page.waitForResponse(
+      (response) => response.request().method() === "POST",
+    );
+    await form.getByRole("button", { name: "Запази" }).click();
+    await field.pressSequentially(", не трябва");
+    await saved;
+    await page.waitForTimeout(2000);
+
+    expect(await form.getByRole("status").textContent()).toBe("");
+  });
 });
 
 test("the answers download is refused to anyone not signed in as an admin", async ({

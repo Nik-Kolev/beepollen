@@ -25,11 +25,17 @@ import prisma from "@/lib/prisma";
 import { CONTACT_EMAIL, OWNER_PHONE, SELLER, SITE_URL } from "@/lib/site";
 import {
   CONFORMITY,
+  DISPUTE_APPLICATION,
+  DISPUTE_BODIES,
   LOCAL_RETURN,
   OFFICE_RETURN,
   REFUND_TERMS,
   RETURN_TERMS,
   SEALED_PACKAGES,
+  WITHDRAWAL_BY_FORM,
+  WITHDRAWAL_BY_STATEMENT,
+  WITHDRAWAL_DEADLINE,
+  WITHDRAWAL_FORM,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -247,7 +253,7 @@ test("the withdrawal email restates the phone and the email of the order withdra
   }
 });
 
-test("the accepted order carries the seller and the same withdrawal terms as /terms", () => {
+test("the accepted order carries the seller and the same withdrawal terms, dispute bodies and withdrawal form as /terms", () => {
   const { html, text } = orderAcceptedEmail(ORDER);
 
   for (const body of [html, text]) {
@@ -259,9 +265,20 @@ test("the accepted order carries the seller and the same withdrawal terms as /te
     for (const sentence of [
       WITHDRAWAL_RIGHT,
       SEALED_PACKAGES,
+      WITHDRAWAL_BY_FORM,
+      WITHDRAWAL_BY_STATEMENT,
+      WITHDRAWAL_DEADLINE,
       RETURN_TERMS,
       REFUND_TERMS,
       CONFORMITY,
+      DISPUTE_BODIES,
+      DISPUTE_APPLICATION.lead,
+      DISPUTE_APPLICATION.label,
+      DISPUTE_APPLICATION.href,
+      WITHDRAWAL_FORM.title,
+      WITHDRAWAL_FORM.intro,
+      ...WITHDRAWAL_FORM.lines,
+      WITHDRAWAL_FORM.note,
     ]) {
       assert.ok(body.includes(sentence), sentence);
     }

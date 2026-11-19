@@ -7,9 +7,15 @@ import {
 } from "@/lib/legal-guarantee";
 import {
   CONFORMITY,
+  DISPUTE_APPLICATION,
+  DISPUTE_BODIES,
   REFUND_TERMS,
   RETURN_TERMS,
   SEALED_PACKAGES,
+  WITHDRAWAL_BY_FORM,
+  WITHDRAWAL_BY_STATEMENT,
+  WITHDRAWAL_DEADLINE,
+  WITHDRAWAL_FORM,
   WITHDRAWAL_RIGHT,
 } from "@/lib/withdrawal-terms";
 
@@ -114,6 +120,9 @@ test("the terms carry the withdrawal wording the order email repeats", async ({
   for (const sentence of [
     WITHDRAWAL_RIGHT,
     SEALED_PACKAGES,
+    WITHDRAWAL_BY_FORM,
+    WITHDRAWAL_BY_STATEMENT,
+    WITHDRAWAL_DEADLINE,
     RETURN_TERMS,
     REFUND_TERMS,
   ]) {
@@ -122,6 +131,35 @@ test("the terms carry the withdrawal wording the order email repeats", async ({
   await expect(page.getByRole("region", { name: "Рекламации" })).toContainText(
     CONFORMITY,
   );
+});
+
+test("the terms name the dispute bodies the order email repeats and link the application", async ({
+  page,
+}) => {
+  await page.goto("/terms");
+
+  const disputes = page.getByRole("region", { name: "Решаване на спорове" });
+  await expect(disputes).toContainText(
+    `${DISPUTE_BODIES} ${DISPUTE_APPLICATION.lead} ${DISPUTE_APPLICATION.label}.`,
+  );
+  await expect(
+    disputes.getByRole("link", { name: DISPUTE_APPLICATION.label }),
+  ).toHaveAttribute("href", DISPUTE_APPLICATION.href);
+});
+
+test("the terms carry the model withdrawal form the order email repeats", async ({
+  page,
+}) => {
+  await page.goto("/terms");
+
+  const form = page.getByRole("region", { name: WITHDRAWAL_FORM.title });
+  for (const line of [
+    WITHDRAWAL_FORM.intro,
+    ...WITHDRAWAL_FORM.lines,
+    WITHDRAWAL_FORM.note,
+  ]) {
+    await expect(form).toContainText(line);
+  }
 });
 
 test("the terms link to the privacy and cookie pages", async ({ page }) => {

@@ -52,7 +52,7 @@ test("a product with no photo and no food information shows only what it has", a
     }),
   ).toBeVisible();
   await expect.poll(() => imageNames(page)).toEqual([ORGANIC.logoAlt]);
-  await expect(main.locator("dt")).toHaveText(["Описание"]);
+  await expect(main.locator("dt")).toHaveText(["Описание", "Производител"]);
 
   const jsonLd = JSON.parse(
     (await page.locator('script[type="application/ld+json"]').textContent()) ??

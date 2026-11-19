@@ -36,13 +36,17 @@ The owner's phone is a real fact he supplied and lives once, as `OWNER_PHONE` in
 `src/lib/site.ts`; every page that shows it reads it from there. The shop's
 contact address, `CONTACT_EMAIL`, lives beside it the same way, and so does
 `SELLER` — the name, address and ЕИК that `/terms`, `/privacy` and the order
-confirmation print, and the legal status `/terms` prints.
+confirmation print, the name and address of the product pages' „Производител“
+row, and the legal status `/terms` prints.
 
 On a withdrawal the refund covers the goods only: the delivery and the
-cash-on-delivery fee, paid to the courier, are not refunded. That stands until
-the owner answers `return-costs` on `/admin/todo`, and was chosen knowing that
-ЗЗП чл. 54, ал. 1 likely requires the cheapest standard delivery back. `/terms`
-and the order confirmation say it in the same words and change together.
+cash-on-delivery fee, paid to the courier, are not refunded. The owner chose
+that on 18 Nov 2026, told that ЗЗП чл. 54, ал. 1 likely requires the cheapest
+standard delivery back. That, the withdrawal terms the confirmation repeats,
+the dispute bodies and the model withdrawal form are constants in
+`src/lib/withdrawal-terms.ts`, which `/terms` and the order confirmation both
+render, since ЗЗП чл. 49, ал. 8 has the confirmation repeat all that чл. 47,
+ал. 1 lists.
 
 Prices are the single exception, added because checkout cannot be tested against
 a catalogue that costs nothing. They live in the seed's `TODO_PRICE` object,

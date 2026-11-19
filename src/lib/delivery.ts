@@ -6,7 +6,7 @@ export { DeliveryMethod };
 export const LOCAL_DELIVERY_CITY = "Попово";
 
 export const DELIVERY_PERIOD =
-  "Срокът за доставка обикновено е до 48 часа от поръчката и зависи от куриера и натовареността му.";
+  "Срокът за доставка е до 2 работни дни от поръчката.";
 
 export const DISPATCH_NOTE = `${DELIVERY_PERIOD} Ако има промяна, ще се свържем с вас.`;
 

@@ -82,6 +82,22 @@ export default async function ProductPage({
         unitCode: "GRM",
       },
     }),
+    ...(product.priceCents > 0 && {
+      offers: {
+        "@type": "Offer",
+        url: new URL(`/products/${product.slug}`, SITE_URL).href,
+        price: (product.priceCents / 100).toFixed(2),
+        priceCurrency: "EUR",
+        ...(product.promotionEndsOn && {
+          priceValidUntil: product.promotionEndsOn,
+        }),
+        availability:
+          product.stock === "NONE"
+            ? "https://schema.org/OutOfStock"
+            : "https://schema.org/InStock",
+        itemCondition: "https://schema.org/NewCondition",
+      },
+    }),
   };
 
   return (

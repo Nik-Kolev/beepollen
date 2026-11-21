@@ -356,10 +356,11 @@ the same change. The home page's `OnlineStore` JSON-LD carries only facts the
 owner has confirmed — the name, `OWNER_PHONE` and Попово — and gains a field
 only when its value stops being `TODO:`.
 
-The product page's JSON-LD carries no `offers` on purpose. Every price is a
-placeholder until the owner supplies real ones, and a structured price is one
-search engines will publish — which was true of the €0.00 that came before these
-and is worse now that the numbers look real.
+The product page's JSON-LD carries `offers` with the price the database holds
+today, a promotion's included. Production's prices are the owner's own, set in
+the admin; a database seeded from `TODO_PRICE` publishes those invented ones,
+which only the `noindex` showcase keeps out of search until launch deletes
+them. A product whose price is still zero carries no `offers`.
 
 ## Email
 

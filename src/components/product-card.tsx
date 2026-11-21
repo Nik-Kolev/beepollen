@@ -93,6 +93,8 @@ export function ProductCard({
             <ProductPrice
               priceCents={product.priceCents}
               regularPriceCents={product.regularPriceCents}
+              netWeightGrams={product.netWeightGrams}
+              promotionEndsOn={product.promotionEndsOn}
               size="card"
             />
             <span

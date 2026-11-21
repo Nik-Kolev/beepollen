@@ -159,6 +159,8 @@ export function CartContents({ products }: { products: CartProduct[] }) {
                   <ProductPrice
                     priceCents={product.priceCents}
                     regularPriceCents={product.regularPriceCents}
+                    netWeightGrams={product.netWeightGrams}
+                    promotionEndsOn={product.promotionEndsOn}
                     size="line"
                     perUnit
                   />

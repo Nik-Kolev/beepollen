@@ -371,7 +371,17 @@ test("the city the arrow keys reach is scrolled into the list's view", async ({
 
   const active = page.locator('[role="option"][aria-selected="true"]');
   await expect(active).toHaveAttribute("id", /-11$/);
-  await expect(active).toBeInViewport({ ratio: 1 });
+  await expect
+    .poll(() =>
+      active.evaluate((option) => {
+        const list = option.closest('[role="listbox"]');
+        if (!list) return false;
+        const inner = option.getBoundingClientRect();
+        const outer = list.getBoundingClientRect();
+        return inner.top >= outer.top && inner.bottom <= outer.bottom;
+      }),
+    )
+    .toBe(true);
 });
 
 test("choosing a city moves focus on to the control that continues the choice", async ({

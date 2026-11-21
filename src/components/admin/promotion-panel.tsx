@@ -17,7 +17,7 @@ import {
 import { FIELD, FIELD_INVALID, LABEL } from "@/components/form-styles";
 import type { PromotionRefusal, PromotionStatus } from "@/lib/admin-promotions";
 import { formatPrice } from "@/lib/money";
-import { promoPriceCents } from "@/lib/promotions";
+import { lastPromotionDay, promoPriceCents } from "@/lib/promotions";
 
 export type PanelPromotion = {
   id: number;
@@ -47,6 +47,7 @@ const FAILURE_TEXT: Record<Failure, string> = {
   INVALID_PRICE: "Въведете цена над нула, например 6,50.",
   NOT_LOWER: "Промоционалната цена трябва да е по-ниска от редовната.",
   INVALID_DATES: "Крайната дата е преди началната.",
+  TOO_LONG: "Промоцията може да продължи най-много един месец.",
   ENDS_IN_PAST: "Крайната дата вече е минала.",
   STARTS_IN_PAST: "Началната дата вече е минала.",
   ALREADY_OPEN: "Продуктът вече има промоция. Редактирайте я или я прекратете.",
@@ -198,6 +199,7 @@ export function PromotionPanel({
   const datesInvalid =
     status === "INVALID_INPUT" ||
     status === "INVALID_DATES" ||
+    status === "TOO_LONG" ||
     status === "ENDS_IN_PAST" ||
     status === "STARTS_IN_PAST";
 
@@ -376,6 +378,11 @@ export function PromotionPanel({
                 type="date"
                 value={endsOn}
                 min={startsOn}
+                max={
+                  /^\d{4}-\d{2}-\d{2}$/.test(startsOn)
+                    ? lastPromotionDay(startsOn)
+                    : undefined
+                }
                 onChange={(event) => {
                   setEndsOn(event.target.value);
                   setStatus("idle");

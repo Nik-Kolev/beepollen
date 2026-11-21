@@ -2,7 +2,11 @@ import { z } from "zod";
 
 import { parsePriceCents } from "@/lib/admin-products";
 import prisma from "@/lib/prisma";
-import { promoPriceCents, sofiaToday } from "@/lib/promotions";
+import {
+  lastPromotionDay,
+  promoPriceCents,
+  sofiaToday,
+} from "@/lib/promotions";
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -27,6 +31,7 @@ export type PromotionRefusal =
   | "INVALID_PRICE"
   | "NOT_LOWER"
   | "INVALID_DATES"
+  | "TOO_LONG"
   | "ENDS_IN_PAST"
   | "STARTS_IN_PAST"
   | "ALREADY_OPEN"
@@ -63,6 +68,9 @@ export async function savePromotion(
     };
   }
   if (endsOn < startsOn) return { ok: false, code: "INVALID_DATES" };
+  if (endsOn > lastPromotionDay(startsOn)) {
+    return { ok: false, code: "TOO_LONG" };
+  }
   if (endsOn < today) return { ok: false, code: "ENDS_IN_PAST" };
   if (id === undefined && startsOn < today) {
     return { ok: false, code: "STARTS_IN_PAST" };

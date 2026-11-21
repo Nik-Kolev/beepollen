@@ -11,6 +11,16 @@ export function sofiaToday(now = new Date()) {
   return sofiaDay.format(now);
 }
 
+export function lastPromotionDay(startsOn: string) {
+  const [year, month, day] = startsOn.split("-").map(Number);
+  const daysInNextMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const sameDayNextMonth = new Date(
+    Date.UTC(year, month, Math.min(day, daysInNextMonth)),
+  );
+  sameDayNextMonth.setUTCDate(sameDayNextMonth.getUTCDate() - 1);
+  return sameDayNextMonth.toISOString().slice(0, 10);
+}
+
 export function promoPriceCents(regularCents: number, terms: PromotionTerms) {
   const cents =
     terms.kind === "PRICE"

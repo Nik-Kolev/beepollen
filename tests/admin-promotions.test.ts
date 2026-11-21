@@ -8,6 +8,7 @@ import {
   promotionStatus,
   savePromotion,
 } from "@/lib/admin-promotions";
+import { lastPromotionDay } from "@/lib/promotions";
 import prisma from "@/lib/prisma";
 
 const ADMIN = "admin@example.com";
@@ -97,6 +98,7 @@ test("a bad percentage, price or date is refused with its own reason", async () 
     [{ value: "150" }, "INVALID_PERCENT"],
     [{ kind: "PRICE", value: "0" }, "INVALID_PRICE"],
     [{ startsOn: "2026-11-20", endsOn: "2026-11-19" }, "INVALID_DATES"],
+    [{ startsOn: "2026-11-14", endsOn: "2026-12-14" }, "TOO_LONG"],
     [{ startsOn: "2026-11-01", endsOn: "2026-11-13" }, "ENDS_IN_PAST"],
     [{ startsOn: "2026-11-13" }, "STARTS_IN_PAST"],
     [{ startsOn: "2026-02-30" }, "INVALID_INPUT"],
@@ -112,6 +114,23 @@ test("a bad percentage, price or date is refused with its own reason", async () 
   assert.equal(
     await prisma.promotion.count({ where: { product: { slug } } }),
     0,
+  );
+});
+
+test("a promotion lasts at most a month: to the day before the same date next month", async () => {
+  assert.equal(lastPromotionDay("2026-11-14"), "2026-12-13");
+  assert.equal(lastPromotionDay("2026-12-15"), "2027-01-14");
+  assert.equal(lastPromotionDay("2027-01-31"), "2027-02-27");
+  assert.equal(lastPromotionDay("2026-11-01"), "2026-11-30");
+
+  const slug = await product();
+  assert.deepEqual(
+    await savePromotion(
+      input(slug, { startsOn: "2026-11-14", endsOn: "2026-12-13" }),
+      ADMIN,
+      TODAY,
+    ),
+    { ok: true, slug },
   );
 });
 

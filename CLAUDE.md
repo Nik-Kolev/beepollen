@@ -549,13 +549,17 @@ A `Promotion` lowers one product's price, as a percentage or a fixed price, from
 passes its product through `withPromotion`, so `priceCents` is the price being
 charged today and `regularPriceCents` is the undiscounted one, or `null` when no
 promotion applies; code that wants the regular price reads the second field.
-Prerendered pages only change on a revalidation, which is why a date taking
+`promotionEndsOn` comes with them, since ЗЗП чл. 63, т. 3 has every shown
+reduction state until when it holds. Prerendered pages only change on a revalidation, which is why a date taking
 effect needs one. The struck-through price shown beside a promotion is always the
 regular price — the owner's decision, made knowing that the Omnibus rule in ЗЗП
 asks for the lowest price of the previous 30 days, so a promotion repeated within
 30 days strictly needs the earlier promotion's price instead. `ProductPrice`
-draws every product price in the shop, the struck price and the percentage
-with it, so a new place that shows one renders it too.
+draws every product price in the shop, the struck price, the percentage and
+the end date with it, so a new place that shows one renders it too. Given the
+net weight it adds the price per kilogram, which ЗЗП чл. 21 wants beside every
+advertised price, the campaign emails included; the kilogram pack is exempt
+(чл. 20, ал. 3), so `pricePerKiloCents` returns none for it.
 
 Promotions are added, edited and ended under each product on
 `/admin/products`, by `savePromotion` and `endPromotion` in

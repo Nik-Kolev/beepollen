@@ -16,6 +16,8 @@ const PRODUCT: CampaignProductData = {
   image: { path: "/products/pollen-500g-bag.jpg", alt: "Пакет прашец" },
   priceCents: 1200,
   regularPriceCents: null,
+  promotionEndsOn: null,
+  netWeightGrams: 500,
 };
 
 const OTHER: CampaignProductData = {
@@ -24,6 +26,7 @@ const OTHER: CampaignProductData = {
   name: "Пчелен прашец 1 кг",
   image: null,
   priceCents: 2200,
+  netWeightGrams: 1000,
 };
 
 const promotion = () =>
@@ -50,7 +53,41 @@ test("the promotion email shows the photo, the struck regular price, the promoti
   assert.match(html, /От 16\.11\.2026 до 22\.11\.2026 включително\./);
   assert.match(
     text,
-    /9,60\s€ вместо 12,00\s€\. От 16\.11\.2026 до 22\.11\.2026/,
+    /9,60\s€ вместо 12,00\s€ \(19,20\s€\/кг\)\. От 16\.11\.2026 до 22\.11\.2026/,
+  );
+});
+
+test("a pack lighter than a kilogram shows its price per kilogram; the kilogram pack does not", () => {
+  const { html, text } = restockEmail({
+    text: "Ново",
+    products: [PRODUCT, OTHER],
+    unsubscribeUrl: UNSUBSCRIBE,
+  });
+
+  assert.match(html, /24,00\s€\/кг/);
+  assert.match(text, /Пчелен прашец 500 г — 12,00\s€ \(24,00\s€\/кг\): /);
+  assert.match(text, /Пчелен прашец 1 кг — 22,00\s€: /);
+  assert.equal(html.match(/\/кг</g)?.length, 1);
+});
+
+test("a restocked product on promotion says until when its promotion price holds", () => {
+  const { html, text } = restockEmail({
+    text: "Ново",
+    products: [
+      {
+        ...PRODUCT,
+        priceCents: 960,
+        regularPriceCents: 1200,
+        promotionEndsOn: "2026-11-30",
+      },
+    ],
+    unsubscribeUrl: UNSUBSCRIBE,
+  });
+
+  assert.ok(html.includes("Промоционалната цена е до 30.11.2026 включително."));
+  assert.match(
+    text,
+    /Пчелен прашец 500 г — 9,60\s€ вместо 12,00\s€ \(19,20\s€\/кг\)\. Промоционалната цена е до 30\.11\.2026 включително: https?:\/\/\S+\/products\/pchelen-prashets-500g/,
   );
 });
 

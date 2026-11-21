@@ -106,9 +106,13 @@ test("a promotion started today shows the struck regular price on every shop pag
   await signInAs(context, TEST_ADMIN_EMAIL);
   await saveProduct(page, SEEDED.price, SEEDED.stock);
 
-  const today = new Intl.DateTimeFormat("en-CA", {
+  const sofiaDay = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Europe/Sofia",
-  }).format(new Date());
+  });
+  const today = sofiaDay.format(new Date());
+  const next = new Date(`${today}T00:00:00Z`);
+  next.setUTCDate(next.getUTCDate() + 1);
+  const tomorrow = next.toISOString().slice(0, 10);
   const article = page
     .getByRole("article")
     .filter({ has: page.getByRole("heading", { name: PRODUCT, exact: true }) });
@@ -117,7 +121,7 @@ test("a promotion started today shows the struck regular price on every shop pag
   const form = panel.getByRole("form", { name: `Промоция за ${PRODUCT}` });
   await form.getByLabel("Процент (%)").fill("20");
   await form.getByLabel("От").fill(today);
-  await form.getByLabel("До (включително)").fill(today);
+  await form.getByLabel("До (включително)").fill(tomorrow);
   await form.getByRole("button", { name: "Добави промоция" }).click();
   await expect(panel.getByRole("status")).toHaveText("Запазено.");
 
@@ -126,11 +130,13 @@ test("a promotion started today shows the struck regular price on every shop pag
   const card = page.getByRole("article").filter({ hasText: PRODUCT });
   await expect(card).toContainText("Промоционална цена 36,72 €");
   await expect(card.locator("s")).toHaveText("Редовна цена 45,90 €");
-  await expect(card).toContainText("−20%");
+  const badge = `−20% до ${tomorrow.split("-").reverse().join(".").slice(0, 5)}`;
+  await expect(card.getByText(badge, { exact: true })).toBeVisible();
 
   await page.goto(`/products/${SLUG}`);
   await expect(main).toContainText("Промоционална цена 36,72 €");
   await expect(main.locator("s")).toHaveText("Редовна цена 45,90 €");
+  await expect(main.getByText(badge, { exact: true })).toBeVisible();
 
   await seedCart(page, {
     version: 2,
@@ -139,6 +145,7 @@ test("a promotion started today shows the struck regular price on every shop pag
   await page.goto("/cart");
   await expect(main).toContainText("Промоционална цена 36,72 € / бр.");
   await expect(main.locator("s")).toHaveText("Редовна цена 45,90 €");
+  await expect(main.getByText(badge, { exact: true })).toBeVisible();
   await expect(page.getByText("Общо:")).toHaveText("Общо: 73,44 €");
 
   await page.goto("/checkout");

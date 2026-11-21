@@ -82,12 +82,13 @@ test("withPromotion keeps the regular price beside the promo price", () => {
   const product = withPromotion({
     slug: "x",
     priceCents: 1000,
-    promotions: [{ kind: "PERCENT", value: 30 }],
+    promotions: [{ kind: "PERCENT", value: 30, endsOn: "2026-11-30" }],
   });
   assert.deepEqual(product, {
     slug: "x",
     priceCents: 700,
     regularPriceCents: 1000,
+    promotionEndsOn: "2026-11-30",
   });
 });
 
@@ -101,6 +102,7 @@ test("withPromotion without a promotion leaves the price and no regular price", 
     slug: "x",
     priceCents: 1000,
     regularPriceCents: null,
+    promotionEndsOn: null,
   });
 });
 

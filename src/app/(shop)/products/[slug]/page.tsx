@@ -115,6 +115,8 @@ export default async function ProductPage({
             <ProductPrice
               priceCents={product.priceCents}
               regularPriceCents={product.regularPriceCents}
+              netWeightGrams={product.netWeightGrams}
+              promotionEndsOn={product.promotionEndsOn}
               size="page"
             />
 

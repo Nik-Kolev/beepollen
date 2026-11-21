@@ -50,6 +50,7 @@ const PRODUCT_FIELDS = {
   slug: true,
   name: true,
   priceCents: true,
+  netWeightGrams: true,
   images: {
     orderBy: { sortOrder: "asc" as const },
     take: 1,
@@ -62,6 +63,8 @@ function toProductData(product: {
   name: string;
   priceCents: number;
   regularPriceCents: number | null;
+  promotionEndsOn: string | null;
+  netWeightGrams: number | null;
   images: { path: string; alt: string }[];
 }): CampaignProductData {
   return {
@@ -70,6 +73,8 @@ function toProductData(product: {
     image: product.images[0] ?? null,
     priceCents: product.priceCents,
     regularPriceCents: product.regularPriceCents,
+    promotionEndsOn: product.promotionEndsOn,
+    netWeightGrams: product.netWeightGrams,
   };
 }
 
@@ -94,7 +99,11 @@ async function composer(draft: Draft, today: string): Promise<Compose | null> {
       promotionEmail({
         text: draft.text,
         product: {
-          ...toProductData({ ...product, regularPriceCents: null }),
+          ...toProductData({
+            ...product,
+            regularPriceCents: null,
+            promotionEndsOn: null,
+          }),
           priceCents: cents,
           regularPriceCents: product.priceCents,
         },

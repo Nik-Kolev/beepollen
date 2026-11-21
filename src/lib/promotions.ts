@@ -42,12 +42,15 @@ export function activePromotionQuery(today: string) {
     where: { startsOn: { lte: today }, endsOn: { gte: today }, endedAt: null },
     orderBy: { createdAt: "desc" as const },
     take: 1,
-    select: { kind: true, value: true },
+    select: { kind: true, value: true, endsOn: true },
   };
 }
 
 export function withPromotion<
-  T extends { priceCents: number; promotions: PromotionTerms[] },
+  T extends {
+    priceCents: number;
+    promotions: (PromotionTerms & { endsOn: string })[];
+  },
 >(product: T) {
   const { promotions, ...rest } = product;
   const promo = promotions[0];
@@ -57,5 +60,6 @@ export function withPromotion<
     ...rest,
     priceCents: cents ?? product.priceCents,
     regularPriceCents: cents === null ? null : product.priceCents,
+    promotionEndsOn: cents === null ? null : promo.endsOn,
   };
 }

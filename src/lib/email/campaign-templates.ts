@@ -5,7 +5,7 @@ import {
   textFooter,
 } from "@/lib/email/layout";
 import type { EmailMessage } from "@/lib/email/templates";
-import { formatPrice } from "@/lib/money";
+import { formatPrice, pricePerKiloCents } from "@/lib/money";
 import { SITE_URL } from "@/lib/site";
 
 export type CampaignProductData = {
@@ -14,6 +14,8 @@ export type CampaignProductData = {
   image: { path: string; alt: string } | null;
   priceCents: number;
   regularPriceCents: number | null;
+  promotionEndsOn: string | null;
+  netWeightGrams: number | null;
 };
 
 export type PromotionEmailData = {
@@ -72,13 +74,26 @@ function priceHtml(product: CampaignProductData, size: number) {
   const struck = product.regularPriceCents
     ? `<s style="color:${EMAIL_COLOR.inkSoft};font-weight:normal;font-size:${size - 4}px;">${formatPrice(product.regularPriceCents)}</s> `
     : "";
-  return `${struck}<span style="font-weight:bold;font-size:${size}px;color:${product.regularPriceCents ? EMAIL_COLOR.action : EMAIL_COLOR.ink};">${formatPrice(product.priceCents)}</span>`;
+  const perKilo = pricePerKiloCents(product.priceCents, product.netWeightGrams);
+  const perKiloHtml =
+    perKilo === null
+      ? ""
+      : ` <span style="font-weight:normal;font-size:14px;color:${EMAIL_COLOR.inkSoft};">${formatPrice(perKilo)}/кг</span>`;
+  return `${struck}<span style="font-weight:bold;font-size:${size}px;color:${product.regularPriceCents ? EMAIL_COLOR.action : EMAIL_COLOR.ink};">${formatPrice(product.priceCents)}</span>${perKiloHtml}`;
 }
 
 function priceText(product: CampaignProductData) {
-  return product.regularPriceCents
+  const perKilo = pricePerKiloCents(product.priceCents, product.netWeightGrams);
+  const price = product.regularPriceCents
     ? `${formatPrice(product.priceCents)} вместо ${formatPrice(product.regularPriceCents)}`
     : formatPrice(product.priceCents);
+  return perKilo === null ? price : `${price} (${formatPrice(perKilo)}/кг)`;
+}
+
+function promotionEnds(product: CampaignProductData) {
+  return product.regularPriceCents && product.promotionEndsOn
+    ? `Промоционалната цена е до ${formatDay(product.promotionEndsOn)} включително.`
+    : null;
 }
 
 function button(href: string, label: string, fullWidth = false) {
@@ -142,11 +157,15 @@ ${photo(product, 240)}
 }
 
 function card(product: CampaignProductData) {
+  const ends = promotionEnds(product);
+  const endsHtml = ends
+    ? `\n<p style="margin:0 0 16px;color:${EMAIL_COLOR.inkSoft};">${escapeHtml(ends)}</p>`
+    : "";
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;background:${EMAIL_COLOR.ground};border-radius:8px;">
 <tr><td align="center" style="padding:20px 16px;">
 ${photo(product, 200)}
 <p style="margin:16px 0 4px;font-size:18px;font-weight:bold;">${escapeHtml(product.name)}</p>
-<p style="margin:0 0 16px;">${priceHtml(product, 20)}</p>
+<p style="margin:0 0 ${ends ? 4 : 16}px;">${priceHtml(product, 20)}</p>${endsHtml}
 ${button(productUrl(product), "Към продукта", true)}
 </td></tr>
 </table>`;
@@ -180,7 +199,7 @@ export function restockEmail(data: RestockEmailData): EmailMessage {
       ...(data.products.length > 0
         ? data.products.map(
             (product) =>
-              `${product.name} — ${priceText(product)}: ${productUrl(product)}`,
+              `${product.name} — ${[priceText(product), promotionEnds(product)?.replace(/\.$/, "")].filter(Boolean).join(". ")}: ${productUrl(product)}`,
           )
         : [`Към магазина: ${SITE_URL}`]),
       subscribedText(data.unsubscribeUrl),

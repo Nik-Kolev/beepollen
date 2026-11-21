@@ -155,6 +155,35 @@ test("the product page carries valid Product structured data", async ({
   expect(jsonLd.offers).toBeUndefined();
 });
 
+test("a pack lighter than a kilogram shows its price per kilogram on its card and page; the kilogram pack does not", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const card = (name: string) =>
+    page
+      .getByRole("article")
+      .filter({ has: page.getByRole("heading", { name, exact: true }) });
+  await expect(
+    card("Пчелен прашец 500 г").getByText("49,00 €/кг", { exact: true }),
+  ).toBeVisible();
+  const kiloCard = card("Пчелен прашец 1 кг");
+  await expect(kiloCard.getByText("45,90 €", { exact: true })).toBeVisible();
+  await expect(kiloCard.getByText(/\/кг/)).toHaveCount(0);
+
+  await page.goto(`/products/${PUBLISHED_SLUG}`);
+  await expect(
+    page.getByRole("main").getByText("49,00 €/кг", { exact: true }),
+  ).toBeVisible();
+
+  await page.goto("/products/pchelen-prashets-1kg");
+  const kiloPage = page.getByRole("main");
+  await expect(
+    kiloPage.getByRole("heading", { level: 1, name: "Пчелен прашец 1 кг" }),
+  ).toBeVisible();
+  await expect(kiloPage.getByText("45,90 €", { exact: true })).toBeVisible();
+  await expect(kiloPage.getByText(/\/кг/)).toHaveCount(0);
+});
+
 test("a card's photo morphs into the product page's photo", async ({
   page,
 }) => {

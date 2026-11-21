@@ -17,6 +17,7 @@ export async function listPublishedProducts() {
       name: true,
       summary: true,
       priceCents: true,
+      netWeightGrams: true,
       images: {
         orderBy: { sortOrder: "asc" },
         take: 1,
@@ -41,6 +42,7 @@ export async function listPublishedProductsForCart() {
       slug: true,
       name: true,
       priceCents: true,
+      netWeightGrams: true,
       stock: true,
       images: {
         orderBy: { sortOrder: "asc" },

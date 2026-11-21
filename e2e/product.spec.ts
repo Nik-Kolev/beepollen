@@ -152,7 +152,12 @@ test("the product page carries valid Product structured data", async ({
   expect(jsonLd.name).toBe("Пчелен прашец 500 г");
   expect(jsonLd.image).toHaveLength(2);
   expect(jsonLd.weight).toMatchObject({ value: 500, unitCode: "GRM" });
-  expect(jsonLd.offers).toBeUndefined();
+  expect(jsonLd.offers).toMatchObject({
+    "@type": "Offer",
+    price: "24.50",
+    priceCurrency: "EUR",
+    availability: "https://schema.org/InStock",
+  });
 });
 
 test("a pack lighter than a kilogram shows its price per kilogram on its card and page; the kilogram pack does not", async ({

@@ -137,6 +137,14 @@ test("a promotion started today shows the struck regular price on every shop pag
   await expect(main).toContainText("Промоционална цена 36,72 €");
   await expect(main.locator("s")).toHaveText("Редовна цена 45,90 €");
   await expect(main.getByText(badge, { exact: true })).toBeVisible();
+  const jsonLd = JSON.parse(
+    (await page.locator('script[type="application/ld+json"]').textContent()) ??
+      "",
+  );
+  expect(jsonLd.offers).toMatchObject({
+    price: "36.72",
+    priceValidUntil: tomorrow,
+  });
 
   await seedCart(page, {
     version: 2,

@@ -31,6 +31,15 @@ const OTHER_PRODUCT = "Пчелен прашец 500 г";
 
 test.describe.configure({ mode: "serial" });
 
+let rateLimitAddress = 0;
+
+test.beforeEach(async ({ page }) => {
+  rateLimitAddress += 1;
+  await page.setExtraHTTPHeaders({
+    "x-real-ip": `198.51.100.${rateLimitAddress}`,
+  });
+});
+
 async function saveProduct(page: Page, price: string, stock: string) {
   await page.goto("/admin/products");
   const form = page.getByRole("form", { name: PRODUCT, exact: true });

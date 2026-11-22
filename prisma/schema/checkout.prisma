@@ -62,7 +62,6 @@ model Order {
 
   itemsCents    Int
   deliveryCents Int @default(0)
-  codFeeCents   Int @default(0)
   totalCents    Int
 
   reference String @unique

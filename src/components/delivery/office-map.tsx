@@ -144,7 +144,9 @@ export default function OfficeMap({
       });
 
       if (live) {
-        marker.bindTooltip(office.label);
+        const label = document.createElement("span");
+        label.textContent = office.label;
+        marker.bindTooltip(label);
         marker.bringToFront();
       } else {
         marker.unbindTooltip();

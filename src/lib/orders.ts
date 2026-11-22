@@ -5,7 +5,6 @@ import { collapseDuplicates, MAX_LINE_QUANTITY, MAX_LINES } from "@/lib/cart";
 import { CONSENT_WORDING } from "@/lib/consent";
 import {
   DeliveryMethod,
-  codFeePrice,
   deliveryPrice,
   LOCAL_DELIVERY_CITY,
 } from "@/lib/delivery";
@@ -89,6 +88,7 @@ export const checkoutInputSchema = z
     acceptsTerms: z.literal(true),
     acceptsOffers: z.boolean(),
     idempotencyKey: z.uuid(),
+    shownTotalCents: z.number().int().min(0).optional(),
     extra_info: z.string().optional(),
   })
   .superRefine((input, ctx) => {
@@ -104,7 +104,6 @@ export type PlacedOrder = {
   reference: string;
   itemsCents: number;
   deliveryCents: number;
-  codFeeCents: number;
   totalCents: number;
 };
 
@@ -113,6 +112,12 @@ export type PlaceOrderResult =
   | { ok: false; code: "VALIDATION_ERROR"; fields: string[] }
   | { ok: false; code: "UNAVAILABLE_ITEMS"; slugs: string[] }
   | { ok: false; code: "UNKNOWN_OFFICE" }
+  | {
+      ok: false;
+      code: "TOTAL_CHANGED";
+      totalCents: number;
+      shownTotalCents: number;
+    }
   | { ok: false; code: "REJECTED" }
   | { ok: false; code: "ORDERING_CLOSED" };
 
@@ -145,7 +150,6 @@ function findByIdempotencyKey(idempotencyKey: string) {
       reference: true,
       itemsCents: true,
       deliveryCents: true,
-      codFeeCents: true,
       totalCents: true,
     },
   });
@@ -266,6 +270,25 @@ export async function placeOrder(
     return { ok: false, code: "UNKNOWN_OFFICE" };
   }
 
+  const itemsCents = lines.reduce(
+    (total, line) => total + line.unitPriceCents * line.quantity,
+    0,
+  );
+  const deliveryCents = deliveryPrice(input.deliveryMethod);
+  const totalCents = itemsCents + deliveryCents;
+
+  if (
+    input.shownTotalCents !== undefined &&
+    input.shownTotalCents !== totalCents
+  ) {
+    return {
+      ok: false,
+      code: "TOTAL_CHANGED",
+      totalCents,
+      shownTotalCents: input.shownTotalCents,
+    };
+  }
+
   const caps = ipAddress
     ? [
         { key: "orders", options: ORDER_CAPS.overall },
@@ -283,13 +306,6 @@ export async function placeOrder(
 
   let placed = false;
   try {
-    const itemsCents = lines.reduce(
-      (total, line) => total + line.unitPriceCents * line.quantity,
-      0,
-    );
-    const deliveryCents = deliveryPrice(input.deliveryMethod);
-    const codFeeCents = codFeePrice(input.deliveryMethod);
-
     const consents: {
       kind: "TERMS" | "OFFERS";
       wording: string;
@@ -343,8 +359,7 @@ export async function placeOrder(
               reference: nextOrderReference(prefix, last?.reference ?? null),
               itemsCents,
               deliveryCents,
-              codFeeCents,
-              totalCents: itemsCents + deliveryCents + codFeeCents,
+              totalCents,
               idempotencyKey: input.idempotencyKey,
               items: { create: lines },
               consents: { create: consents },
@@ -355,7 +370,6 @@ export async function placeOrder(
               reference: true,
               itemsCents: true,
               deliveryCents: true,
-              codFeeCents: true,
               totalCents: true,
             },
           });

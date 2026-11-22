@@ -1,8 +1,4 @@
-import {
-  COD_FEE_LABEL,
-  DISPATCH_NOTE,
-  LOCAL_DELIVERY_CITY,
-} from "@/lib/delivery";
+import { DISPATCH_NOTE, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import {
   EMAIL_COLOR,
   escapeHtml,
@@ -41,7 +37,6 @@ export type OrderEmailData = {
   email: string;
   items: { name: string; quantity: number; unitPriceCents: number }[];
   deliveryCents: number;
-  codFeeCents: number;
   totalCents: number;
   office: { name: string; street: string } | null;
   unsubscribeUrl?: string;
@@ -122,15 +117,7 @@ ${rows}
   <td style="padding:8px 0 0;color:${EMAIL_COLOR.inkSoft};">Доставка</td>
   <td align="right" style="padding:8px 0 0;white-space:nowrap;">${order.deliveryCents === 0 ? "Безплатна" : formatPrice(order.deliveryCents)}</td>
 </tr>
-${
-  order.codFeeCents > 0
-    ? `<tr>
-  <td style="padding:8px 0 0;color:${EMAIL_COLOR.inkSoft};">${COD_FEE_LABEL}</td>
-  <td align="right" style="padding:8px 0 0;white-space:nowrap;">${formatPrice(order.codFeeCents)}</td>
-</tr>
-`
-    : ""
-}<tr>
+<tr>
   <td style="padding:8px 0 0;font-weight:bold;">Общо</td>
   <td align="right" style="padding:8px 0 0;font-weight:bold;color:${EMAIL_COLOR.action};white-space:nowrap;">${formatPrice(order.totalCents)}</td>
 </tr>
@@ -144,9 +131,6 @@ function linesText(order: OrderEmailData) {
         `${item.name} — ${item.quantity} × ${formatPrice(item.unitPriceCents)} = ${formatPrice(item.quantity * item.unitPriceCents)}`,
     ),
     `Доставка: ${order.deliveryCents === 0 ? "безплатна" : formatPrice(order.deliveryCents)}`,
-    ...(order.codFeeCents > 0
-      ? [`${COD_FEE_LABEL}: ${formatPrice(order.codFeeCents)}`]
-      : []),
     `Общо: ${formatPrice(order.totalCents)}`,
   ].join("\n");
 }

@@ -9,6 +9,7 @@ import {
   REFUSED,
   SOLD_OUT_LINES,
   summaryError,
+  totalChanged,
   UNAVAILABLE_LINES,
   UNKNOWN_OFFICE,
   WITHDRAWN_LINES,
@@ -18,7 +19,7 @@ import type { PlaceOrderResult } from "@/lib/orders";
 const NO_OFFICE = { ok: false, code: "UNKNOWN_OFFICE" } as const;
 
 test("a successful order and a form that has not been submitted say nothing", () => {
-  assert.equal(summaryError(null, false, false), null);
+  assert.equal(summaryError(null, false, false, false), null);
   assert.equal(
     summaryError(
       {
@@ -29,10 +30,10 @@ test("a successful order and a form that has not been submitted say nothing", ()
           reference: "BP2409261",
           itemsCents: 1,
           deliveryCents: 0,
-          codFeeCents: 0,
           totalCents: 1,
         },
       },
+      false,
       false,
       false,
     ),
@@ -42,14 +43,33 @@ test("a successful order and a form that has not been submitted say nothing", ()
 
 test("a refused order says nothing about which check caught it", () => {
   assert.equal(
-    summaryError({ ok: false, code: "REJECTED" }, false, false),
+    summaryError({ ok: false, code: "REJECTED" }, false, false, false),
     REFUSED,
   );
 });
 
+test("a changed total names both totals while the order still adds up to the one refused, and nothing after", () => {
+  const changed = {
+    ok: false,
+    code: "TOTAL_CHANGED",
+    totalCents: 4130,
+    shownTotalCents: 4390,
+  } as const;
+
+  assert.equal(
+    summaryError(changed, false, false, true),
+    totalChanged(4130, 4390),
+  );
+  assert.match(
+    totalChanged(4130, 4390),
+    /Новата обща сума е 41,30\s€ вместо 43,90\s€\./,
+  );
+  assert.equal(summaryError(changed, false, false, false), null);
+});
+
 test("a withdrawn office is reported until another one is chosen", () => {
-  assert.equal(summaryError(NO_OFFICE, false, false), UNKNOWN_OFFICE);
-  assert.equal(summaryError(NO_OFFICE, false, true), null);
+  assert.equal(summaryError(NO_OFFICE, false, false, false), UNKNOWN_OFFICE);
+  assert.equal(summaryError(NO_OFFICE, false, true, false), null);
 });
 
 test("unavailable lines are reported only while they are still in the cart", () => {
@@ -59,8 +79,8 @@ test("unavailable lines are reported only while they are still in the cart", () 
     slugs: ["pchelen-prashets-500g"],
   };
 
-  assert.equal(summaryError(result, true, false), UNAVAILABLE_LINES);
-  assert.equal(summaryError(result, false, false), null);
+  assert.equal(summaryError(result, true, false, false), UNAVAILABLE_LINES);
+  assert.equal(summaryError(result, false, false, false), null);
 });
 
 test("a field the form can mark is left to the field, and one it cannot is not", () => {
@@ -69,12 +89,14 @@ test("a field the form can mark is left to the field, and one it cannot is not",
       { ok: false, code: "VALIDATION_ERROR", fields: ["email", "officeCode"] },
       false,
       false,
+      false,
     ),
     null,
   );
   assert.equal(
     summaryError(
       { ok: false, code: "VALIDATION_ERROR", fields: ["email", "items"] },
+      false,
       false,
       false,
     ),
@@ -116,7 +138,7 @@ test("an unpriced line blocks the order", () => {
 
 test("a closed shop is named as such, not as a generic refusal", () => {
   assert.equal(
-    summaryError({ ok: false, code: "ORDERING_CLOSED" }, false, false),
+    summaryError({ ok: false, code: "ORDERING_CLOSED" }, false, false, false),
     ORDERING_CLOSED,
   );
 });

@@ -45,7 +45,6 @@ async function loadOrder(reference: string) {
         select: { name: true, quantity: true, unitPriceCents: true },
       },
       deliveryCents: true,
-      codFeeCents: true,
       totalCents: true,
       officeName: true,
       officeStreet: true,
@@ -63,7 +62,6 @@ async function loadOrder(reference: string) {
     email: order.customer.email,
     items: order.items,
     deliveryCents: order.deliveryCents,
-    codFeeCents: order.codFeeCents,
     totalCents: order.totalCents,
     office:
       order.officeName && order.officeStreet

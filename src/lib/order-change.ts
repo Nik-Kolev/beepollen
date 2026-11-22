@@ -1,4 +1,3 @@
-import { COD_FEE_LABEL } from "@/lib/delivery";
 import { formatPrice } from "@/lib/money";
 import { z } from "@/lib/zod";
 
@@ -9,7 +8,7 @@ const orderChangeSchema = z.discriminatedUnion("field", [
     to: z.string(),
   }),
   z.object({
-    field: z.enum(["deliveryCents", "codFeeCents", "totalCents"]),
+    field: z.enum(["deliveryCents", "totalCents"]),
     from: z.number(),
     to: z.number(),
   }),
@@ -24,13 +23,15 @@ export const ORDER_CHANGE_LABEL: Record<OrderChange["field"], string> = {
   delivery: "Доставка",
   item: "Продукт",
   deliveryCents: "Цена на доставката",
-  codFeeCents: COD_FEE_LABEL,
   totalCents: "Общо",
 };
 
 export function parseOrderChanges(value: unknown): OrderChange[] {
-  const parsed = z.array(orderChangeSchema).safeParse(value);
-  return parsed.success ? parsed.data : [];
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((change) => {
+    const parsed = orderChangeSchema.safeParse(change);
+    return parsed.success ? [parsed.data] : [];
+  });
 }
 
 export function changeText(value: string | number) {

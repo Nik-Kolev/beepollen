@@ -591,7 +591,6 @@ const ORDER_DETAIL = {
   officeStreet: true,
   itemsCents: true,
   deliveryCents: true,
-  codFeeCents: true,
   totalCents: true,
   items: {
     orderBy: { id: "asc" },

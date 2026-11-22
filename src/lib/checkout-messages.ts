@@ -1,4 +1,5 @@
 import { isPurchasable } from "@/lib/cart";
+import { formatPrice } from "@/lib/money";
 import type { PlaceOrderResult } from "@/lib/orders";
 import type { CartProduct } from "@/lib/products";
 
@@ -33,14 +34,24 @@ export const REFUSED =
 
 export const ORDERING_CLOSED = "Поръчките все още не се приемат.";
 
+export function totalChanged(totalCents: number, shownTotalCents: number) {
+  return `Цената се промени, докато поръчвахте. Новата обща сума е ${formatPrice(totalCents)} вместо ${formatPrice(shownTotalCents)}. Натиснете бутона отново, за да поръчате на новата цена.`;
+}
+
 export function summaryError(
   result: PlaceOrderResult | null,
   stillUnavailable: boolean,
   officeCorrected: boolean,
+  totalStillApplies: boolean,
 ) {
   if (!result || result.ok) return null;
   if (result.code === "REJECTED") return REFUSED;
   if (result.code === "ORDERING_CLOSED") return ORDERING_CLOSED;
+  if (result.code === "TOTAL_CHANGED") {
+    return totalStillApplies
+      ? totalChanged(result.totalCents, result.shownTotalCents)
+      : null;
+  }
   if (result.code === "UNKNOWN_OFFICE") {
     return officeCorrected ? null : UNKNOWN_OFFICE;
   }

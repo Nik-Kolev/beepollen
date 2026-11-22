@@ -46,7 +46,7 @@ import {
   viberChatHref,
 } from "@/lib/admin-orders";
 import { requireAdmin } from "@/lib/admin-session";
-import { COD_FEE_LABEL, DeliveryMethod } from "@/lib/delivery";
+import { DeliveryMethod } from "@/lib/delivery";
 import { formatPrice } from "@/lib/money";
 import {
   changeText,
@@ -526,16 +526,6 @@ export default async function AdminOrders({
                             <dd className="text-right">
                               {formatPrice(order.deliveryCents)}
                             </dd>
-                            {order.codFeeCents > 0 && (
-                              <>
-                                <dt className="text-ink-soft">
-                                  {COD_FEE_LABEL}
-                                </dt>
-                                <dd className="text-right">
-                                  {formatPrice(order.codFeeCents)}
-                                </dd>
-                              </>
-                            )}
                             <dt className="font-semibold">Общо</dt>
                             <dd className="text-brand-deep text-right font-semibold">
                               {formatPrice(order.totalCents)}

@@ -1,7 +1,12 @@
 import { expect, type Page, test } from "@playwright/test";
 
-import { SOLD_OUT_LINES, UNAVAILABLE_LINES } from "@/lib/checkout-messages";
+import {
+  SOLD_OUT_LINES,
+  totalChanged,
+  UNAVAILABLE_LINES,
+} from "@/lib/checkout-messages";
 import { CONSENT_WORDING } from "@/lib/consent";
+import { TODO_ECONT_TARIFF_CENTS } from "@/lib/econt";
 import { formatPrice } from "@/lib/money";
 
 import {
@@ -33,6 +38,22 @@ async function saveProduct(page: Page, price: string, stock: string) {
   await form.getByLabel("Наличност").selectOption(stock);
   await form.getByRole("button", { name: "Запази" }).click();
   await expect(form.getByRole("status")).toHaveText("Запазено.");
+}
+
+async function fillCheckout(page: Page, email: string, phone: string) {
+  await page.getByLabel("Име и фамилия").fill("Мария Иванова");
+  await page.getByLabel("Имейл", { exact: true }).fill(email);
+  await page.getByLabel("Телефон", { exact: true }).fill(phone);
+  await page
+    .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
+    .check();
+  await page.getByLabel("Град", { exact: true }).fill(SMALL_CITY);
+  await page.getByRole("option", { name: SMALL_CITY, exact: true }).click();
+  await page
+    .getByRole("radiogroup", { name: "Офиси на Еконт" })
+    .locator("label")
+    .filter({ hasText: SMALL_CITY_OFFICE_B.street })
+    .click();
 }
 
 test.afterAll(async ({ browser }, testInfo) => {
@@ -157,13 +178,17 @@ test("a promotion started today shows the struck regular price on every shop pag
   await expect(page.getByText("Общо:")).toHaveText("Общо: 73,44 €");
 
   await page.goto("/checkout");
-  await page.getByRole("button", { name: /^Вашата поръчка/ }).click();
-  const summaryLine = main
+  const checkoutLine = page
+    .getByRole("region", { name: "Потвърждение" })
     .getByRole("listitem")
-    .filter({ hasText: PRODUCT })
-    .first();
-  await expect(summaryLine).toContainText("Промоционална цена 73,44 €");
-  await expect(summaryLine.locator("s")).toHaveText("Редовна цена 91,80 €");
+    .filter({ hasText: PRODUCT });
+  await expect(checkoutLine).toHaveText(
+    new RegExp(
+      `^${PRODUCT} × 2\\s*73,44\\s€\\s*Промоционална цена 36,72\\s€ / бр\\.\\s*Редовна цена 45,90\\s€\\s*${badge}$`,
+    ),
+  );
+  await expect(checkoutLine.locator("s")).toBeVisible();
+  await expect(checkoutLine.getByText(badge, { exact: true })).toBeVisible();
 
   await page.goto("/admin/products");
   await panel
@@ -286,6 +311,95 @@ test("the price history shows the latest ten entries and „Покажи вси�
   expect(await history.count()).toBeGreaterThan(12);
 });
 
+test("a price raised after the checkout page loaded is refused with the new total, and the next press orders at it", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const admin = await browser.newContext({
+    baseURL: testInfo.project.use.baseURL,
+  });
+  await signInAs(admin, TEST_ADMIN_EMAIL);
+  const adminPage = await admin.newPage();
+  await saveProduct(adminPage, SEEDED.price, SEEDED.stock);
+
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: SLUG, name: PRODUCT, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+  await fillCheckout(page, "price-raised@example.com", "0899777666");
+
+  const shown = 4590 + TODO_ECONT_TARIFF_CENTS;
+  const charged = 5090 + TODO_ECONT_TARIFF_CENTS;
+  const confirmation = page.getByRole("region", { name: "Потвърждение" });
+  await expect(confirmation).toContainText(`Общо${formatPrice(shown)}`);
+
+  await saveProduct(adminPage, "50,90", SEEDED.stock);
+  await admin.close();
+
+  const submit = page.getByRole("button", {
+    name: "Поръчай с плащане при доставка",
+  });
+  await submit.click();
+
+  const main = page.getByRole("main");
+  await expect(main.getByRole("alert")).toHaveText(
+    totalChanged(charged, shown),
+  );
+  await expect(confirmation).toContainText(`Общо${formatPrice(charged)}`);
+
+  await submit.click();
+  await expect(
+    page.getByRole("heading", { name: "Поръчката е приета" }),
+  ).toBeVisible();
+  await expect(main).toContainText(formatPrice(charged));
+});
+
+test("a price raised again between two presses is refused with the newest total each time", async ({
+  page,
+  browser,
+}, testInfo) => {
+  const admin = await browser.newContext({
+    baseURL: testInfo.project.use.baseURL,
+  });
+  await signInAs(admin, TEST_ADMIN_EMAIL);
+  const adminPage = await admin.newPage();
+  await saveProduct(adminPage, SEEDED.price, SEEDED.stock);
+
+  await seedCart(page, {
+    version: 2,
+    items: [{ slug: SLUG, name: PRODUCT, quantity: 1 }],
+  });
+  await page.goto("/checkout");
+  await fillCheckout(page, "price-raised-twice@example.com", "0899777555");
+
+  const shown = 4590 + TODO_ECONT_TARIFF_CENTS;
+  const first = 5090 + TODO_ECONT_TARIFF_CENTS;
+  const second = 5590 + TODO_ECONT_TARIFF_CENTS;
+  const confirmation = page.getByRole("region", { name: "Потвърждение" });
+  const main = page.getByRole("main");
+  const submit = page.getByRole("button", {
+    name: "Поръчай с плащане при доставка",
+  });
+  await expect(confirmation).toContainText(`Общо${formatPrice(shown)}`);
+
+  await saveProduct(adminPage, "50,90", SEEDED.stock);
+  await submit.click();
+  await expect(main.getByRole("alert")).toHaveText(totalChanged(first, shown));
+
+  await saveProduct(adminPage, "55,90", SEEDED.stock);
+  await admin.close();
+  await submit.click();
+  await expect(main.getByRole("alert")).toHaveText(totalChanged(second, first));
+  await expect(confirmation).toContainText(`Общо${formatPrice(second)}`);
+
+  await submit.click();
+  await expect(
+    page.getByRole("heading", { name: "Поръчката е приета" }),
+  ).toBeVisible();
+  await expect(main).toContainText(formatPrice(second));
+});
+
 test("an item sold out after the checkout page loaded is refused and can be removed", async ({
   page,
   browser,
@@ -305,19 +419,7 @@ test("an item sold out after the checkout page loaded is refused and can be remo
     ],
   });
   await page.goto("/checkout");
-  await page.getByLabel("Име и фамилия").fill("Мария Иванова");
-  await page.getByLabel("Имейл", { exact: true }).fill("sold-out@example.com");
-  await page.getByLabel("Телефон", { exact: true }).fill("0899777888");
-  await page
-    .getByRole("checkbox", { name: CONSENT_WORDING.TERMS, exact: true })
-    .check();
-  await page.getByLabel("Град", { exact: true }).fill(SMALL_CITY);
-  await page.getByRole("option", { name: SMALL_CITY, exact: true }).click();
-  await page
-    .getByRole("radiogroup", { name: "Офиси на Еконт" })
-    .locator("label")
-    .filter({ hasText: SMALL_CITY_OFFICE_B.street })
-    .click();
+  await fillCheckout(page, "sold-out@example.com", "0899777888");
 
   await saveProduct(adminPage, SEEDED.price, "NONE");
   await admin.close();
@@ -332,10 +434,23 @@ test("an item sold out after the checkout page loaded is refused and can be remo
   await expect(submit).toBeDisabled();
   await expect(
     page.getByRole("region", { name: "Потвърждение" }),
-  ).toContainText("Общо32,90 €");
+  ).toContainText("Общо30,40 €");
   await main.getByRole("button", { name: `Премахни ${PRODUCT}` }).click();
 
-  await expect(main.getByText(OTHER_PRODUCT, { exact: true })).toBeVisible();
+  await expect(
+    main
+      .locator("section")
+      .filter({ has: page.locator("h2", { hasText: "Вашата поръчка" }) }),
+  ).toBeHidden();
+  await expect(
+    page
+      .getByRole("region", { name: "Потвърждение" })
+      .locator("p")
+      .filter({ hasText: /^Общо/ }),
+  ).toBeFocused();
+  await expect(
+    main.getByText(OTHER_PRODUCT).filter({ visible: true }),
+  ).toBeVisible();
   await expect(main.getByText(PRODUCT, { exact: true })).toHaveCount(0);
   await expect(main.getByRole("alert")).toHaveCount(0);
   await expect(submit).toBeEnabled();

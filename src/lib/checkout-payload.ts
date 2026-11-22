@@ -24,8 +24,14 @@ export function checkoutPayload(formData: FormData) {
     acceptsTerms: formData.get("acceptsTerms") === "on",
     acceptsOffers: formData.get("acceptsOffers") === "on",
     idempotencyKey: text(formData.get("idempotencyKey")),
+    shownTotalCents: cents(formData.get("shownTotalCents")),
     extra_info: text(formData.get("extra_info")),
   };
+}
+
+function cents(value: FormDataEntryValue | null) {
+  const digits = text(value);
+  return digits === "" ? undefined : Number(digits);
 }
 
 export function newIdempotencyKey(random: Crypto = crypto) {

@@ -4,7 +4,7 @@ import { expect, type Page, test } from "@playwright/test";
 
 import { CHECKOUT_SCROLL_KEY } from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
-import { COD_FEE_LABEL, DISPATCH_NOTE } from "@/lib/delivery";
+import { DISPATCH_NOTE } from "@/lib/delivery";
 
 import {
   LARGE_CITY,
@@ -24,18 +24,27 @@ function cartLink(page: Page) {
   return page.getByRole("banner").getByRole("link", { name: /Количка/ });
 }
 
-function summaryRows(page: Page) {
-  return page.getByRole("main").getByRole("listitem");
+function summaryCard(page: Page) {
+  return page
+    .getByRole("main")
+    .locator("section")
+    .filter({ has: page.locator("h2", { hasText: "Вашата поръчка" }) });
 }
 
-async function showSummary(page: Page, isMobile: boolean) {
-  if (isMobile) {
-    await page.getByRole("button", { name: /^Вашата поръчка/ }).click();
-  }
+function summaryRows(page: Page) {
+  return summaryCard(page).getByRole("listitem");
 }
 
 function confirmation(page: Page) {
   return page.getByRole("region", { name: "Потвърждение" });
+}
+
+function recapRows(page: Page) {
+  return confirmation(page).getByRole("listitem");
+}
+
+function totalLine(page: Page) {
+  return confirmation(page).locator("p").filter({ hasText: /^Общо/ });
 }
 
 function emailField(page: Page) {
@@ -453,33 +462,11 @@ test("an empty cart offers the catalogue instead of a form", async ({
   await expect(page).toHaveURL("/");
 });
 
-test("the summary lists a line per product", async ({ page, isMobile }) => {
-  await seedCart(page, {
-    version: 2,
-    items: [
-      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
-      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 1 },
-    ],
-  });
-  await page.goto("/checkout");
-  await showSummary(page, isMobile);
-
-  await expect(summaryRows(page)).toHaveCount(2);
-  await expect(summaryRows(page).first()).toContainText(POLLEN_NAME);
-  await expect(summaryRows(page).first()).toContainText("2 бр.");
-  await expect(summaryRows(page).last()).toContainText(SECOND_NAME);
-  await expect(page.getByText("5,90 €", { exact: true })).toBeVisible();
-  await expect(
-    page.getByText(COD_FEE_LABEL, { exact: true }).locator(".."),
-  ).toHaveText(`${COD_FEE_LABEL}2,50 €`);
-  await expect(confirmation(page)).toContainText("103,30 €");
-});
-
-test("on a phone the summary starts folded and names the item count and total", async ({
+test("beside the order the summary lists a line per product", async ({
   page,
   isMobile,
 }) => {
-  test.skip(!isMobile, "The summary folds on a phone only.");
+  test.skip(isMobile, "On a phone the lines are listed above the button.");
   await seedCart(page, {
     version: 2,
     items: [
@@ -489,21 +476,51 @@ test("on a phone the summary starts folded and names the item count and total", 
   });
   await page.goto("/checkout");
 
-  const toggle = page.getByRole("button", {
-    name: "Вашата поръчка · 3 бр. · 103,30 €",
-  });
-  await expect(toggle).toHaveAttribute("aria-expanded", "false");
-  await expect(summaryRows(page)).toHaveCount(0);
-
-  await toggle.click();
-
-  await expect(toggle).toHaveAttribute("aria-expanded", "true");
+  await expect(summaryCard(page)).toBeVisible();
   await expect(summaryRows(page)).toHaveCount(2);
+  await expect(summaryRows(page).first()).toContainText(POLLEN_NAME);
+  await expect(summaryRows(page).first()).toContainText("2 бр.");
+  await expect(summaryRows(page).first()).toContainText(
+    "24,50 € / бр.49,00 €/кг",
+  );
+  await expect(summaryRows(page).first()).toContainText("49,00 €");
+  await expect(summaryRows(page).last()).toContainText(SECOND_NAME);
+  await expect(
+    summaryCard(page).getByText("5,90 €", { exact: true }),
+  ).toBeVisible();
+  await expect(recapRows(page).first()).toBeHidden();
+  await expect(page.getByText(/такса/i)).toHaveCount(0);
+  await expect(totalLine(page)).toHaveText("Общо100,80 €");
+});
+
+test("on a phone the lines and delivery are listed above the button, with no summary card", async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(!isMobile, "Beside the order the summary card lists the lines.");
+  await seedCart(page, {
+    version: 2,
+    items: [
+      { slug: POLLEN_SLUG, name: POLLEN_NAME, quantity: 2 },
+      { slug: SECOND_SLUG, name: SECOND_NAME, quantity: 1 },
+    ],
+  });
+  await page.goto("/checkout");
+
+  await expect(recapRows(page)).toHaveText([
+    new RegExp(
+      `^${POLLEN_NAME} × 2\\s*49,00\\s€\\s*24,50\\s€ / бр\\.\\s*49,00\\s€/кг$`,
+    ),
+    new RegExp(`^${SECOND_NAME} × 1\\s*45,90\\s€\\s*45,90\\s€ / бр\\.$`),
+    /^Доставка\s*5,90\s€$/,
+  ]);
+  await expect(recapRows(page).first()).toBeVisible();
+  await expect(summaryCard(page)).toBeHidden();
+  await expect(totalLine(page)).toHaveText("Общо100,80 €");
 });
 
 test("local delivery in Popovo drops the office picker and the delivery charge", async ({
   page,
-  isMobile,
 }) => {
   await seedCart(page, {
     version: 2,
@@ -513,7 +530,6 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
     ],
   });
   await page.goto("/checkout");
-  await showSummary(page, isMobile);
   const dispatchNote = page.getByText(DISPATCH_NOTE, { exact: true });
   await expect(dispatchNote).toBeVisible();
   await chooseOffice(page);
@@ -528,22 +544,22 @@ test("local delivery in Popovo drops the office picker and the delivery charge",
   await expect(dispatchNote).toBeHidden();
   expect(await top()).toBe(before);
   await expect(page.getByLabel("Град", { exact: true })).toBeHidden();
-  await expect(page.getByText("Безплатна", { exact: true })).toBeVisible();
   await expect(
-    page.getByText(COD_FEE_LABEL, { exact: true }).locator(".."),
-  ).toHaveText(`${COD_FEE_LABEL}Няма`);
-  await expect(confirmation(page)).toContainText("94,90 €");
+    page.getByText("Безплатна", { exact: true }).filter({ visible: true }),
+  ).toHaveCount(1);
+  await expect(totalLine(page)).toHaveText("Общо94,90 €");
 
   await popovo.uncheck();
 
   await expect(page.getByLabel("Град", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Град", { exact: true })).toHaveValue("");
   await expect(chosenOffice(page)).toBeHidden();
-  await expect(confirmation(page)).toContainText("103,30 €");
+  await expect(totalLine(page)).toHaveText("Общо100,80 €");
 });
 
 test("a withdrawn product is named and left out of the total", async ({
   page,
+  isMobile,
 }) => {
   await seedCart(page, {
     version: 2,
@@ -561,8 +577,9 @@ test("a withdrawn product is named and left out of the total", async ({
   await expect(withdrawn.locator("p").first()).toHaveText("Пчелен прашец 2 кг");
   await expect(withdrawn).toContainText("Вече не се предлага");
   await expect(withdrawn).not.toContainText("no-such-product");
+  await expect(summaryCard(page)).toBeVisible();
   await expect(summaryRows(page)).toHaveCount(2);
-  await expect(confirmation(page)).toContainText("32,90 €");
+  await expect(totalLine(page)).toHaveText("Общо30,40 €");
 
   await expect(
     page.getByRole("button", { name: "Поръчай с плащане при доставка" }),
@@ -575,13 +592,18 @@ test("a withdrawn product is named and left out of the total", async ({
 
   await withdrawn.getByRole("button", { name: /Премахни/ }).click();
 
-  await expect(summaryRows(page)).toHaveCount(1);
   await expect(
     page.getByRole("button", { name: "Поръчай с плащане при доставка" }),
   ).toBeEnabled();
-  await expect(
-    page.getByRole("heading", { name: /^Вашата поръчка/ }),
-  ).toBeFocused();
+  if (isMobile) {
+    await expect(summaryCard(page)).toBeHidden();
+    await expect(totalLine(page)).toBeFocused();
+  } else {
+    await expect(summaryRows(page)).toHaveCount(1);
+    await expect(
+      page.getByRole("heading", { name: "Вашата поръчка" }),
+    ).toBeFocused();
+  }
 });
 
 for (const [removed, focused] of [

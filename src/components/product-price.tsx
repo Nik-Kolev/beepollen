@@ -5,7 +5,6 @@ const PRICE_TEXT = {
   card: "text-brand-deep font-head text-lg font-bold",
   page: "text-brand-deep text-2xl font-semibold",
   line: "text-brand-deep font-semibold",
-  summary: "font-semibold",
 } as const;
 
 function shortDay(day: string) {
@@ -70,15 +69,6 @@ export function ProductPrice({
       {unit}
     </span>
   );
-
-  if (size === "summary") {
-    return (
-      <p className="flex flex-col items-end tabular-nums">
-        {promo}
-        {regular}
-      </p>
-    );
-  }
 
   const percent = discountPercent(priceCents, regularPriceCents);
   const badge = [

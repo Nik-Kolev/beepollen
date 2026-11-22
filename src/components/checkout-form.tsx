@@ -47,8 +47,6 @@ import {
 } from "@/lib/checkout-draft";
 import { CONSENT_WORDING } from "@/lib/consent";
 import {
-  COD_FEE_LABEL,
-  codFeePrice,
   deliveryPrice,
   DISPATCH_NOTE,
   LOCAL_DELIVERY_CITY,
@@ -70,7 +68,6 @@ const CHECKBOX_LABEL = "flex min-h-11 items-center gap-3 text-sm";
 const CONSENT_BOX = "border-line bg-ground rounded-lg border px-4 py-2";
 
 const CARD = "bg-surface ring-line rounded-xl p-5 shadow-sm ring-1 sm:p-6";
-
 type FocusTarget = () => HTMLElement | null | undefined;
 
 function StepCard({
@@ -237,6 +234,9 @@ function FilledCheckout({
   const idempotencyKey = useRef<string | null>(null);
   const removeButtons = useRef(new Map<string, HTMLButtonElement>());
   const summaryHeading = useRef<HTMLHeadingElement>(null);
+  const [submittedLocalTotal, setSubmittedLocalTotal] = useState<number | null>(
+    null,
+  );
   const catalogue = new Map(products.map((product) => [product.slug, product]));
   const lines = items.map((item) => ({
     ...item,
@@ -246,26 +246,33 @@ function FilledCheckout({
     result && !result.ok && result.code === "UNAVAILABLE_ITEMS"
       ? new Set(result.slugs)
       : new Set<string>();
-  const sellable = lines.filter(
-    (line) => isPurchasable(line) && !unavailable.has(line.slug),
-  );
+  const sellable = lines
+    .filter(isPurchasable)
+    .filter((line) => !unavailable.has(line.slug));
   const itemsCents = purchasableTotal(sellable);
   const deliveryMethod = answers.localDelivery ? "LOCAL" : "ECONT_OFFICE";
   const deliveryCents = deliveryPrice(deliveryMethod);
-  const codFeeCents = codFeePrice(deliveryMethod);
   const blocked = blockedReason(lines);
   const itemCount = sellable.reduce((total, line) => total + line.quantity, 0);
+  const localTotalCents =
+    itemsCents === null
+      ? null
+      : itemsCents + (itemCount > 0 ? deliveryCents : 0);
+  const totalStillApplies =
+    submittedLocalTotal !== null && submittedLocalTotal === localTotalCents;
+  const changedTotal =
+    result && !result.ok && result.code === "TOTAL_CHANGED" && totalStillApplies
+      ? result.totalCents
+      : null;
+  const totalCents = changedTotal ?? localTotalCents;
   const totalText = !ready
     ? null
-    : itemsCents === null
+    : totalCents === null
       ? "TODO: цена"
-      : formatPrice(
-          itemsCents + (itemCount > 0 ? deliveryCents + codFeeCents : 0),
-        );
-  const [summaryOpen, setSummaryOpen] = useState(false);
+      : formatPrice(totalCents);
   const [pickerRound, setPickerRound] = useState(0);
   const [deliveryTouched, setDeliveryTouched] = useState(false);
-  const linesId = useId();
+  const totalLine = useRef<HTMLParagraphElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const submitting = useRef(false);
 
@@ -306,7 +313,11 @@ function FilledCheckout({
       slug,
       next
         ? () => removeButtons.current.get(next.slug)
-        : () => summaryHeading.current,
+        : () =>
+            summaryHeading.current &&
+            summaryHeading.current.getClientRects().length > 0
+              ? summaryHeading.current
+              : totalLine.current,
     );
   }
 
@@ -318,11 +329,12 @@ function FilledCheckout({
       };
     };
   }
-  const linesShown = summaryOpen || unavailable.size > 0 || blocked !== null;
+  const linesNeedAction = stillUnavailable || blocked !== null;
   const summary = summaryError(
     result,
     stillUnavailable,
     correctedFields.has("officeCode"),
+    totalStillApplies,
   );
 
   function fieldProps(name: string) {
@@ -380,6 +392,10 @@ function FilledCheckout({
         const submitted = new FormData(event.currentTarget);
         idempotencyKey.current ??= newIdempotencyKey();
         submitted.set("idempotencyKey", idempotencyKey.current);
+        if (totalCents !== null) {
+          submitted.set("shownTotalCents", String(totalCents));
+        }
+        setSubmittedLocalTotal(localTotalCents);
 
         startTransition(() => formAction(submitted));
       }}
@@ -407,111 +423,87 @@ function FilledCheckout({
         className="flex min-w-0 flex-col gap-6 lg:flex-row lg:items-start lg:gap-8"
       >
         <section
-          className={`${CARD} lg:sticky lg:top-20 lg:order-last lg:w-80 lg:shrink-0`}
+          className={`${CARD} lg:sticky lg:top-20 lg:order-last lg:w-80 lg:shrink-0 ${linesNeedAction ? "" : "hidden lg:block"}`}
         >
           <h2
             ref={summaryHeading}
             tabIndex={-1}
             className="text-lg font-semibold focus:outline-none"
           >
-            <button
-              type="button"
-              aria-expanded={linesShown}
-              aria-controls={linesId}
-              onClick={() => setSummaryOpen((open) => !open)}
-              className="flex min-h-11 w-full items-center justify-between gap-3 text-left lg:hidden"
-            >
-              <span>
-                Вашата поръчка · {itemCount} бр.
-                {totalText && ` · ${totalText}`}
-              </span>
-              <span
-                aria-hidden="true"
-                className={`text-ink-soft transition-transform ${linesShown ? "rotate-180" : ""}`}
-              >
-                ▾
-              </span>
-            </button>
-            <span className="hidden lg:inline">Вашата поръчка</span>
+            Вашата поръчка
           </h2>
 
-          <div id={linesId} className={linesShown ? "" : "hidden lg:block"}>
-            <ul
-              role="list"
-              className="border-line divide-line mt-4 divide-y border-y"
-            >
-              {lines.map(({ slug, name, quantity, product }) => {
-                const withdrawn = !product || unavailable.has(slug);
-                const soldOut = !withdrawn && product.stock === "NONE";
+          <ul
+            role="list"
+            className="border-line divide-line mt-4 divide-y border-y"
+          >
+            {lines.map(({ slug, name, quantity, product }) => {
+              const withdrawn = !product || unavailable.has(slug);
+              const soldOut = !withdrawn && product.stock === "NONE";
 
-                return (
-                  <li key={slug} className="flex items-start gap-4 py-4">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium break-words">
-                        {product?.name ?? name}
-                      </p>
-                      <p className="text-ink-soft mt-1 text-sm">
-                        {withdrawn
-                          ? "Вече не се предлага"
-                          : soldOut
-                            ? "Изчерпан"
-                            : `${quantity} бр.`}
-                      </p>
-                      {removable.some((line) => line.slug === slug) && (
-                        <button
-                          ref={removeButtonRef(slug)}
-                          type="button"
-                          onClick={() => {
-                            setSummaryOpen(true);
-                            removeLine(slug);
-                          }}
-                          className="text-ink hover:text-brand-deep mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0"
-                        >
-                          Премахни
-                          <span className="sr-only">
-                            {" "}
-                            {product?.name ?? name}
-                          </span>
-                        </button>
-                      )}
-                    </div>
+              return (
+                <li key={slug} className="flex items-start gap-4 py-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium break-words">
+                      {product?.name ?? name}
+                    </p>
                     {!withdrawn && !soldOut && (
-                      <div className="shrink-0">
+                      <div className="mt-1">
                         <ProductPrice
-                          priceCents={product.priceCents * quantity}
-                          regularPriceCents={
-                            product.regularPriceCents === null
-                              ? null
-                              : product.regularPriceCents * quantity
-                          }
-                          size="summary"
+                          priceCents={product.priceCents}
+                          regularPriceCents={product.regularPriceCents}
+                          netWeightGrams={product.netWeightGrams}
+                          promotionEndsOn={product.promotionEndsOn}
+                          size="line"
+                          perUnit
                         />
                       </div>
                     )}
-                  </li>
-                );
-              })}
-            </ul>
+                    <p className="text-ink-soft mt-1 text-sm">
+                      {withdrawn
+                        ? "Вече не се предлага"
+                        : soldOut
+                          ? "Изчерпан"
+                          : `${quantity} бр.`}
+                    </p>
+                    {removable.some((line) => line.slug === slug) && (
+                      <button
+                        ref={removeButtonRef(slug)}
+                        type="button"
+                        onClick={() => removeLine(slug)}
+                        className="text-ink hover:text-brand-deep mt-2 inline-flex min-h-11 items-center text-sm font-medium underline underline-offset-4 sm:min-h-0"
+                      >
+                        Премахни
+                        <span className="sr-only">
+                          {" "}
+                          {product?.name ?? name}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  {!withdrawn && !soldOut && (
+                    <p className="shrink-0 font-semibold tabular-nums">
+                      {product.priceCents > 0
+                        ? formatPrice(product.priceCents * quantity)
+                        : null}
+                    </p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
 
-            <p className="mt-4 flex items-center justify-between">
-              <span>Доставка</span>
-              <span className="font-semibold tabular-nums">
-                {deliveryCents === 0 ? "Безплатна" : formatPrice(deliveryCents)}
-              </span>
-            </p>
+          <p className="mt-4 flex items-center justify-between">
+            <span>Доставка</span>
+            <span className="font-semibold tabular-nums">
+              {deliveryCents === 0 ? "Безплатна" : formatPrice(deliveryCents)}
+            </span>
+          </p>
 
-            <p className="mt-2 flex items-center justify-between">
-              <span>{COD_FEE_LABEL}</span>
-              <span className="font-semibold tabular-nums">
-                {codFeeCents === 0 ? "Няма" : formatPrice(codFeeCents)}
-              </span>
-            </p>
-
-            <p className="mt-4 hidden items-center justify-between text-lg font-semibold lg:flex">
-              <span>Общо</span>
-              <span className="text-brand-deep">{totalText}</span>
-            </p>
-          </div>
+          <p className="mt-4 hidden items-center justify-between text-lg font-semibold lg:flex">
+            <span>Общо</span>
+            <span className="text-brand-deep">{totalText}</span>
+          </p>
         </section>
 
         <div className="flex min-w-0 flex-col gap-6 lg:flex-1">
@@ -706,7 +698,53 @@ function FilledCheckout({
               </label>
             </div>
 
-            <p className="mt-6 flex items-center justify-between text-lg font-semibold">
+            {ready && sellable.length > 0 && (
+              <div className="border-line mt-6 border-t pt-4 lg:hidden">
+                <ul role="list" className="flex flex-col gap-2">
+                  {sellable.map(({ slug, quantity, product }) => (
+                    <li key={slug}>
+                      <div className="flex items-baseline justify-between gap-4">
+                        <span className="min-w-0 break-words">
+                          {product.name}{" "}
+                          <span className="text-ink-soft whitespace-nowrap">
+                            × {quantity}
+                          </span>
+                        </span>
+                        <span className="shrink-0 font-semibold tabular-nums">
+                          {product.priceCents > 0
+                            ? formatPrice(product.priceCents * quantity)
+                            : null}
+                        </span>
+                      </div>
+                      <div className="mt-1">
+                        <ProductPrice
+                          priceCents={product.priceCents}
+                          regularPriceCents={product.regularPriceCents}
+                          netWeightGrams={product.netWeightGrams}
+                          promotionEndsOn={product.promotionEndsOn}
+                          size="line"
+                          perUnit
+                        />
+                      </div>
+                    </li>
+                  ))}
+                  <li className="flex items-baseline justify-between gap-4">
+                    <span>Доставка</span>
+                    <span className="font-semibold tabular-nums">
+                      {deliveryCents === 0
+                        ? "Безплатна"
+                        : formatPrice(deliveryCents)}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            )}
+
+            <p
+              ref={totalLine}
+              tabIndex={-1}
+              className="mt-4 flex items-center justify-between text-lg font-semibold focus:outline-none"
+            >
               <span>Общо</span>
               <span className="text-brand-deep">{totalText}</span>
             </p>

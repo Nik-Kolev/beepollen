@@ -39,8 +39,8 @@ contact address, `CONTACT_EMAIL`, lives beside it the same way, and so does
 confirmation print, the name and address of the product pages' „Производител“
 row, and the legal status `/terms` prints.
 
-On a withdrawal the refund covers the goods only: the delivery and the
-cash-on-delivery fee, paid to the courier, are not refunded. The owner chose
+On a withdrawal the refund covers the goods only: the delivery, paid to the
+courier, is not refunded. The owner chose
 that on 18 Nov 2026, told that ЗЗП чл. 54, ал. 1 likely requires the cheapest
 standard delivery back. That, the withdrawal terms the confirmation repeats,
 the dispute bodies and the model withdrawal form are constants in
@@ -59,9 +59,7 @@ zero-price draft the tests need is not in the seed:
 seeding, so it never reaches a database anyone reviews. The Econt
 tariff, `TODO_ECONT_TARIFF_CENTS` in `src/lib/econt.ts`, is another invented
 number, for the same reason; it is replaced by calculated Econt prices rather than
-corrected. `TODO_COD_FEE_CENTS` in `src/lib/delivery.ts` is the cash-on-delivery
-fee, one for every carrier, invented for the same reason and replaced by the
-carriers' own fees. Ask before inventing a number anywhere else.
+corrected. Ask before inventing a number anywhere else.
 
 The home page's „За нас“ renders only under `next dev` until the owner's own
 text, asked for on `/admin/todo`, replaces the drafted bios in
@@ -539,10 +537,10 @@ unit test that passes one gives each order its own contact with
 `distinctBuyer()`. A browser checkout always carries an IP, so an e2e helper
 that places more than three orders gives each its own phone and email.
 
-`deliveryCents` and `codFeeCents` are priced by `placeOrder` from the delivery
-method alone and never read from the caller — the tariff and the cash-on-delivery
-fee for an Econt office, zero for `LOCAL`. Both are in `totalCents`, since the
-buyer pays the whole amount at the courier's counter.
+`deliveryCents` is priced by `placeOrder` from the delivery method alone and
+never read from the caller — the tariff for an Econt office, zero for `LOCAL`.
+`totalCents` is the items plus delivery and nothing else: the shop charges no
+cash-on-delivery fee or any other surcharge (decided 21 Nov 2026).
 
 A `Promotion` lowers one product's price, as a percentage or a fixed price, from
 `startsOn` to `endsOn` inclusive — calendar days in `Europe/Sofia`, stored as
@@ -649,6 +647,13 @@ route is prerendered. A product unpublished, sold out or zeroed after that build
 still looks buyable, so `UNAVAILABLE_ITEMS` from the order service is an expected
 answer rather than a race — the page's own withdrawn and missing-price guards
 only catch what the build already knew.
+
+A price changed the same way is caught by `shownTotalCents`, the total the
+form displayed: `placeOrder` answers `TOTAL_CHANGED` when it differs, before
+the order caps, so the refusal spends nothing. It is optional because only the
+browser sends it. The form matches that answer against the local total its
+press started from, not against `shownTotalCents`, since a press after a
+refusal sends the server's total and a second change must still be reported.
 
 ## Delivery
 

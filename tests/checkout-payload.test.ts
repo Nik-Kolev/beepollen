@@ -27,8 +27,31 @@ test("a missing field reads as an empty string rather than null", () => {
     acceptsTerms: false,
     acceptsOffers: false,
     idempotencyKey: "",
+    shownTotalCents: undefined,
     extra_info: "",
   });
+});
+
+test("the shown total is read as cents, and anything but a whole number is refused by the schema", () => {
+  assert.equal(
+    checkoutPayload(formDataWith([["shownTotalCents", "4130"]]))
+      .shownTotalCents,
+    4130,
+  );
+
+  for (const value of ["abc", "12.5", "-1"]) {
+    const parsed = checkoutInputSchema.safeParse({
+      ...checkoutPayload(formDataWith([["shownTotalCents", value]])),
+    });
+    assert.equal(parsed.success, false, value);
+    assert.ok(
+      !parsed.success &&
+        parsed.error.issues.some(
+          (issue) => issue.path[0] === "shownTotalCents",
+        ),
+      value,
+    );
+  }
 });
 
 test("an unchecked box is false and a checked one is true", () => {

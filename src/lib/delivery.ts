@@ -10,16 +10,8 @@ export const DELIVERY_PERIOD =
 
 export const DISPATCH_NOTE = `${DELIVERY_PERIOD} Ако има промяна, ще се свържем с вас.`;
 
-export const TODO_COD_FEE_CENTS = 250;
-
-export const COD_FEE_LABEL = "Такса наложен платеж";
-
 export function deliveryPrice(method: DeliveryMethod): number {
   return method === DeliveryMethod.LOCAL ? 0 : TODO_ECONT_TARIFF_CENTS;
-}
-
-export function codFeePrice(method: DeliveryMethod): number {
-  return method === DeliveryMethod.LOCAL ? 0 : TODO_COD_FEE_CENTS;
 }
 
 export function inPlace(name: string) {

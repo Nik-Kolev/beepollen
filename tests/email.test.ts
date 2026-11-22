@@ -10,7 +10,7 @@ import {
   ownerNotificationEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
-import { COD_FEE_LABEL, LOCAL_DELIVERY_CITY } from "@/lib/delivery";
+import { LOCAL_DELIVERY_CITY } from "@/lib/delivery";
 import { escapeHtml } from "@/lib/email/layout";
 import { type EmailClient, sendEmail } from "@/lib/email/transport";
 import { EMAIL_WARNING_LIMIT, emailUsage } from "@/lib/email/usage";
@@ -55,8 +55,7 @@ const ORDER: OrderEmailData = {
     { name: "Пчелен прашец 1 кг", quantity: 1, unitPriceCents: 2200 },
   ],
   deliveryCents: 590,
-  codFeeCents: 250,
-  totalCents: 5440,
+  totalCents: 5190,
   office: OFFICE,
 };
 
@@ -64,7 +63,6 @@ const LOCAL_ORDER: OrderEmailData = {
   ...ORDER,
   office: null,
   deliveryCents: 0,
-  codFeeCents: 0,
   totalCents: 4600,
 };
 
@@ -170,9 +168,8 @@ test("the accepted email lists each line, the delivery and the total", () => {
     assert.ok(body.includes("Пчелен прашец 1 кг"));
     assert.ok(body.includes(formatPrice(2400)));
     assert.ok(body.includes(formatPrice(590)));
-    assert.ok(body.includes(COD_FEE_LABEL));
-    assert.ok(body.includes(formatPrice(250)));
-    assert.ok(body.includes(formatPrice(5440)));
+    assert.ok(body.includes(formatPrice(5190)));
+    assert.ok(!body.includes("Такса"));
     assert.ok(body.includes("Павликени, пл. Стефан Караджа №16"));
     assert.ok(body.includes("Плащате при получаване."));
     assert.ok(body.includes(`${SITE_URL}/withdraw`));
@@ -187,7 +184,6 @@ test("an accepted order for Popovo promises a phone call and free delivery", () 
     assert.match(body, /[Бб]езплатна/);
     assert.ok(!body.includes("до офис на Еконт:"));
     assert.ok(!body.includes(`Еконт, ${OFFICE.name}`));
-    assert.ok(!body.includes(COD_FEE_LABEL));
   }
 });
 
@@ -321,7 +317,7 @@ test("the sent email names the office and the sum to pay on collection", () => {
   const { text } = orderSentEmail({ ...ORDER, office: OFFICE });
 
   assert.ok(text.includes("Павликени, пл. Стефан Караджа №16"));
-  assert.ok(text.includes(`При получаване ще платите ${formatPrice(5440)}.`));
+  assert.ok(text.includes(`При получаване ще платите ${formatPrice(5190)}.`));
 });
 
 test("an accepted order says nothing about a subscription unless given an unsubscribe link", () => {

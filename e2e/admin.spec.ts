@@ -207,6 +207,27 @@ test("a valid session for an address no longer on the list is refused", async ({
   );
 });
 
+test("a session the server issues lasts 12 hours, not Auth.js's default 30 days", async ({
+  context,
+}) => {
+  await signInAs(context, TEST_ADMIN_EMAIL);
+  const before = Date.now();
+
+  const response = await context.request.get("/api/auth/session");
+
+  expect((await response.json()).user?.email).toBe(TEST_ADMIN_EMAIL);
+  const issued = response
+    .headersArray()
+    .filter(({ name }) => name.toLowerCase() === "set-cookie")
+    .map(({ value }) => value)
+    .find((value) => value.startsWith("authjs.session-token="));
+  const expires = issued?.match(/Expires=([^;]+)/i)?.[1];
+  expect(expires).toBeDefined();
+  const hours = (Date.parse(expires!) - before) / 3_600_000;
+  expect(hours).toBeGreaterThan(11.9);
+  expect(hours).toBeLessThan(12.1);
+});
+
 test("a sign-in Google refused shows the no-access message", async ({
   page,
 }) => {

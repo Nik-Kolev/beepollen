@@ -12,6 +12,7 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
       return profile?.email_verified === true && isAdminEmail(profile.email);
     },
   },
+  session: { maxAge: 12 * 60 * 60 },
   pages: {
     signIn: "/admin/login",
     error: "/admin/login",

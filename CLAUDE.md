@@ -771,7 +771,9 @@ exact version, since betas break their API between releases.
 sign-in, so removing an address revokes a session that is still valid. Every
 admin page and every admin server action calls it itself — a layout does not
 re-render on client navigation, and there is no `proxy.ts` to lean on. The
-sign-in callback also requires Google's `email_verified`. A page passes its own
+sign-in callback also requires Google's `email_verified`. A session lasts 12
+hours from sign-in, however busy: `auth()` called with no arguments never
+writes the refreshed cookie, so the expiry is never pushed forward. A page passes its own
 path, `requireAdmin("/admin/todo")`, so a link to it survives the sign-in;
 `adminReturnPath` accepts only a path under `/admin` and is applied both when
 the login page reads `next` and when the sign-in action does, since the action

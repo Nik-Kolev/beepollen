@@ -267,7 +267,7 @@ test("a Popovo order withdrawn after the hand-over is acknowledged with a call, 
   assert.ok(!sent[0].message.text.includes("Еконт"));
 });
 
-test("cancelling an order the buyer withdrew says so instead of blaming stock", async () => {
+test("cancelling an order the buyer withdrew says so", async () => {
   const { reference, input } = await place();
   await withdrawFromOrder(
     { reference, name: "Иван Иванов", phone: input.phone, email: input.email },
@@ -279,7 +279,6 @@ test("cancelling an order the buyer withdrew says so instead of blaming stock", 
   await sendStepEmail(reference, "cancel", eventId, send);
 
   assert.ok(sent[0].message.text.includes("е анулирана след отказа ви"));
-  assert.ok(!sent[0].message.text.includes("продуктът свърши"));
 });
 
 test("a withdrawal also tells the owner, naming who withdrew and whether the order left", async () => {

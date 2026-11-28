@@ -55,6 +55,17 @@ async function settledCustomer() {
   const second = await placeOrder(validCheckoutInput({ email, phone }), null);
   assert.ok(first.ok && second.ok);
 
+  const unmatched = await withdrawFromOrder(
+    {
+      reference: first.order.reference,
+      name: "Иван Иванов-Петров",
+      email: `typo-${email}`,
+      phone: "0877 111 222",
+    },
+    null,
+  );
+  assert.equal(!unmatched.ok && unmatched.code, "UNMATCHED");
+
   const withdrawn = await withdrawFromOrder(
     {
       reference: first.order.reference,
@@ -164,6 +175,11 @@ test("erasing removes every personal field and keeps each sale and its non-perso
 
   const edit = after[1].events.find((event) => event.kind === "EDIT");
   assert.deepEqual(edit?.changes, [ITEM_CHANGE]);
+  const unmatched = after[0].events.find(
+    (event) => event.kind === "WITHDRAWAL_UNMATCHED",
+  );
+  assert.ok(unmatched);
+  assert.equal(unmatched.changes, null);
 
   assert.equal(await isSubscribed(customerId), false);
   assert.deepEqual(await eraseCustomer(email, { apply: true }), {

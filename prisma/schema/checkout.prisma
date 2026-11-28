@@ -8,6 +8,7 @@ enum OrderEventKind {
   COLLECT
   UNDO
   WITHDRAWN
+  WITHDRAWAL_UNMATCHED
   EDIT
 }
 

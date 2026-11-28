@@ -636,7 +636,8 @@ export default async function AdminOrders({
                                     · {EMAIL_STATUS_LABEL[event.emailStatus]}
                                   </span>
                                 )}
-                                {event.kind === "EDIT" && (
+                                {(event.kind === "EDIT" ||
+                                  event.kind === "WITHDRAWAL_UNMATCHED") && (
                                   <ul
                                     role="list"
                                     className="text-ink-soft mt-0.5 pl-4"

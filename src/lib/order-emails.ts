@@ -6,10 +6,12 @@ import {
   orderSentEmail,
   orderUpdatedEmail,
   ownerNotificationEmail,
+  ownerUnmatchedWithdrawalEmail,
   ownerWithdrawalEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { sendEmail, type Sent } from "@/lib/email/transport";
+import { parseOrderChanges } from "@/lib/order-change";
 import prisma from "@/lib/prisma";
 import {
   isSubscribed,
@@ -259,5 +261,41 @@ export function sendWithdrawalEmails(
         idempotencyKey: `owner-withdrawal/${reference}`,
       });
     }
+  });
+}
+
+export function sendUnmatchedWithdrawalEmail(
+  eventId: number,
+  send: Send = sendEmail,
+  ownerEmail = process.env.OWNER_EMAIL,
+) {
+  return report(`unmatched withdrawal ${eventId}`, async () => {
+    if (!ownerEmail) return;
+    const event = await prisma.orderEvent.findUnique({
+      where: { id: eventId },
+      select: {
+        kind: true,
+        changes: true,
+        order: { select: { reference: true, contactPhone: true } },
+      },
+    });
+    if (!event || event.kind !== "WITHDRAWAL_UNMATCHED") return;
+
+    const typed = { name: "", phone: "", email: "" };
+    for (const change of parseOrderChanges(event.changes)) {
+      if (change.field in typed && typeof change.to === "string") {
+        typed[change.field as keyof typeof typed] = change.to;
+      }
+    }
+
+    await send({
+      to: ownerEmail,
+      message: ownerUnmatchedWithdrawalEmail({
+        reference: event.order.reference,
+        orderPhone: event.order.contactPhone,
+        typed,
+      }),
+      idempotencyKey: `owner-withdrawal-unmatched/${eventId}`,
+    });
   });
 }

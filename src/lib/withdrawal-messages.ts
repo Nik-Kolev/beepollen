@@ -1,4 +1,5 @@
 import { FIELD_ERROR } from "@/lib/checkout-messages";
+import { CONTACT_EMAIL, OWNER_PHONE } from "@/lib/site";
 import type { WithdrawalResult } from "@/lib/withdrawal";
 
 export const WITHDRAWAL_FIELD_ERROR = {
@@ -8,8 +9,7 @@ export const WITHDRAWAL_FIELD_ERROR = {
   phone: FIELD_ERROR.phone,
 } satisfies Record<"reference" | "name" | "email" | "phone", string>;
 
-export const NOT_FOUND =
-  "Не намерихме поръчка с тези данни. Номерът, телефонът и имейлът трябва да са същите като в поръчката.";
+export const NOT_FOUND = `Не намерихме поръчка с тези данни. Номерът, телефонът и имейлът трябва да са същите като в поръчката. Можете да се откажете и по телефона, ${OWNER_PHONE.display}, или с имейл до ${CONTACT_EMAIL}.`;
 
 export const WITHDRAWAL_REFUSED =
   "Отказът не може да бъде приет в момента. Опитайте по-късно или ни се обадете.";

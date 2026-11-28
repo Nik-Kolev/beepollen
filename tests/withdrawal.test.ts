@@ -5,7 +5,12 @@ import { after, before, test } from "node:test";
 import { placeOrder } from "@/lib/orders";
 import prisma from "@/lib/prisma";
 import { resetRateLimits } from "@/lib/rate-limit";
-import { WITHDRAWAL_RATE_LIMIT, withdrawFromOrder } from "@/lib/withdrawal";
+import {
+  publicWithdrawalResult,
+  UNMATCHED_OWNER_CAP,
+  WITHDRAWAL_RATE_LIMIT,
+  withdrawFromOrder,
+} from "@/lib/withdrawal";
 import {
   INCOMPLETE_WITHDRAWAL,
   NOT_FOUND,
@@ -184,7 +189,7 @@ test("a reference that is not in the order format is a field error and spends no
   assert.equal(allowed.ok, true);
 });
 
-test("an unknown reference and a mismatched phone or email get the same answer and record nothing", async () => {
+test("an unknown reference and a mismatched phone or email get the same public answer and withdraw nothing", async () => {
   const input = await placedOrder();
 
   const answers = await Promise.all([
@@ -194,9 +199,153 @@ test("an unknown reference and a mismatched phone or email get the same answer a
   ]);
 
   for (const answer of answers) {
-    assert.deepEqual(answer, { ok: false, code: "NOT_FOUND" });
+    assert.deepEqual(publicWithdrawalResult(answer), {
+      ok: false,
+      code: "NOT_FOUND",
+    });
   }
   assert.equal(await withdrawnAt(input.reference), null);
+});
+
+function unmatchedEvents(reference: string) {
+  return prisma.orderEvent.findMany({
+    where: { order: { reference }, kind: "WITHDRAWAL_UNMATCHED" },
+    orderBy: { id: "asc" },
+    select: { id: true, changes: true },
+  });
+}
+
+test("a mismatched phone or email keeps what was typed on the order, beside what the order holds", async () => {
+  resetRateLimits();
+  const input = await placedOrder();
+  const typed = {
+    ...input,
+    name: "Мария Петрова",
+    phone: "0877111222",
+    email: "maria@example.com",
+  };
+
+  const answer = await withdrawFromOrder(typed, null);
+
+  const events = await unmatchedEvents(input.reference);
+  assert.equal(events.length, 1);
+  assert.deepEqual(answer, {
+    ok: false,
+    code: "UNMATCHED",
+    eventId: events[0].id,
+    notifyOwner: true,
+  });
+  assert.deepEqual(events[0].changes, [
+    { field: "name", from: "Иван Иванов", to: "Мария Петрова" },
+    { field: "phone", from: "+359888123456", to: "+359877111222" },
+    { field: "email", from: input.email, to: "maria@example.com" },
+  ]);
+});
+
+test("only the first mismatched attempt on an order asks to tell the owner", async () => {
+  resetRateLimits();
+  const input = await placedOrder();
+
+  const first = await withdrawFromOrder(
+    { ...input, phone: "0877111222" },
+    null,
+  );
+  const second = await withdrawFromOrder(
+    { ...input, email: "other@example.com" },
+    null,
+  );
+
+  assert.equal(
+    !first.ok && first.code === "UNMATCHED" && first.notifyOwner,
+    true,
+  );
+  assert.equal(
+    !second.ok && second.code === "UNMATCHED" && second.notifyOwner,
+    false,
+  );
+  assert.equal((await unmatchedEvents(input.reference)).length, 2);
+});
+
+test("an attempt on an erased order is answered as unknown and keeps nothing", async () => {
+  const input = await placedOrder();
+  await prisma.order.update({
+    where: { reference: input.reference },
+    data: { contactName: "Изтрит клиент", contactPhone: "" },
+  });
+
+  const answer = await withdrawFromOrder(input, null);
+
+  assert.deepEqual(answer, { ok: false, code: "NOT_FOUND" });
+  assert.equal((await unmatchedEvents(input.reference)).length, 0);
+  assert.equal(await withdrawnAt(input.reference), null);
+});
+
+test("a mismatch on a cancelled or already withdrawn order is kept but tells no one", async () => {
+  resetRateLimits();
+  const cancelled = await placedOrder();
+  await prisma.order.update({
+    where: { reference: cancelled.reference },
+    data: { cancelledAt: new Date() },
+  });
+  const withdrawnOrder = await placedOrder();
+  assert.equal((await withdrawFromOrder(withdrawnOrder, null)).ok, true);
+
+  for (const input of [cancelled, withdrawnOrder]) {
+    const answer = await withdrawFromOrder(
+      { ...input, phone: "0877111222" },
+      null,
+    );
+    assert.equal(!answer.ok && answer.code, "UNMATCHED");
+    assert.equal(
+      !answer.ok && answer.code === "UNMATCHED" && answer.notifyOwner,
+      false,
+    );
+    assert.equal((await unmatchedEvents(input.reference)).length, 1);
+  }
+});
+
+test("the owner is told about at most the shop-wide cap of unmatched attempts a day", async () => {
+  resetRateLimits();
+  const notified: boolean[] = [];
+
+  for (let i = 0; i <= UNMATCHED_OWNER_CAP.limit; i++) {
+    const input = await placedOrder();
+    const answer = await withdrawFromOrder(
+      { ...input, phone: "0877111222" },
+      null,
+    );
+    notified.push(
+      !answer.ok && answer.code === "UNMATCHED" && answer.notifyOwner,
+    );
+  }
+
+  assert.deepEqual(notified, [
+    ...Array(UNMATCHED_OWNER_CAP.limit).fill(true),
+    false,
+  ]);
+  resetRateLimits();
+});
+
+test("an unknown reference keeps nothing", async () => {
+  const before = await prisma.orderEvent.count({
+    where: { kind: "WITHDRAWAL_UNMATCHED" },
+  });
+
+  const answer = await withdrawFromOrder(
+    {
+      reference: "BP0101990",
+      name: "Иван Иванов",
+      email: "nobody@example.com",
+      phone: "0888123456",
+    },
+    null,
+  );
+
+  assert.deepEqual(answer, { ok: false, code: "NOT_FOUND" });
+  assert.equal(
+    await prisma.orderEvent.count({ where: { kind: "WITHDRAWAL_UNMATCHED" } }),
+    before,
+  );
 });
 
 test("the name is required but not matched against the order", async () => {

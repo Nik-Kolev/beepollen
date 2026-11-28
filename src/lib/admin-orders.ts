@@ -372,6 +372,8 @@ export const ORDER_EVENT_LABEL: Record<OrderEventKind, string> = {
   COLLECT: "Прибрана",
   UNDO: "Стъпката е отменена",
   WITHDRAWN: "Заявен отказ от купувача",
+  WITHDRAWAL_UNMATCHED:
+    "Неприет отказ — телефонът или имейлът не съвпаднаха (поръчка → въведено)",
   EDIT: "Данните са редактирани",
 };
 

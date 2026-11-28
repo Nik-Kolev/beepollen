@@ -141,6 +141,13 @@ test("a withdrawal is refused for a mismatched email, then confirmed, repeated w
       .getByRole("listitem")
       .filter({ hasText: "Заявен отказ от купувача" }),
   ).toContainText("имейл не е пратен — изпращането не е настроено");
+  await expect(
+    card
+      .locator("section")
+      .filter({ has: page.getByRole("heading", { name: "История" }) })
+      .getByRole("listitem")
+      .filter({ hasText: "Неприет отказ" }),
+  ).toContainText(`Имейл: ${email} → someone-else@example.com`);
 
   const kept = placeEcontOrder(
     `withdraw-kept-${randomUUID()}@example.com`,

@@ -16,6 +16,7 @@ import {
   sendEditEmail,
   sendPlacedEmails,
   sendStepEmail,
+  sendUnmatchedWithdrawalEmail,
   sendWithdrawalEmails,
 } from "@/lib/order-emails";
 import { placeOrder } from "@/lib/orders";
@@ -312,6 +313,59 @@ test("an order never withdrawn gets no acknowledgement", async () => {
   const { sent, send } = recorder();
 
   await sendWithdrawalEmails(reference, send);
+
+  assert.equal(sent.length, 0);
+});
+
+async function unmatchedWithdrawal() {
+  const { reference, input } = await place();
+  const outcome = await withdrawFromOrder(
+    {
+      reference,
+      name: "Мария <b>Петрова</b>",
+      phone: "0877111222",
+      email: input.email,
+    },
+    null,
+  );
+  if (outcome.ok || outcome.code !== "UNMATCHED") {
+    throw new Error("the withdrawal was not unmatched");
+  }
+  const order = await prisma.order.findUniqueOrThrow({
+    where: { reference },
+    select: { contactPhone: true },
+  });
+  return {
+    reference,
+    eventId: outcome.eventId,
+    orderPhone: order.contactPhone,
+  };
+}
+
+test("an unmatched withdrawal tells the owner what was typed and the order's own phone", async () => {
+  const { reference, eventId, orderPhone } = await unmatchedWithdrawal();
+  const { sent, send } = recorder();
+
+  await sendUnmatchedWithdrawalEmail(eventId, send, OWNER);
+
+  assert.deepEqual(
+    sent.map(({ to, idempotencyKey }) => ({ to, idempotencyKey })),
+    [{ to: OWNER, idempotencyKey: `owner-withdrawal-unmatched/${eventId}` }],
+  );
+  const { subject, text, html } = sent[0].message;
+  assert.equal(subject, `Неприет отказ от поръчка ${reference}`);
+  assert.ok(text.includes("Име: Мария <b>Петрова</b>"));
+  assert.ok(text.includes("Телефон: +359877111222"));
+  assert.ok(text.includes(orderPhone));
+  assert.ok(html.includes("Мария &lt;b&gt;Петрова&lt;/b&gt;"));
+  assert.ok(!html.includes("<b>Петрова"));
+});
+
+test("an unmatched withdrawal sends nothing without an owner address", async () => {
+  const { eventId } = await unmatchedWithdrawal();
+  const { sent, send } = recorder();
+
+  await sendUnmatchedWithdrawalEmail(eventId, send, "");
 
   assert.equal(sent.length, 0);
 });

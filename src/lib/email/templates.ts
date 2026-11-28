@@ -356,6 +356,53 @@ export function ownerWithdrawalEmail(
   };
 }
 
+export type UnmatchedWithdrawalEmailData = {
+  reference: string;
+  orderPhone: string;
+  typed: { name: string; phone: string; email: string };
+};
+
+export function ownerUnmatchedWithdrawalEmail(
+  withdrawal: UnmatchedWithdrawalEmailData,
+): EmailMessage {
+  const { reference, orderPhone, typed } = withdrawal;
+  const refused = `Някой заяви отказ от поръчка ${reference}, но телефонът или имейлът не съвпаднаха с поръчката, затова сайтът не прие отказа.`;
+  const check = `Обадете се на телефона от поръчката, ${orderPhone}, и проверете дали купувачът се отказва. Отказ, заявен в срок, важи и така.`;
+  const later =
+    "Следващите такива опити за тази поръчка се виждат само в историята ѝ.";
+  const typedLines = [
+    `Име: ${typed.name}`,
+    `Телефон: ${typed.phone}`,
+    `Имейл: ${typed.email}`,
+  ];
+
+  return {
+    subject: `Неприет отказ от поръчка ${reference}`,
+    html: renderLayout({
+      preheader: check,
+      heading: `Неприет отказ от поръчка ${reference}`,
+      toOwner: true,
+      bodyHtml: [
+        paragraph(escapeHtml(refused)),
+        paragraph(
+          ["Въведено във формата:", ...typedLines].map(escapeHtml).join("<br>"),
+        ),
+        paragraph(escapeHtml(check)),
+        paragraph(escapeHtml(later)),
+        paragraph(link(`${SITE_URL}/admin/orders`, "Отвори поръчките")),
+      ].join("\n"),
+    }),
+    text: [
+      `Неприет отказ от поръчка ${reference}`,
+      refused,
+      ["Въведено във формата:", ...typedLines].join("\n"),
+      check,
+      later,
+      `${SITE_URL}/admin/orders`,
+    ].join("\n\n"),
+  };
+}
+
 export function orderSentEmail(
   order: OrderEmailData & { office: { name: string; street: string } },
 ): EmailMessage {

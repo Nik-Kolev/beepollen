@@ -392,7 +392,16 @@ swallows and logs every error, since nothing awaits it. A replayed order
 resends the buyer's confirmation under the same idempotency key, so Resend
 delivers it only if the first attempt never went through; a step email is
 keyed on its event, so sending again after an undo is a new email. The owner
-hears only about new orders and withdrawals, at `OWNER_EMAIL`. „Изпратена“ and „Откажи“ always
+hears only about new orders and withdrawals, at `OWNER_EMAIL`, and about the
+first withdrawal on an order whose phone or email did not match: it writes a
+`WITHDRAWAL_UNMATCHED` event holding the typed name, phone and email as
+`changes` entries, the shape `eraseCustomer` already strips, and the action
+answers it through `publicWithdrawalResult` with the same `NOT_FOUND` as an
+unknown reference. Those owner emails share `UNMATCHED_OWNER_CAP` across the
+shop, since a guessed reference would otherwise spend Resend's daily quota,
+and none is sent for a cancelled or withdrawn order; an erased order is
+answered as unknown and keeps nothing, since no later erasure could reach a
+stranger's data stored on it. „Изпратена“ and „Откажи“ always
 open the dialog, whose email box starts ticked; only a withdrawal warning in it
 passes `confirmed`, so an ordinary send can never wave a withdrawal through.
 The email after an order edit shows the order as it now stands rather than

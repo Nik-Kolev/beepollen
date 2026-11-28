@@ -8,6 +8,7 @@ import {
   ownerNotificationEmail,
   ownerUnmatchedWithdrawalEmail,
   ownerWithdrawalEmail,
+  ownerWithdrawalUnacknowledgedEmail,
   withdrawalReceivedEmail,
 } from "@/lib/email/templates";
 import { sendEmail, type Sent } from "@/lib/email/transport";
@@ -219,10 +220,13 @@ export function sendEditEmail(
   });
 }
 
+export const WITHDRAWAL_RETRY_DELAYS_MS = [60_000, 300_000, 900_000];
+
 export function sendWithdrawalEmails(
   reference: string,
   send: Send = sendEmail,
   ownerEmail = process.env.OWNER_EMAIL,
+  retryDelaysMs = WITHDRAWAL_RETRY_DELAYS_MS,
 ) {
   return report(`withdrawal ${reference}`, async () => {
     const loaded = await loadOrder(reference);
@@ -238,18 +242,23 @@ export function sendWithdrawalEmails(
       email: data.email,
     };
 
-    const sent = await send({
-      to: data.email,
-      message: withdrawalReceivedEmail(withdrawal),
-      idempotencyKey: `withdrawal/${reference}`,
-    });
     const event = await latestEvent(order.id, "WITHDRAWN");
-    if (event) {
-      await prisma.orderEvent.update({
-        where: { id: event.id },
-        data: recorded(sent),
+    const acknowledge = async () => {
+      const sent = await send({
+        to: data.email,
+        message: withdrawalReceivedEmail(withdrawal),
+        idempotencyKey: `withdrawal/${reference}`,
       });
-    }
+      if (event) {
+        await prisma.orderEvent.update({
+          where: { id: event.id },
+          data: recorded(sent),
+        });
+      }
+      return sent;
+    };
+
+    let sent = await acknowledge();
 
     if (ownerEmail) {
       await send({
@@ -259,6 +268,20 @@ export function sendWithdrawalEmails(
           withdrawalName: order.withdrawalName,
         }),
         idempotencyKey: `owner-withdrawal/${reference}`,
+      });
+    }
+
+    for (const delayMs of retryDelaysMs) {
+      if (sent.status !== "FAILED") return;
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      sent = await acknowledge();
+    }
+
+    if (sent.status === "FAILED" && ownerEmail) {
+      await send({
+        to: ownerEmail,
+        message: ownerWithdrawalUnacknowledgedEmail(withdrawal),
+        idempotencyKey: `owner-withdrawal-unacknowledged/${reference}`,
       });
     }
   });

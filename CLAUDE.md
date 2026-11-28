@@ -401,7 +401,9 @@ unknown reference. Those owner emails share `UNMATCHED_OWNER_CAP` across the
 shop, since a guessed reference would otherwise spend Resend's daily quota,
 and none is sent for a cancelled or withdrawn order; an erased order is
 answered as unknown and keeps nothing, since no later erasure could reach a
-stranger's data stored on it. „Изпратена“ and „Откажи“ always
+stranger's data stored on it. A buyer's acknowledgement that fails is retried
+in-process after the owner's notice has gone, so a restart loses only the
+retries and the „обадете се“ email that follows them. „Изпратена“ and „Откажи“ always
 open the dialog, whose email box starts ticked; only a withdrawal warning in it
 passes `confirmed`, so an ordinary send can never wave a withdrawal through.
 The email after an order edit shows the order as it now stands rather than

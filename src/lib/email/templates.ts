@@ -356,6 +356,36 @@ export function ownerWithdrawalEmail(
   };
 }
 
+export function ownerWithdrawalUnacknowledgedEmail(
+  withdrawal: WithdrawalEmailData,
+): EmailMessage {
+  const failed = `Потвърждението на отказа от поръчка ${withdrawal.reference} не стигна до купувача и след няколко опита.`;
+  const call = `Обадете му се днес на ${withdrawal.contactPhone} и потвърдете отказа по телефона.`;
+
+  return {
+    subject: `Потвърждението за отказ от ${withdrawal.reference} не стигна`,
+    html: renderLayout({
+      preheader: call,
+      heading: "Потвърждението не стигна",
+      toOwner: true,
+      bodyHtml: [
+        paragraph(escapeHtml(failed)),
+        paragraph(escapeHtml(call)),
+        paragraph(
+          link(`tel:${withdrawal.contactPhone}`, withdrawal.contactPhone),
+        ),
+        paragraph(link(`${SITE_URL}/admin/orders`, "Отвори поръчките")),
+      ].join("\n"),
+    }),
+    text: [
+      "Потвърждението не стигна",
+      failed,
+      call,
+      `${SITE_URL}/admin/orders`,
+    ].join("\n\n"),
+  };
+}
+
 export type UnmatchedWithdrawalEmailData = {
   reference: string;
   orderPhone: string;

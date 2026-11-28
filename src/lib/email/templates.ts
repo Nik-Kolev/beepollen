@@ -418,7 +418,7 @@ export function orderCancelledEmail(
 ): EmailMessage {
   const cancelled = withdrawn
     ? `Здравейте! Поръчка ${order.reference} е анулирана след отказа ви и няма да бъде изпратена.`
-    : `Здравейте! Поръчка ${order.reference} е анулирана, защото продуктът свърши, и няма да бъде изпратена.`;
+    : `Здравейте! Поръчка ${order.reference} е анулирана и няма да бъде изпратена.`;
   const contact = `За въпроси: ${OWNER_PHONE.display}.`;
 
   return {

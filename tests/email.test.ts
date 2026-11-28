@@ -295,21 +295,25 @@ test("the accepted order carries the EU's legal guarantee notice and its links",
   assert.ok(text.includes(YOUR_EUROPE_GUARANTEES.href));
 });
 
-test("the cancelled email gives the reason and the shop's phone", () => {
+test("the cancelled email names no reason the owner did not give, and gives the shop's phone", () => {
   const { html, text } = orderCancelledEmail(ORDER);
 
   for (const body of [html, text]) {
-    assert.ok(body.includes("защото продуктът свърши"));
+    assert.ok(
+      body.includes(
+        `Поръчка ${ORDER.reference} е анулирана и няма да бъде изпратена.`,
+      ),
+    );
+    assert.ok(!body.includes("защото"));
     assert.ok(body.includes(OWNER_PHONE.display));
   }
 });
 
-test("an order cancelled after the buyer withdrew is never blamed on stock", () => {
+test("an order cancelled after the buyer withdrew says so", () => {
   const { html, text } = orderCancelledEmail(ORDER, true);
 
   for (const body of [html, text]) {
     assert.ok(body.includes("е анулирана след отказа ви"));
-    assert.ok(!body.includes("продуктът свърши"));
   }
 });
 

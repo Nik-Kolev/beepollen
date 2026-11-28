@@ -58,7 +58,7 @@ export default async function AdminAnalytics() {
         {PERIODS.map((period) => {
           const stats = report.status === "ok" ? report.stats[period] : null;
           const sources = stats ? rankedSources(stats) : [];
-          const sourced = sources.reduce((sum, s) => sum + s.visitors, 0);
+          const sourced = sources.reduce((sum, s) => sum + s.visits, 0);
 
           return (
             <li key={period}>
@@ -86,14 +86,14 @@ export default async function AdminAnalytics() {
                 </dl>
 
                 <h3 className="text-ink-soft mt-5 text-sm font-semibold">
-                  Откъде идват
+                  Откъде идват посещенията
                 </h3>
                 {stats ? (
                   <ul
                     role="list"
                     className="mt-2 grid grid-cols-[5.5rem_minmax(0,1fr)_auto] gap-x-3 gap-y-2"
                   >
-                    {sources.map(({ source, visitors: n }) => {
+                    {sources.map(({ source, visits: n }) => {
                       const percent =
                         sourced > 0 ? Math.round((n / sourced) * 100) : 0;
                       return (

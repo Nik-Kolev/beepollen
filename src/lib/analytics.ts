@@ -137,13 +137,16 @@ export async function readVisitorStats(
   const dateRanges = reportRanges(today, launchDate);
   if (dateRanges.length === 0) return stats;
 
-  const metrics = [{ name: "activeUsers" }];
   const [totals, sources] = await Promise.all([
-    runReport({ dateRanges, dimensions: [], metrics }),
+    runReport({
+      dateRanges,
+      dimensions: [],
+      metrics: [{ name: "activeUsers" }],
+    }),
     runReport({
       dateRanges,
       dimensions: [{ name: "sessionSource" }],
-      metrics,
+      metrics: [{ name: "sessions" }],
       limit: "1000",
     }),
   ]);
@@ -168,8 +171,8 @@ export async function readVisitorStats(
 export function rankedSources(stats: VisitorStats) {
   return TRAFFIC_SOURCES.map((source) => ({
     source,
-    visitors: stats.sources[source],
-  })).sort((a, b) => b.visitors - a.visitors);
+    visits: stats.sources[source],
+  })).sort((a, b) => b.visits - a.visits);
 }
 
 export async function countSubscribers(

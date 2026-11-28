@@ -148,8 +148,19 @@ test("GA's rows become each period's visitors and grouped sources", async () => 
   assert.equal(requests.length, 2);
   for (const request of requests) {
     assert.deepEqual(request.dateRanges, reportRanges(TODAY, null));
-    assert.deepEqual(request.metrics, [{ name: "activeUsers" }]);
   }
+});
+
+test("visitors are counted as users, and sources as visits so their shares add up", async () => {
+  const { requests, runReport } = fakeGa(["sessionSource", "dateRange"], []);
+
+  await readVisitorStats(runReport, TODAY, null);
+
+  const totals = requests.find((r) => r.dimensions.length === 0);
+  const sources = requests.find((r) => r.dimensions.length > 0);
+  assert.deepEqual(totals?.metrics, [{ name: "activeUsers" }]);
+  assert.deepEqual(sources?.dimensions, [{ name: "sessionSource" }]);
+  assert.deepEqual(sources?.metrics, [{ name: "sessions" }]);
 });
 
 test("the columns are found by name, whatever order GA returns them in", async () => {
@@ -173,7 +184,7 @@ test("a report without the dateRange column is refused rather than miscounted", 
   );
 });
 
-test("sources are ranked from most visitors to fewest", () => {
+test("sources are ranked from most visits to fewest", () => {
   const ranked = rankedSources({
     visitors: 10,
     sources: {

@@ -308,6 +308,84 @@ test("a withdrawal also tells the owner, naming who withdrew and whether the ord
   assert.ok(sent[1].message.text.includes("не я изпращайте"));
 });
 
+async function withdrawn() {
+  const { reference, input } = await place();
+  await withdrawFromOrder(
+    { reference, name: "Иван Иванов", phone: input.phone, email: input.email },
+    null,
+  );
+  return { reference, input };
+}
+
+function failingFirst(failures: number) {
+  const sent: Outgoing[] = [];
+  const send = async (outgoing: Outgoing): Promise<Sent> => {
+    sent.push(outgoing);
+    const buyerAttempts = sent.filter((s) => s.to !== OWNER).length;
+    return outgoing.to !== OWNER && buyerAttempts <= failures
+      ? { status: "FAILED", resendEmailId: null }
+      : { status: "SENT", resendEmailId: randomUUID() };
+  };
+  return { sent, send };
+}
+
+const NO_WAIT = [0, 0, 0];
+const UNACKNOWLEDGED = "не стигна до купувача";
+
+test("a failed acknowledgement tells the owner at once, then is retried under the same key", async () => {
+  const { reference, input } = await withdrawn();
+  const { sent, send } = failingFirst(2);
+
+  await sendWithdrawalEmails(reference, send, OWNER, NO_WAIT);
+
+  assert.deepEqual(
+    sent.map(({ to, idempotencyKey }) => ({ to, idempotencyKey })),
+    [
+      { to: input.email, idempotencyKey: `withdrawal/${reference}` },
+      { to: OWNER, idempotencyKey: `owner-withdrawal/${reference}` },
+      { to: input.email, idempotencyKey: `withdrawal/${reference}` },
+      { to: input.email, idempotencyKey: `withdrawal/${reference}` },
+    ],
+  );
+  assert.equal(await statusOf(reference, "WITHDRAWN"), "SENT");
+  assert.ok(!sent[1].message.text.includes(UNACKNOWLEDGED));
+});
+
+test("an acknowledgement that never goes through sends the owner a second email to call the buyer", async () => {
+  const { reference, input } = await withdrawn();
+  const { sent, send } = failingFirst(Infinity);
+
+  await sendWithdrawalEmails(reference, send, OWNER, NO_WAIT);
+
+  const toBuyer = sent.filter(({ to }) => to === input.email);
+  assert.equal(toBuyer.length, 1 + NO_WAIT.length);
+  assert.equal(await statusOf(reference, "WITHDRAWN"), "FAILED");
+  const owner = sent.at(-1);
+  assert.equal(owner?.to, OWNER);
+  assert.equal(
+    owner?.idempotencyKey,
+    `owner-withdrawal-unacknowledged/${reference}`,
+  );
+  assert.ok(owner?.message.text.includes(UNACKNOWLEDGED));
+  assert.ok(owner?.message.html.includes(UNACKNOWLEDGED));
+  assert.ok(
+    owner?.message.text.includes(String(input.phone).replace(/^0/, "+359")),
+  );
+});
+
+test("an acknowledgement skipped because sending is not set up is not retried", async () => {
+  const { reference } = await withdrawn();
+  const { sent, send } = recorder("SKIPPED");
+
+  await sendWithdrawalEmails(reference, send, OWNER, NO_WAIT);
+
+  assert.deepEqual(
+    sent.map(({ to }) => to),
+    [sent[0].to, OWNER],
+  );
+  assert.notEqual(sent[0].to, OWNER);
+});
+
 test("an order never withdrawn gets no acknowledgement", async () => {
   const { reference } = await place();
   const { sent, send } = recorder();
